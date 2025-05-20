@@ -139,7 +139,7 @@ export default function CardapioPage() {
                     <p className="font-bold text-[#646464]">{item.subc}</p>
                     <h3 className="text-lg font-semibold mb-2">{item.nome}</h3>
                     <p className="text-amber-600 font-bold mb-8">
-                      A partir: R${item.valor.toFixed(2).replace(".", ",")} {item.valor.toFixed(2).replace(".", ",")} 
+                      A partir: R${item.valor.toFixed(2).replace(".", ",")} {item.vtipo} 
                     </p>
                     <Link href="/" className="font-semibold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] px-[0.7rem] py-[0.4rem] rounded-lg">Ver opções</Link>
                   </div>
