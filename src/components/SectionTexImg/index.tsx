@@ -17,8 +17,8 @@ function SectionTexImg() {
                     Na Panificadora Paraíba, desde 2016, unimos tradição e qualidade para oferecer pães e doces feitos com carinho. O que começou como um sonho de pai e filha se tornou um ponto de encontro querido pelos clientes. Crescemos, inovamos, mas sem perder nossa essência: ingredientes selecionados e o sabor de sempre. Seja bem-vindo ao nosso mundo de aromas e sabores!</p>
                 
                 <div className="pt-7 flex gap-5">
-                    <Link href="/" className="max-[600px]:text-[0.9rem] text-center uppercase bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] py-4 px-5 font-bold rounded-lg">ver produtos</Link>
-                    <Link href="/" className="max-[600px]:text-[0.9rem] uppercase bg-[var(--background)] hover:bg-[var(--background2)] py-4 px-5 font-bold border-2 border-black rounded-lg">nossa história</Link>
+                    <Link href="/produtos" className="max-[600px]:text-[0.9rem] text-center uppercase bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] py-4 px-5 font-bold rounded-lg">ver produtos</Link>
+                    <Link href="/quem-somos" className="max-[600px]:text-[0.9rem] uppercase bg-[var(--background)] hover:bg-[var(--background2)] py-4 px-5 font-bold border-2 border-black rounded-lg">nossa história</Link>
                 </div>
             </article>
 
