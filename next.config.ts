@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
       'img.freepik.com',
       'media.discordapp.net', // <- adiciona este aqui
       'cdn.discordapp.com',
+      'i.imgur.com',
     ],
   },
 };
