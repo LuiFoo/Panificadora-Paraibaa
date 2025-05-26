@@ -141,7 +141,7 @@ export default function CardapioPage() {
                     <p className="text-amber-600 font-bold mb-8">
                       A partir: R${item.valor.toFixed(2).replace(".", ",")} {item.vtipo} 
                     </p>
-                    <Link href="/" className="font-semibold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] px-[0.7rem] py-[0.4rem] rounded-lg">Ver opções</Link>
+                    {/* <Link href="/" className="font-semibold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] px-[0.7rem] py-[0.4rem] rounded-lg">Ver opções</Link> */}
                   </div>
                 ))
               ) : (
