@@ -167,6 +167,7 @@ import Header from "@/components/Header";
 import MenuCategoria from "@/components/MenuCategoria";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 interface ItemCardapio {
   _id: string;
@@ -194,7 +195,6 @@ export default function CardapioPage() {
   const [itens, setItens] = useState<ItemCardapio[]>([]);
   const [loading, setLoading] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const [itemSelecionado, setItemSelecionado] = useState<ItemCardapio | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -255,13 +255,7 @@ export default function CardapioPage() {
     window.history.pushState({}, "", url);
   };
 
-  const abrirModal = (item: ItemCardapio) => {
-    setItemSelecionado(item);
-  };
 
-  const fecharModal = () => {
-    setItemSelecionado(null);
-  };
 
   return (
     <>
@@ -307,12 +301,12 @@ export default function CardapioPage() {
                     <p className="text-amber-600 font-bold mb-8">
                       A partir: R${item.valor.toFixed(2).replace(".", ",")} {item.vtipo}
                     </p>
-                    <button
-                      onClick={() => abrirModal(item)}
-                      className="font-semibold bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg"
+                    <Link
+                      href={`/produtos/${item._id}`}
+                      className="inline-block font-semibold bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-center"
                     >
                       Ver opções
-                    </button>
+                    </Link>
                   </div>
                 ))
               ) : (
@@ -329,33 +323,7 @@ export default function CardapioPage() {
         </div>
       </div>
 
-      {itemSelecionado && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-          <div className="bg-white w-full h-full max-w-3xl p-8 rounded-lg shadow-lg overflow-y-auto relative">
-            <button
-              onClick={fecharModal}
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold"
-            >
-              &times;
-            </button>
-            <Image
-              src={itemSelecionado.img}
-              alt={itemSelecionado.nome}
-              width={400}
-              height={400}
-              className="mx-auto object-cover rounded mb-6"
-            />
-            <h2 className="text-2xl font-bold mb-2 text-center">{itemSelecionado.nome}</h2>
-            <p className="text-center text-gray-600 mb-4">{itemSelecionado.subc}</p>
-            <p className="text-amber-600 font-bold text-center text-xl mb-6">
-              A partir: R${itemSelecionado.valor.toFixed(2).replace(".", ",")} {itemSelecionado.vtipo}
-            </p>
-            <div className="text-center">
-              {/* Espaço para futuras opções do produto */}
-            </div>
-          </div>
-        </div>
-      )}
+
     </>
   );
 }
