@@ -161,7 +161,6 @@
 //   );
 // }
 
-
 "use client";
 
 import Header from "@/components/Header";
@@ -330,7 +329,6 @@ export default function CardapioPage() {
         </div>
       </div>
 
-      {/* Modal tela cheia */}
       {itemSelecionado && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
           <div className="bg-white w-full h-full max-w-3xl p-8 rounded-lg shadow-lg overflow-y-auto relative">
@@ -353,9 +351,7 @@ export default function CardapioPage() {
               A partir: R${itemSelecionado.valor.toFixed(2).replace(".", ",")} {itemSelecionado.vtipo}
             </p>
             <div className="text-center">
-              {/* <p className="text-gray-700">
-                Aqui você pode adicionar mais detalhes ou opções do produto futuramente.
-              </p> */}
+              {/* Espaço para futuras opções do produto */}
             </div>
           </div>
         </div>
