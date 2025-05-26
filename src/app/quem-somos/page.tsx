@@ -62,7 +62,7 @@ function PaginaQuemSomos() {
                 <p className="pb-[1.25rem] text-[var(--color-alavaco-100)] font-semibold text-base">Experimente nossas especialidades e sinta o sabor da tradição em cada mordida. Estamos esperando por você!</p>
                 
                 <div className="pt-7 flex gap-8">
-                    <Link href="/" className="mb-5 uppercase bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] py-[0.75rem] px-[1rem] font-bold rounded-lg">conheça nossos produtos</Link>
+                    <Link href="/produtos" className="mb-5 uppercase bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] py-[0.75rem] px-[1rem] font-bold rounded-lg">conheça nossos produtos</Link>
                 
                 </div>
 
