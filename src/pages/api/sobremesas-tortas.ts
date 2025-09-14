@@ -39,7 +39,7 @@ export default async function handler(
 
     const sobremesasTortas = await dbPadaria
       .collection("sobremesas-tortas")
-      .find({})
+      .find({ deleted: { $ne: true } })
       .toArray();
 
     return res.status(200).json({
