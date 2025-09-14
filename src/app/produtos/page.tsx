@@ -16,7 +16,7 @@ interface ItemCardapio {
   ingredientes: string;
 }
 
-const categoriasMenu: string[] = [
+const categoriasMenu = [
   "BOLOS DOCES ESPECIAIS",
   "DOCES INDIVIDUAIS",
   "PAES DOCES",
@@ -24,7 +24,7 @@ const categoriasMenu: string[] = [
   "ROSCAS PAES ESPECIAIS",
   "SALGADOS ASSADOS LANCHES",
   "SOBREMESAS TORTAS",
-];
+] as const;
 
 const categoriaPadrao = categoriasMenu[0];
 
@@ -35,11 +35,13 @@ export default function CardapioPage() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     setIsClient(true);
     const params = new URLSearchParams(window.location.search);
     const categoriaParam = params.get("categoria");
 
-    if (categoriaParam && categoriasMenu.includes(categoriaParam)) {
+    if (categoriaParam && categoriasMenu.includes(categoriaParam as any)) {
       setCategoriaAtual(categoriaParam);
       buscarItensPorCategoria(categoriaParam);
     } else {
@@ -60,9 +62,9 @@ export default function CardapioPage() {
 
       if (!response.ok) throw new Error(`Falha ao buscar itens da categoria ${categoria}`);
 
-      const data = await response.json();
+      const data: Record<string, ItemCardapio[]> = await response.json();
 
-      const chavesAPI: { [key: string]: string } = {
+      const chavesAPI: Record<(typeof categoriasMenu)[number], string> = {
         "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
         "DOCES INDIVIDUAIS": "docesIndividuais",
         "PAES DOCES": "paesDoces",
@@ -72,7 +74,7 @@ export default function CardapioPage() {
         "SOBREMESAS TORTAS": "sobremesasTortas",
       };
 
-      const chave = chavesAPI[categoria] || Object.keys(data)[0];
+      const chave = chavesAPI[categoria as (typeof categoriasMenu)[number]] || Object.keys(data)[0];
       setItens(data[chave] || []);
     } catch (error) {
       console.error(error);
@@ -82,7 +84,7 @@ export default function CardapioPage() {
     }
   };
 
-  const handleCategoriaClick = (categoria: string) => {
+  const handleCategoriaClick = (categoria: string): void => {
     setCategoriaAtual(categoria);
     buscarItensPorCategoria(categoria);
 
@@ -98,7 +100,7 @@ export default function CardapioPage() {
         <h1 className="text-3xl font-bold text-center mb-6">Nosso Cardápio</h1>
 
         <MenuCategoria
-          categories={categoriasMenu}
+          categories={categoriasMenu as unknown as string[]}
           activeCategory={categoriaAtual}
           variant="button"
           onCategoryClick={handleCategoriaClick}
