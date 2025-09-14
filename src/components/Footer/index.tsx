@@ -42,7 +42,7 @@ function Footer() {
             <img
               src="/images/logoInstagram.svg"
               alt="Instagram da padaria"
-              className="w-10 h-10"
+              className="w-12 h-12"
             />
           </a>
         </section>
