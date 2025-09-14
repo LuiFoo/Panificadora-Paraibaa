@@ -1,195 +1,3 @@
-// "use client";
-
-// import Header from "@/components/Header";
-// import { useEffect, useState } from "react";
-// import Image from "next/image";
-// import Link from "next/link";
-// import { useParams } from "next/navigation";
-
-// interface ItemCardapio {
-//   _id: string;
-//   nome: string;
-//   valor: number;
-//   img: string;
-//   subc: string;
-//   vtipo: string;
-// }
-
-// const categoriasMenu: string[] = [
-//   "BOLOS DOCES ESPECIAIS",
-//   "DOCES INDIVIDUAIS",
-//   "PAES DOCES",
-//   "PAES SALGADOS ESPECIAIS",
-//   "ROSCAS PAES ESPECIAIS",
-//   "SALGADOS ASSADOS LANCHES",
-//   "SOBREMESAS TORTAS",
-// ];
-
-// export default function ProdutoDetalhePage() {
-//   const params = useParams();
-//   const [produto, setProduto] = useState<ItemCardapio | null>(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState<string | null>(null);
-
-//   useEffect(() => {
-//     if (params?.id) {
-//       buscarProduto(params.id as string);
-//     }
-//   }, [params?.id]);
-
-//   const buscarProduto = async (id: string) => {
-//     setLoading(true);
-//     setError(null);
-
-//     try {
-//       // Buscar em todas as categorias até encontrar o produto
-//       for (const categoria of categoriasMenu) {
-//         const categoriaUrl = categoria.toLowerCase().replace(/\s+/g, "-");
-//         const response = await fetch(`/api/${categoriaUrl}`);
-
-//         if (response.ok) {
-//           const data = await response.json();
-
-//           const chavesAPI: { [key: string]: string } = {
-//             "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
-//             "DOCES INDIVIDUAIS": "docesIndividuais",
-//             "PAES DOCES": "paesDoces",
-//             "PAES SALGADOS ESPECIAIS": "paesSalgadosEspeciais",
-//             "ROSCAS PAES ESPECIAIS": "roscasPaesEspeciais",
-//             "SALGADOS ASSADOS LANCHES": "salgadosAssadosLanches",
-//             "SOBREMESAS TORTAS": "sobremesasTortas",
-//           };
-
-//           const chave = chavesAPI[categoria] || Object.keys(data)[0];
-//           const itens = data[chave] || [];
-
-//           const produtoEncontrado = itens.find((item: ItemCardapio) => item._id === id);
-//           if (produtoEncontrado) {
-//             setProduto(produtoEncontrado);
-//             setLoading(false);
-//             return;
-//           }
-//         }
-//       }
-
-//       // Se chegou até aqui, não encontrou o produto
-//       setError("Produto não encontrado");
-//     } catch (error) {
-//       console.error("Erro ao buscar produto:", error);
-//       setError("Erro ao carregar produto");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   if (loading) {
-//     return (
-//       <>
-//         <Header />
-//         <div className="mx-auto py-8">
-//           <div className="flex justify-center items-center py-12">
-//             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-//           </div>
-//         </div>
-//       </>
-//     );
-//   }
-
-//   if (error || !produto) {
-//     return (
-//       <>
-//         <Header />
-//         <div className="mx-auto py-8 text-center">
-//           <h1 className="text-2xl font-bold mb-4">Produto não encontrado</h1>
-//           <p className="text-gray-600 mb-6">{error || "O produto que você está procurando não existe."}</p>
-//           <Link
-//             href="/produtos"
-//             className="inline-block bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg font-semibold"
-//           >
-//             Voltar ao Cardápio
-//           </Link>
-//         </div>
-//       </>
-//     );
-//   }
-
-//   return (
-//     <>
-//       <Header />
-//       <div className="mx-auto py-8 px-4 max-w-4xl">
-//         <div className="mb-6">
-//           <Link
-//             href="/produtos"
-//             className="inline-flex items-center text-amber-600 hover:text-amber-500 font-semibold"
-//           >
-//             ← Voltar ao Cardápio
-//           </Link>
-//         </div>
-        
-
-//         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-//           <div className="md:flex">
-//             <div className="md:w-1/2">
-//               <Image
-//                 src={produto.img}
-//                 alt={produto.nome}
-//                 width={600}
-//                 height={600}
-//                 className="w-full h-96 md:h-full object-cover"
-//               />
-//             </div>
-//             <div className="md:w-1/2 p-8">
-//               <div className="mb-4">
-//                 <span className="inline-block bg-amber-100 text-amber-800 text-sm font-semibold px-3 py-1 rounded-full">
-//                   {produto.subc}
-//                 </span>
-//               </div>
-//               <h1 className="text-3xl font-bold mb-4">{produto.nome}</h1>
-//               <div className="mb-6">
-//                 <p className="text-2xl font-bold text-amber-600">
-//                   A partir: R${produto.valor.toFixed(2).replace(".", ",")} {produto.vtipo}
-//                 </p>
-//               </div>
-              
-//               <div className="space-y-4">
-//                 <div className="border-t pt-4">
-//                   <h3 className="text-lg font-semibold mb-2">Informações do Produto</h3>
-//                   <p className="text-gray-600">
-//                     Este é um produto da categoria <strong>{produto.subc}</strong>. 
-//                     Entre em contato conosco para mais informações sobre disponibilidade, 
-//                     tamanhos e opções de personalização.
-//                   </p>
-//                 </div>
-                
-//                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
-//                   <Link
-//                     href="/fale-conosco"
-//                     className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
-//                   >
-//                     Fazer Pedido
-//                   </Link>
-//                   <Link
-//                     href="/produtos"
-//                     className="flex-1 border border-amber-600 text-amber-600 hover:bg-amber-50 text-center px-6 py-3 rounded-lg font-semibold transition-colors"
-//                   >
-//                     Ver Mais Produtos
-//                   </Link>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </>
-//   );
-// } 
-
-
-
-
-
-
-
 "use client";
 
 import Header from "@/components/Header";
@@ -197,6 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import Footer from "@/components/Footer";
 
 interface ItemCardapio {
   _id: string;
@@ -220,6 +29,7 @@ const categoriasMenu: string[] = [
 export default function ProdutoDetalhePage() {
   const params = useParams();
   const [produto, setProduto] = useState<ItemCardapio | null>(null);
+  const [produtosRelacionados, setProdutosRelacionados] = useState<ItemCardapio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -234,37 +44,39 @@ export default function ProdutoDetalhePage() {
     setError(null);
 
     try {
-      // Buscar em todas as categorias até encontrar o produto
+      const chavesAPI: { [key: string]: string } = {
+        "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
+        "DOCES INDIVIDUAIS": "docesIndividuais",
+        "PAES DOCES": "paesDoces",
+        "PAES SALGADOS ESPECIAIS": "paesSalgadosEspeciais",
+        "ROSCAS PAES ESPECIAIS": "roscasPaesEspeciais",
+        "SALGADOS ASSADOS LANCHES": "salgadosAssadosLanches",
+        "SOBREMESAS TORTAS": "sobremesasTortas",
+      };
+
       for (const categoria of categoriasMenu) {
         const categoriaUrl = categoria.toLowerCase().replace(/\s+/g, "-");
         const response = await fetch(`/api/${categoriaUrl}`);
 
         if (response.ok) {
           const data = await response.json();
-
-          const chavesAPI: { [key: string]: string } = {
-            "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
-            "DOCES INDIVIDUAIS": "docesIndividuais",
-            "PAES DOCES": "paesDoces",
-            "PAES SALGADOS ESPECIAIS": "paesSalgadosEspeciais",
-            "ROSCAS PAES ESPECIAIS": "roscasPaesEspeciais",
-            "SALGADOS ASSADOS LANCHES": "salgadosAssadosLanches",
-            "SOBREMESAS TORTAS": "sobremesasTortas",
-          };
-
           const chave = chavesAPI[categoria] || Object.keys(data)[0];
-          const itens = data[chave] || [];
+          const itens: ItemCardapio[] = data[chave] || [];
 
-          const produtoEncontrado = itens.find((item: ItemCardapio) => item._id === id);
+          const produtoEncontrado = itens.find((item) => item._id === id);
           if (produtoEncontrado) {
             setProduto(produtoEncontrado);
+
+            // Buscar até 4 produtos relacionados
+            const relacionados = itens.filter((item) => item._id !== id).slice(0, 4);
+            setProdutosRelacionados(relacionados);
+
             setLoading(false);
             return;
           }
         }
       }
 
-      // Se chegou até aqui, não encontrou o produto
       setError("Produto não encontrado");
     } catch (error) {
       console.error("Erro ao buscar produto:", error);
@@ -293,7 +105,9 @@ export default function ProdutoDetalhePage() {
         <Header />
         <div className="mx-auto py-8 text-center">
           <h1 className="text-2xl font-bold mb-4">Produto não encontrado</h1>
-          <p className="text-gray-600 mb-6">{error || "O produto que você está procurando não existe."}</p>
+          <p className="text-gray-600 mb-6">
+            {error || "O produto que você está procurando não existe."}
+          </p>
           <Link
             href="/produtos"
             className="inline-block bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg font-semibold"
@@ -308,7 +122,7 @@ export default function ProdutoDetalhePage() {
   return (
     <>
       <Header />
-      <div className="mx-auto py-8 px-4 max-w-4xl">
+      <div className="mx-auto py-8 px-4 max-w-6xl">
         <div className="mb-6">
           <Link
             href="/produtos"
@@ -317,18 +131,117 @@ export default function ProdutoDetalhePage() {
             ← Voltar ao Cardápio
           </Link>
         </div>
-        
 
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src={produto.img}
-                alt={produto.nome}
-                width={600}
-                height={600}
-                className="w-full h-96 md:h-full object-cover"
-              />
+        {/* Detalhes do Produto */}
+        <section className="flex flex-col md:flex-row gap-8">
+          <div className="flex-1">
+            <Image
+              src={produto.img}
+              alt={produto.nome}
+              width={600}
+              height={600}
+              className="w-full h-auto rounded-lg shadow-lg object-cover"
+            />
+          </div>
+
+          <div className="flex-1 bg-white rounded-lg shadow-lg p-8">
+            <div className="mb-4">
+              <span className="inline-block bg-amber-100 text-amber-800 text-sm font-semibold px-3 py-1 rounded-full">
+                {produto.subc}
+              </span>
+            </div>
+            <h1 className="text-3xl font-bold mb-4">{produto.nome}</h1>
+            <div className="mb-6">
+              <p className="text-2xl font-bold text-amber-600">
+                A partir: R${produto.valor.toFixed(2).replace(".", ",")}{" "}
+                {produto.vtipo}
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-2">
+                  Informações do Produto
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Este é um produto da categoria{" "}
+                  <strong>{produto.subc}</strong>. Entre em contato conosco
+                  para mais informações sobre disponibilidade, tamanhos e
+                  opções de personalização.
+                </p>
               </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/fale-conosco"
+                  className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Fazer Pedido
+                </Link>
+                <Link
+                  href="/produtos"
+                  className="flex-1 border border-amber-600 text-amber-600 hover:bg-amber-50 text-center px-6 py-3 rounded-lg font-semibold transition-colors"
+                >
+                  Ver Mais Produtos
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Descrição + Produtos Relacionados */}
+        <section className="px-4 md:px-20 py-10 mt-10 shadow-lg">
+          <div className="mb-6">
+            <h5
+              className="inline-block px-5 py-2 text-md font-bold text-gray-800 border-2 border-gray-300 rounded-md bg-white shadow-sm"
+            >
+              Descrição
+            </h5>
+          </div>
+
+          <p className="text-gray-600 leading-relaxed mb-6">
+            Este é um produto da categoria <strong>{produto.subc}</strong>.
+            Entre em contato conosco para mais informações sobre
+            disponibilidade, tamanhos e opções de personalização.
+          </p>
+
+          {produtosRelacionados.length > 0 && (
+            <div>
+              <div className="border-t w-60 max-w-4xl mx-auto"></div>
+              <p className="mt-4 text-center text-xl font-semibold">
+                Produtos Relacionados
+              </p>
+
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {produtosRelacionados.map((item) => (
+                  <div
+                    key={item._id}
+                    className="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col"
+                  >
+                    <Image
+                      src={item.img}
+                      alt={item.nome}
+                      width={200}
+                      height={200}
+                      className="w-full h-40 object-cover rounded"
+                    />
+                    <h3 className="mt-2 text-center font-medium">
+                      {item.nome}
+                    </h3>
+                    <Link
+                      href={`/produtos/${item._id}`}
+                      className="mt-4 bg-amber-600 hover:bg-amber-500 text-white text-center px-4 py-2 rounded-lg font-semibold transition-colors"
+                    >
+                      Ver Opção
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
       </div>
+      <Footer />
     </>
   );
-} 
+}
