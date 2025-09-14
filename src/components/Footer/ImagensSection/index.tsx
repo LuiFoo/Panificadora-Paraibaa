@@ -14,21 +14,16 @@ function ImagensSection() {
     ]
 
     return(
-        <div className="mt-12 flex-wrap w-full flex">
-            {images.map((item, index) => (
-            <Image
-                key={index}
-                src={item.src} // Supondo que cada item tenha um `src`
-                alt={item.alt || "Imagem"}
-                width={0}
-                height={0}
-                sizes="25vw"
-                className="w-1/4 object-cover"
-            />
-            ))}
-
-
-        </div>
+        <section className="mt-12 relative w-full h-120 max-[400px]:h-36 max-[500px]:h-45 max-[700px]:h-55 max-[1000px]:h-70 max-[1500px]:h-90">
+          <Image
+            src="/images/back-inicial2.png"
+            alt="Logo"
+            fill
+            quality={100}
+            priority
+            style={{ objectFit: 'cover' }}
+          />
+        </section>
 
     )
 }
