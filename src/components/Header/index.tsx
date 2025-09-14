@@ -9,7 +9,7 @@ function Header() {
     const [menuOpen, setMenuOpen] = useState(false);
 
     return (
-        <header className="relative p-8 flex justify-center items-center font-bold text-sm">
+        <header className="bg-white rounded-lg shadow-lg overflow-hidden relative p-8 flex justify-center items-center font-bold text-sm">
             {/* Botão menu (mobile) */}
             <button
                 className="block max-[750px]:absolute max-[750px]:left-5 max-[750px]:top-5 md:hidden z-20"
