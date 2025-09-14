@@ -5,6 +5,7 @@ import MenuCategoria from "@/components/MenuCategoria";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import Footer from "@/components/Footer";
 
 interface ItemCardapio {
   _id: string;
@@ -160,7 +161,7 @@ export default function CardapioPage() {
         </div>
       </div>
 
-
+      <Footer showMap={false} />
     </>
   );
 }

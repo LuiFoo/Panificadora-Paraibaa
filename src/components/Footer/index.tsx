@@ -1,17 +1,24 @@
 import Link from "next/link";
 
-function Footer() {
+interface FooterProps {
+  showMap?: boolean; // controla se o mapa aparece
+}
+
+function Footer({ showMap = true }: FooterProps) {
   return (
     <footer>
-      <iframe
-        title="Localização da Panificadora Paraíba no Google Maps"
-        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14887.332009890566!2d-47.827383518174614!3d-21.11922302639198!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94b9951b9396d22d%3A0xd0bd2576f3107240!2sPanificadora%20Paraiba!5e0!3m2!1spt-BR!2sbr!4v1744143622485!5m2!1spt-BR!2sbr"
-        className="w-full rounded-lg"
-        height="425"
-        loading="lazy"
-        allowFullScreen
-        referrerPolicy="no-referrer-when-downgrade"
-      ></iframe>
+      {/* Mapa condicional */}
+      {showMap && (
+        <iframe
+          title="Localização da Panificadora Paraíba no Google Maps"
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14887.332009890566!2d-47.827383518174614!3d-21.11922302639198!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94b9951b9396d22d%3A0xd0bd2576f3107240!2sPanificadora%20Paraiba!5e0!3m2!1spt-BR!2sbr!4v1744143622485!5m2!1spt-BR!2sbr"
+          className="w-full rounded-lg"
+          height="425"
+          loading="lazy"
+          allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
+        ></iframe>
+      )}
 
       <figure>
         <img
@@ -23,6 +30,7 @@ function Footer() {
       </figure>
 
       <div className="flex flex-wrap max-[830px]:gap-2 max-[830px]:flex-col justify-between pt-24 px-23 max-[600px]:pt-10 max-[600px]:px-12">
+        {/* Seção de Marca */}
         <section className="brand-section mb-6 md:mb-0" aria-labelledby="brand-title">
           <h2 id="brand-title" className="sr-only">Marca</h2>
           <img
@@ -47,6 +55,7 @@ function Footer() {
           </a>
         </section>
 
+        {/* Navegação */}
         <nav className="mb-6 md:mb-0" aria-labelledby="footer-navigation">
           <h2 id="footer-navigation" className="font-bold mb-3">Navegue</h2>
           <ul className="space-y-2">
@@ -69,6 +78,7 @@ function Footer() {
           </ul>
         </nav>
 
+        {/* Funcionamento */}
         <section className="mb-6 md:mb-0" aria-labelledby="hours-heading">
           <h2 id="hours-heading" className="font-bold mb-3">Funcionamento</h2>
           <div className="flex items-center gap-2 mb-4">
@@ -79,6 +89,7 @@ function Footer() {
           <p className="text-sm">Domingo: 06h às 12h</p>
         </section>
 
+        {/* Contato */}
         <address className="not-italic" aria-labelledby="contact-heading">
           <h2 id="contact-heading" className="font-bold mb-3">Contato</h2>
           <ul className="space-y-2">
