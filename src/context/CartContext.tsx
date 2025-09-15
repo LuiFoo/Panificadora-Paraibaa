@@ -9,15 +9,17 @@ export interface CartItem {
   valor: number;
   quantidade: number;
   img: string;
-  user?: string; // ✅ adiciona o login do usuário como opcional
+  user?: string;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
+  updateItemQuantity: (id: string, quantidade: number) => void;
   clearCart: () => void;
   totalItems: number;
+  updateCart: (items: CartItem[]) => void; // ✅ Atualiza carrinho inteiro
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -28,44 +30,61 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Carregar carrinho do localStorage sempre que o login mudar
+  // Carregar itens do localStorage ao iniciar
   useEffect(() => {
     const saved = localStorage.getItem(`carrinho_${login}`);
     if (saved) setCartItems(JSON.parse(saved));
     else setCartItems([]);
   }, [login]);
 
-  // Salvar carrinho no localStorage sempre que itens mudarem
+  // Salvar itens no localStorage sempre que mudarem
   useEffect(() => {
     localStorage.setItem(`carrinho_${login}`, JSON.stringify(cartItems));
   }, [cartItems, login]);
 
   const addItem = (item: CartItem) => {
-    setCartItems((prev) => {
-      const exists = prev.find((i) => i.id === item.id && i.user === item.user); // garante que seja do mesmo usuário
+    setCartItems(prev => {
+      const exists = prev.find(i => i.id === item.id && i.user === login);
       if (exists) {
-        return prev.map((i) =>
-          i.id === item.id && i.user === item.user
+        return prev.map(i =>
+          i.id === item.id && i.user === login
             ? { ...i, quantidade: i.quantidade + item.quantidade }
             : i
         );
       }
-      return [...prev, item];
+      return [...prev, { ...item, user: login }];
     });
   };
 
   const removeItem = (id: string) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== id || i.user !== login));
+    setCartItems(prev => prev.filter(i => !(i.id === id && i.user === login)));
   };
 
-  const clearCart = () => setCartItems([]);
+  const updateItemQuantity = (id: string, quantidade: number) => {
+    setCartItems(prev =>
+      prev.map(i =>
+        i.id === id && i.user === login ? { ...i, quantidade } : i
+      )
+    );
+  };
+
+  const clearCart = () => {
+    setCartItems(prev => prev.filter(i => i.user !== login));
+  };
+
+  // ✅ Atualiza o carrinho inteiro (preços, nomes, imagens, etc.)
+  const updateCart = (items: CartItem[]) => {
+    setCartItems(items.map(i => ({ ...i, user: login })));
+  };
 
   const totalItems = cartItems
-    .filter((i) => i.user === login) // conta apenas itens do usuário atual
+    .filter(i => i.user === login)
     .reduce((sum, i) => sum + i.quantidade, 0);
 
   return (
-    <CartContext.Provider value={{ cartItems, addItem, removeItem, clearCart, totalItems }}>
+    <CartContext.Provider
+      value={{ cartItems, addItem, removeItem, updateItemQuantity, clearCart, totalItems, updateCart }}
+    >
       {children}
     </CartContext.Provider>
   );

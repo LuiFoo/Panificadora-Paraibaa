@@ -117,7 +117,7 @@ export default function CardapioPage() {
             <p className="text-center text-gray-500">Carregando...</p>
           ) : loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--color-avocado-500)]"></div>
             </div>
           ) : categoriaAtual ? (
             <div className="flex flex-wrap justify-center gap-[30px]">
@@ -136,12 +136,12 @@ export default function CardapioPage() {
                     />
                     <p className="font-bold text-[#646464]">{item.subc}</p>
                     <h3 className="text-lg font-semibold mb-2">{item.nome}</h3>
-                    <p className="text-amber-600 font-bold mb-8">
+                    <p className="text-[var(--color-avocado-600)] font-bold mb-8">
                       A partir: R${item.valor.toFixed(2).replace(".", ",")} {item.vtipo}
                     </p>
                     <Link
                       href={`/produtos/${item._id}`}
-                      className="inline-block font-semibold bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-center"
+                      className="inline-block font-semibold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] text-white px-4 py-2 rounded-lg text-center"
                     >
                       Ver opções
                     </Link>

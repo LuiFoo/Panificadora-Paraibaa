@@ -34,6 +34,8 @@ export default function ProdutoDetalhePage() {
   const [produtosRelacionados, setProdutosRelacionados] = useState<ItemCardapio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [quantidade, setQuantidade] = useState<number>(1);
+  const [mensagem, setMensagem] = useState<string>(""); // nova state para feedback
 
   const { addItem } = useCart();
   const { user } = useUser();
@@ -71,10 +73,8 @@ export default function ProdutoDetalhePage() {
           const produtoEncontrado = itens.find((item) => item._id === id);
           if (produtoEncontrado) {
             setProduto(produtoEncontrado);
-
             const relacionados = itens.filter((item) => item._id !== id).slice(0, 4);
             setProdutosRelacionados(relacionados);
-
             setLoading(false);
             return;
           }
@@ -92,12 +92,17 @@ export default function ProdutoDetalhePage() {
 
   const handleAddToCart = () => {
     if (!produto) {
-      alert("Produto não encontrado.");
+      setMensagem("Produto não encontrado.");
       return;
     }
 
     if (!user || !user.login) {
-      alert("Você precisa estar logado para adicionar ao carrinho.");
+      setMensagem("Você precisa estar logado para adicionar ao carrinho.");
+      return;
+    }
+
+    if (quantidade < 1) {
+      setMensagem("A quantidade deve ser pelo menos 1.");
       return;
     }
 
@@ -105,12 +110,16 @@ export default function ProdutoDetalhePage() {
       id: produto._id,
       nome: produto.nome,
       valor: produto.valor,
-      quantidade: 1,
+      quantidade,
       img: produto.img,
-      user: user.login, // agora seguro e aceito pelo tipo CartItem
+      user: user.login,
     });
 
-    alert(`${produto.nome} adicionado ao carrinho!`);
+    // Mostra a mensagem no front
+    setMensagem(`${quantidade}x ${produto.nome} adicionado ao carrinho!`);
+
+    // Desaparece após 3 segundos
+    setTimeout(() => setMensagem(""), 3000);
   };
 
   if (loading) {
@@ -167,7 +176,7 @@ export default function ProdutoDetalhePage() {
             </div>
             <h1 className="text-3xl font-bold mb-4">{produto.nome}</h1>
             <div className="mb-6">
-              <p className="text-2xl font-bold text-amber-600">
+              <p className="text-2xl font-bold text-[var(--color-avocado-600)]">
                 A partir: R${produto.valor.toFixed(2).replace(".", ",")} {produto.vtipo}
               </p>
             </div>
@@ -180,21 +189,38 @@ export default function ProdutoDetalhePage() {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              {/* Input de quantidade */}
+              <div className="flex items-center gap-4">
+                <label className="font-semibold">Quantidade:</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(parseInt(e.target.value))}
+                  className="w-20 border border-gray-300 rounded px-2 py-1"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 mt-4">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
+                  className="flex-1 bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
                 >
                   Adicionar ao Carrinho
                 </button>
 
                 <Link
                   href="/produtos"
-                  className="flex-1 border border-amber-600 text-amber-600 hover:bg-amber-50 text-center px-6 py-3 rounded-lg font-semibold transition-colors"
+                  className="flex-1 border border-[var(--color-avocado-600)] text-[var(--color-avocado-600)] hover:bg-amber-50 text-center px-6 py-3 rounded-lg font-semibold transition-colors"
                 >
                   Ver Mais Produtos
                 </Link>
               </div>
+
+              {/* Mensagem de feedback */}
+              {mensagem && (
+                <p className="mt-2 text-[var(--color-avocado-600)] font-semibold">{mensagem}</p>
+              )}
             </div>
           </div>
         </section>
@@ -222,7 +248,7 @@ export default function ProdutoDetalhePage() {
                     <h3 className="mt-2 text-center font-medium">{item.nome}</h3>
                     <Link
                       href={`/produtos/${item._id}`}
-                      className="mt-4 bg-amber-600 hover:bg-amber-500 text-white text-center px-4 py-2 rounded-lg font-semibold transition-colors"
+                      className="mt-4 bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] text-white text-center px-4 py-2 rounded-lg font-semibold transition-colors"
                     >
                       Ver Opção
                     </Link>
