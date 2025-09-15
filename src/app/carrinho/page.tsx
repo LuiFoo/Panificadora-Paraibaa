@@ -2,7 +2,7 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useCart, CartItem as ContextCartItem } from "@/context/CartContext";
+import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -32,42 +32,23 @@ export default function CarrinhoPage() {
   const [loading, setLoading] = useState(true);
   const [localCart, setLocalCart] = useState<CartItem[]>([]);
 
-  // Atualiza o carrinho com os dados da API
+  // Atualiza localCart com dados da API apenas uma vez ao montar
   useEffect(() => {
-    const fetchAndSyncCart = async () => {
-      setLoading(true);
-
-      if (cartItems.length === 0) {
-        setLocalCart([]);
-        setLoading(false);
-        return;
-      }
-
+    const fetchProducts = async () => {
       try {
         const res = await fetch("/api/bolos-doces-especiais");
         if (!res.ok) throw new Error("Erro ao buscar produtos");
         const data: { bolosDocesEspeciais: Product[] } = await res.json();
         const products = data.bolosDocesEspeciais;
 
-        const updatedItems: CartItem[] = cartItems
-          .map(item => {
-            const product = products.find(p => p._id === item.id);
-            if (!product) return null; // remove item que não existe mais
-            return {
-              ...item,
-              nome: product.nome,
-              valor: product.valor,
-              img: product.img || "/images/default-product.png",
-            };
-          })
-          .filter(Boolean) as CartItem[];
+        const updatedItems: CartItem[] = cartItems.map(item => {
+          const product = products.find(p => p._id === item.id);
+          return product
+            ? { ...item, nome: product.nome, valor: product.valor, img: product.img || "/images/default-product.png" }
+            : item;
+        });
 
         setLocalCart(updatedItems);
-
-        // Sincroniza quantidade atualizada do contexto
-        updatedItems.forEach(item => {
-          updateItemQuantity(item.id, item.quantidade);
-        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -75,8 +56,8 @@ export default function CarrinhoPage() {
       }
     };
 
-    fetchAndSyncCart();
-  }, [cartItems, updateItemQuantity]);
+    fetchProducts();
+  }, [cartItems]);
 
   const removerUmaUnidade = (itemId: string) => {
     const item = localCart.find(i => i.id === itemId);

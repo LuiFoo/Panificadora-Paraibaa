@@ -19,7 +19,7 @@ interface CartContextType {
   updateItemQuantity: (id: string, quantidade: number) => void;
   clearCart: () => void;
   totalItems: number;
-  updateCart: (items: CartItem[]) => void; // ✅ Atualiza carrinho inteiro
+  updateCart: (items: CartItem[]) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -30,14 +30,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Carregar itens do localStorage ao iniciar
   useEffect(() => {
     const saved = localStorage.getItem(`carrinho_${login}`);
     if (saved) setCartItems(JSON.parse(saved));
-    else setCartItems([]);
   }, [login]);
 
-  // Salvar itens no localStorage sempre que mudarem
   useEffect(() => {
     localStorage.setItem(`carrinho_${login}`, JSON.stringify(cartItems));
   }, [cartItems, login]);
@@ -72,7 +69,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCartItems(prev => prev.filter(i => i.user !== login));
   };
 
-  // ✅ Atualiza o carrinho inteiro (preços, nomes, imagens, etc.)
   const updateCart = (items: CartItem[]) => {
     setCartItems(items.map(i => ({ ...i, user: login })));
   };
