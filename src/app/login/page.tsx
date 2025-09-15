@@ -77,7 +77,7 @@ export default function LoginPage() {
 
           <button
             onClick={fazerLogin}
-            className="bg-[#B69B4C] text-black font-semibold py-3 rounded-lg hover:bg-amber-400 transition mt-2"
+            className="bg-[var(--color-avocado-600)] text-black font-semibold py-3 rounded-lg hover:bg-[var(--color-avocado-500)] transition mt-2"
           >
             Entrar
           </button>
