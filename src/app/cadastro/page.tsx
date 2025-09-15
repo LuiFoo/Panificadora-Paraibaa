@@ -5,19 +5,18 @@ import Footer from "@/components/Footer";
 import { useState } from "react";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
-export default function LoginPage() {
+export default function CadastroPage() {
+  const [nome, setNome] = useState("");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
   const { setUser } = useUser();
-  const router = useRouter();
 
-  const fazerLogin = async (e?: React.FormEvent) => {
+  const fazerCadastro = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!login || !password) {
+    if (!nome || !login || !password) {
       setMsg("Preencha todos os campos");
       return;
     }
@@ -25,31 +24,29 @@ export default function LoginPage() {
     setMsg("Carregando...");
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login, password }),
+        body: JSON.stringify({ name: nome, login, password }),
       });
 
       const data = await res.json();
 
       if (data.ok) {
-        const userWithPassword = { ...data.user, password };
-        localStorage.setItem("usuario", JSON.stringify(userWithPassword));
-        setUser(userWithPassword);
+        setMsg(`Bem-vindo(a), ${nome}!`);
 
-        // mostra mensagem de boas-vindas
-        setMsg(`Bem-vindo(a), ${data.user.name}!`);
+        const novoUsuario = { name: nome, login, password };
+        localStorage.setItem("usuario", JSON.stringify(novoUsuario));
+        setUser(novoUsuario);
 
-        // espera 2 segundos e redireciona para a página principal
         setTimeout(() => {
-          router.push("/");
-        }, 2000);
+          window.location.href = "/";
+        }, 2500);
       } else {
         setMsg(data.msg);
       }
     } catch (err) {
-      console.error("Erro na requisição:", err);
+      console.error("Erro no cadastro:", err);
       setMsg("Erro no servidor");
     }
   };
@@ -60,18 +57,29 @@ export default function LoginPage() {
 
       <main className="my-10 min-h-[70vh] flex flex-col items-center justify-center p-4 bg-white">
         <form
-          onSubmit={fazerLogin}
+          onSubmit={fazerCadastro}
           className="flex flex-col gap-6 w-full max-w-md rounded-2xl shadow-xl p-10 bg-[#1f1f1f]"
         >
           <h1 className="text-2xl font-bold text-center text-white">
-            Faça login em sua conta
+            Crie sua conta
           </h1>
+
+          {/* Nome */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-[#B69B4C]">Nome completo</label>
+            <input
+              placeholder="Digite seu nome completo"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="border border-gray-700 rounded-lg p-3 bg-gray-100 text-black focus:outline-none focus:ring-2 focus:ring-[#B69B4C]"
+            />
+          </div>
 
           {/* Usuário */}
           <div className="flex flex-col gap-1">
             <label className="text-sm text-[#B69B4C]">Usuário</label>
             <input
-              placeholder="Digite o nome do seu usuário"
+              placeholder="Escolha um nome de usuário"
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               className="border border-gray-700 rounded-lg p-3 bg-gray-100 text-black focus:outline-none focus:ring-2 focus:ring-[#B69B4C]"
@@ -82,47 +90,43 @@ export default function LoginPage() {
           <div className="flex flex-col gap-1">
             <label className="text-sm text-[#B69B4C]">Senha</label>
             <input
-              placeholder="Digite sua senha"
+              placeholder="Crie uma senha"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="border border-gray-700 rounded-lg p-3 bg-gray-100 text-black focus:outline-none focus:ring-2 focus:ring-[#B69B4C]"
             />
-            <Link
-              href="/esqueci-senha"
-              className="text-xs text-[#B69B4C] hover:underline mt-1 text-right"
-            >
-              Esqueci minha senha
-            </Link>
           </div>
 
-          {/* Botão entrar */}
+          {/* Botão cadastrar */}
           <button
             type="submit"
             className="bg-[#B69B4C] text-black font-semibold py-3 rounded-lg shadow-md hover:bg-[#d4b865] transition"
           >
-            Entrar
+            Cadastrar
           </button>
 
           {msg && (
             <p className="text-center text-sm mt-2 text-gray-300">{msg}</p>
           )}
 
-          {/* Divisor OU */}
+          {/* Divisor */}
           <div className="flex items-center gap-2">
             <div className="flex-1 h-px bg-gray-600" />
             <span className="text-gray-400 text-sm">OU</span>
             <div className="flex-1 h-px bg-gray-600" />
           </div>
 
-          {/* Cadastro */}
+          {/* Já tem conta */}
           <div className="flex flex-col items-center gap-2">
-            <p className="text-gray-300 text-sm">Ainda não tem cadastro?</p>
+            <p className="text-gray-300 text-sm">
+              Já possui uma conta?
+            </p>
             <Link
-              href="/cadastro"
+              href="/login"
               className="w-full border border-[#B69B4C] text-[#B69B4C] hover:bg-[#B69B4C] hover:text-black text-center px-6 py-3 rounded-lg font-semibold transition-colors"
             >
-              Inscreva-se agora
+              Fazer login
             </Link>
           </div>
         </form>
