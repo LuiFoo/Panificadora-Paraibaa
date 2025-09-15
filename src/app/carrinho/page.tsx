@@ -28,11 +28,11 @@ interface Product {
 }
 
 export default function CarrinhoPage() {
-  const { cartItems, removeItem, updateItemQuantity } = useCart();
+  const { cartItems, removeItem, updateItemQuantity, clearCart } = useCart();
   const [loading, setLoading] = useState(true);
-  const [localCart, setLocalCart] = useState<CartItem[]>([]);
+  const [displayCart, setDisplayCart] = useState<CartItem[]>([]);
 
-  // Atualiza localCart com dados da API apenas uma vez ao montar
+  // Atualiza displayCart com dados da API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -41,14 +41,20 @@ export default function CarrinhoPage() {
         const data: { bolosDocesEspeciais: Product[] } = await res.json();
         const products = data.bolosDocesEspeciais;
 
-        const updatedItems: CartItem[] = cartItems.map(item => {
-          const product = products.find(p => p._id === item.id);
-          return product
-            ? { ...item, nome: product.nome, valor: product.valor, img: product.img || "/images/default-product.png" }
-            : item;
-        });
+        const updatedItems: CartItem[] = cartItems
+          .map(item => {
+            const product = products.find(p => p._id === item.id);
+            if (!product) return null; // produto não existe mais → ignora
+            return {
+              ...item,
+              nome: product.nome,
+              valor: product.valor,
+              img: product.img || "/images/default-product.png",
+            };
+          })
+          .filter(Boolean) as CartItem[];
 
-        setLocalCart(updatedItems);
+        setDisplayCart(updatedItems);
       } catch (err) {
         console.error(err);
       } finally {
@@ -60,36 +66,25 @@ export default function CarrinhoPage() {
   }, [cartItems]);
 
   const removerUmaUnidade = (itemId: string) => {
-    const item = localCart.find(i => i.id === itemId);
+    const item = displayCart.find(i => i.id === itemId);
     if (!item) return;
 
     if (item.quantidade === 1) {
       removeItem(itemId);
-      setLocalCart(prev => prev.filter(i => i.id !== itemId));
     } else {
       updateItemQuantity(itemId, item.quantidade - 1);
-      setLocalCart(prev =>
-        prev.map(i =>
-          i.id === itemId ? { ...i, quantidade: i.quantidade - 1 } : i
-        )
-      );
     }
   };
 
   const adicionarUmaUnidade = (itemId: string) => {
-    const item = localCart.find(i => i.id === itemId);
+    const item = displayCart.find(i => i.id === itemId);
     if (!item) return;
 
     updateItemQuantity(itemId, item.quantidade + 1);
-    setLocalCart(prev =>
-      prev.map(i =>
-        i.id === itemId ? { ...i, quantidade: i.quantidade + 1 } : i
-      )
-    );
   };
 
-  const total = localCart.reduce(
-    (sum, item) => sum + item.valor * item.quantidade,
+  const total = displayCart.reduce(
+    (sum, item) => sum + (item.valor || 0) * item.quantidade,
     0
   );
 
@@ -111,7 +106,7 @@ export default function CarrinhoPage() {
       <main className="max-w-6xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold mb-6">Meu Carrinho</h1>
 
-        {localCart.length === 0 ? (
+        {displayCart.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-600 mb-4">Seu carrinho está vazio.</p>
             <Link
@@ -124,7 +119,7 @@ export default function CarrinhoPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {localCart.map(item => (
+              {displayCart.map(item => (
                 <div
                   key={item.id}
                   className="flex items-center bg-white shadow rounded-lg p-4 gap-4"
@@ -141,10 +136,14 @@ export default function CarrinhoPage() {
                   <div className="flex-1">
                     <h2 className="font-bold text-lg">{item.nome}</h2>
                     <p className="text-gray-600">
-                      R${item.valor.toFixed(2).replace(".", ",")} x {item.quantidade}
+                      R${item.valor.toFixed(2).replace(".", ",")} x{" "}
+                      {item.quantidade}
                     </p>
                     <p className="font-semibold mt-1">
-                      Subtotal: R${(item.valor * item.quantidade).toFixed(2).replace(".", ",")}
+                      Subtotal: R$
+                      {(item.valor * item.quantidade)
+                        .toFixed(2)
+                        .replace(".", ",")}
                     </p>
 
                     <div className="flex gap-2 mt-2">
@@ -157,10 +156,7 @@ export default function CarrinhoPage() {
                       </button>
 
                       <button
-                        onClick={() => {
-                          removeItem(item.id);
-                          setLocalCart(prev => prev.filter(i => i.id !== item.id));
-                        }}
+                        onClick={() => removeItem(item.id)}
                         className="p-2 bg-red-500 rounded hover:bg-red-600 text-white"
                         title="Remover tudo"
                       >
@@ -182,10 +178,7 @@ export default function CarrinhoPage() {
 
             <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
               <button
-                onClick={() => {
-                  localCart.forEach(item => removeItem(item.id));
-                  setLocalCart([]);
-                }}
+                onClick={() => clearCart()}
                 className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold"
               >
                 Limpar Carrinho

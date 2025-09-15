@@ -30,13 +30,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // Carrega do localStorage ao montar
   useEffect(() => {
     const saved = localStorage.getItem(`carrinho_${login}`);
     if (saved) setCartItems(JSON.parse(saved));
   }, [login]);
 
+  // Sincroniza com localStorage
   useEffect(() => {
-    localStorage.setItem(`carrinho_${login}`, JSON.stringify(cartItems));
+    if (cartItems.length === 0) {
+      localStorage.removeItem(`carrinho_${login}`);
+    } else {
+      localStorage.setItem(`carrinho_${login}`, JSON.stringify(cartItems));
+    }
   }, [cartItems, login]);
 
   const addItem = (item: CartItem) => {
@@ -66,7 +72,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = () => {
-    setCartItems(prev => prev.filter(i => i.user !== login));
+    setCartItems([]); // agora remove todos os itens do usuário e dispara o useEffect
   };
 
   const updateCart = (items: CartItem[]) => {
