@@ -43,7 +43,8 @@ export default function CadastroPage() {
           window.location.href = "/";
         }, 2500);
       } else {
-        setMsg(data.msg);
+        // Aqui a API pode retornar msg como "login já existente"
+        setMsg(data.msg || "Erro ao cadastrar usuário");
       }
     } catch (err) {
       console.error("Erro no cadastro:", err);

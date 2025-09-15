@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCart } from "@/context/CartContext"; // importando contexto do carrinho
+import { useUser } from "@/context/UserContext"; // pega o usuário logado
 
 interface ItemCardapio {
   _id: string;
@@ -35,6 +36,7 @@ export default function ProdutoDetalhePage() {
   const [error, setError] = useState<string | null>(null);
 
   const { addItem } = useCart(); // pega função de adicionar ao carrinho
+  const { user } = useUser(); // pega usuário logado
 
   useEffect(() => {
     if (params?.id) {
@@ -89,16 +91,19 @@ export default function ProdutoDetalhePage() {
   };
 
   const handleAddToCart = () => {
-    if (!produto) return;
+    if (!produto || !user) {
+      alert("Você precisa estar logado para adicionar ao carrinho.");
+      return;
+    }
 
     addItem({
       id: produto._id,
       nome: produto.nome,
       valor: produto.valor,
       quantidade: 1,
-      img: produto.img, // ✅ agora enviamos a imagem junto
+      img: produto.img,
+      user: user.login, // salva o login junto no item
     });
-
   };
 
   if (loading) {
@@ -120,9 +125,7 @@ export default function ProdutoDetalhePage() {
         <Header />
         <div className="mx-auto py-8 text-center">
           <h1 className="text-2xl font-bold mb-4">Produto não encontrado</h1>
-          <p className="text-gray-600 mb-6">
-            {error || "O produto que você está procurando não existe."}
-          </p>
+          <p className="text-gray-600 mb-6">{error || "O produto que você está procurando não existe."}</p>
           <Link
             href="/produtos"
             className="inline-block bg-amber-600 hover:bg-amber-500 text-white px-6 py-3 rounded-lg font-semibold"
@@ -139,24 +142,14 @@ export default function ProdutoDetalhePage() {
       <Header />
       <div className="mx-auto py-8 px-4 max-w-6xl">
         <div className="mb-6">
-          <Link
-            href="/produtos"
-            className="inline-flex items-center text-amber-600 hover:text-amber-500 font-semibold"
-          >
+          <Link href="/produtos" className="inline-flex items-center text-amber-600 hover:text-amber-500 font-semibold">
             ← Voltar ao Cardápio
           </Link>
         </div>
 
-        {/* Detalhes do Produto */}
         <section className="flex flex-col md:flex-row gap-8">
           <div className="flex-1">
-            <Image
-              src={produto.img}
-              alt={produto.nome}
-              width={600}
-              height={600}
-              className="w-full h-auto rounded-lg shadow-lg object-cover"
-            />
+            <Image src={produto.img} alt={produto.nome} width={600} height={600} className="w-full h-auto rounded-lg shadow-lg object-cover" />
           </div>
 
           <div className="flex-1 bg-white rounded-lg shadow-lg p-8">
@@ -168,21 +161,15 @@ export default function ProdutoDetalhePage() {
             <h1 className="text-3xl font-bold mb-4">{produto.nome}</h1>
             <div className="mb-6">
               <p className="text-2xl font-bold text-amber-600">
-                A partir: R${produto.valor.toFixed(2).replace(".", ",")}{" "}
-                {produto.vtipo}
+                A partir: R${produto.valor.toFixed(2).replace(".", ",")} {produto.vtipo}
               </p>
             </div>
 
             <div className="space-y-6">
               <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-2">
-                  Informações do Produto
-                </h3>
+                <h3 className="text-lg font-semibold mb-2">Informações do Produto</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Este é um produto da categoria{" "}
-                  <strong>{produto.subc}</strong>. Entre em contato conosco
-                  para mais informações sobre disponibilidade, tamanhos e
-                  opções de personalização.
+                  Este é um produto da categoria <strong>{produto.subc}</strong>. Entre em contato conosco para mais informações sobre disponibilidade, tamanhos e opções de personalização.
                 </p>
               </div>
 
@@ -205,7 +192,6 @@ export default function ProdutoDetalhePage() {
           </div>
         </section>
 
-        {/* Descrição + Produtos Relacionados */}
         <section className="px-4 md:px-20 py-10 mt-10 shadow-lg">
           <div className="mb-6">
             <h5 className="inline-block px-5 py-2 text-md font-bold text-gray-800 border-2 border-gray-300 rounded-md bg-white shadow-sm">
@@ -214,34 +200,19 @@ export default function ProdutoDetalhePage() {
           </div>
 
           <p className="text-gray-600 leading-relaxed mb-6">
-            Este é um produto da categoria <strong>{produto.subc}</strong>.
-            Entre em contato conosco para mais informações sobre
-            disponibilidade, tamanhos e opções de personalização.
+            Este é um produto da categoria <strong>{produto.subc}</strong>. Entre em contato conosco para mais informações sobre disponibilidade, tamanhos e opções de personalização.
           </p>
 
           {produtosRelacionados.length > 0 && (
             <div>
               <div className="border-t w-60 max-w-4xl mx-auto"></div>
-              <p className="mt-4 text-center text-xl font-semibold">
-                Produtos Relacionados
-              </p>
+              <p className="mt-4 text-center text-xl font-semibold">Produtos Relacionados</p>
 
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {produtosRelacionados.map((item) => (
-                  <div
-                    key={item._id}
-                    className="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col"
-                  >
-                    <Image
-                      src={item.img}
-                      alt={item.nome}
-                      width={200}
-                      height={200}
-                      className="w-full h-40 object-cover rounded"
-                    />
-                    <h3 className="mt-2 text-center font-medium">
-                      {item.nome}
-                    </h3>
+                  <div key={item._id} className="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col">
+                    <Image src={item.img} alt={item.nome} width={200} height={200} className="w-full h-40 object-cover rounded" />
+                    <h3 className="mt-2 text-center font-medium">{item.nome}</h3>
                     <Link
                       href={`/produtos/${item._id}`}
                       className="mt-4 bg-amber-600 hover:bg-amber-500 text-white text-center px-4 py-2 rounded-lg font-semibold transition-colors"

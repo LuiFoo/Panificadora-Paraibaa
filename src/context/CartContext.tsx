@@ -1,13 +1,14 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { useUser } from "@/context/UserContext"; // importa o contexto do usuário
 
 interface CartItem {
   id: string;
   nome: string;
   valor: number;
   quantidade: number;
-  img: string; // ✅ Adicionado campo da imagem
+  img: string;
 }
 
 interface CartContextType {
@@ -21,18 +22,22 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useUser();
+  const login = user?.login || "guest"; // se não tiver login, usa "guest"
+
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Carregar do localStorage
+  // Carregar carrinho do localStorage sempre que o login mudar
   useEffect(() => {
-    const saved = localStorage.getItem("carrinho");
+    const saved = localStorage.getItem(`carrinho_${login}`);
     if (saved) setCartItems(JSON.parse(saved));
-  }, []);
+    else setCartItems([]); // zera o carrinho se não existir
+  }, [login]);
 
-  // Salvar no localStorage sempre que itens mudarem
+  // Salvar carrinho no localStorage sempre que itens mudarem
   useEffect(() => {
-    localStorage.setItem("carrinho", JSON.stringify(cartItems));
-  }, [cartItems]);
+    localStorage.setItem(`carrinho_${login}`, JSON.stringify(cartItems));
+  }, [cartItems, login]);
 
   const addItem = (item: CartItem) => {
     setCartItems((prev) => {
