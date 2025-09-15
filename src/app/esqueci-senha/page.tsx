@@ -15,7 +15,7 @@ export default function EsqueciSenhaPage() {
           </h1>
 
           <p className="text-center text-lg text-white">
-            Redefinição de senha apenas no fábrica III 👍
+            Você perdeu sua conta permantemente ou até a Fabrica de Software III 👍
           </p>
         </div>
       </main>
