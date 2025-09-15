@@ -12,6 +12,13 @@ export interface CartItem {
   user?: string;
 }
 
+interface Product {
+  _id: string;
+  nome: string;
+  valor: number;
+  img?: string;
+}
+
 interface CartContextType {
   cartItems: CartItem[];
   addItem: (item: CartItem) => void;
@@ -36,7 +43,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (saved) setCartItems(JSON.parse(saved));
   }, [login]);
 
-  // Sincroniza com localStorage
+  // Filtra itens inválidos e sincroniza com localStorage
+  useEffect(() => {
+    const syncCart = async () => {
+      try {
+        const res = await fetch("/api/bolos-doces-especiais");
+        if (!res.ok) throw new Error("Erro ao buscar produtos");
+        const data: { bolosDocesEspeciais: Product[] } = await res.json();
+        const products = data.bolosDocesEspeciais;
+
+        setCartItems(prev =>
+          prev
+            .filter(i => products.some(p => p._id === i.id))
+            .map(i => {
+              const prod = products.find(p => p._id === i.id)!;
+              return { ...i, nome: prod.nome, valor: prod.valor, img: prod.img || "/images/default-product.png" };
+            })
+        );
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    syncCart();
+  }, []);
+
+  // Atualiza localStorage sempre que cartItems muda
   useEffect(() => {
     if (cartItems.length === 0) {
       localStorage.removeItem(`carrinho_${login}`);
@@ -72,16 +104,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const clearCart = () => {
-    setCartItems([]); // agora remove todos os itens do usuário e dispara o useEffect
+    setCartItems([]);
   };
 
   const updateCart = (items: CartItem[]) => {
     setCartItems(items.map(i => ({ ...i, user: login })));
   };
 
-  const totalItems = cartItems
-    .filter(i => i.user === login)
-    .reduce((sum, i) => sum + i.quantidade, 0);
+  const totalItems = cartItems.reduce((sum, i) => sum + i.quantidade, 0);
 
   return (
     <CartContext.Provider

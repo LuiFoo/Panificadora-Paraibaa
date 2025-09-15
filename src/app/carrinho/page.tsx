@@ -11,15 +11,6 @@ import imagem_mais from "../../../public/images/car_mais.svg";
 import imagem_menos from "../../../public/images/car_menos.svg";
 import imagem_limpar from "../../../public/images/car_limpar.svg";
 
-interface CartItem {
-  id: string;
-  nome: string;
-  img: string;
-  valor: number;
-  quantidade: number;
-}
-
-// tipo da resposta da API
 interface Product {
   _id: string;
   nome: string;
@@ -28,12 +19,13 @@ interface Product {
 }
 
 export default function CarrinhoPage() {
-  const { cartItems, removeItem, updateItemQuantity, clearCart } = useCart();
+  const { cartItems, removeItem, updateItemQuantity, updateCart, clearCart } = useCart();
   const [loading, setLoading] = useState(true);
-  const [displayCart, setDisplayCart] = useState<CartItem[]>([]);
 
-  // Atualiza displayCart com dados da API
   useEffect(() => {
+    // Pega o estado atual do carrinho na montagem
+    const currentCart = [...cartItems];
+
     const fetchProducts = async () => {
       try {
         const res = await fetch("/api/bolos-doces-especiais");
@@ -41,10 +33,11 @@ export default function CarrinhoPage() {
         const data: { bolosDocesEspeciais: Product[] } = await res.json();
         const products = data.bolosDocesEspeciais;
 
-        const updatedItems: CartItem[] = cartItems
+        // Filtra e atualiza apenas os produtos válidos
+        const updatedItems = currentCart
           .map(item => {
             const product = products.find(p => p._id === item.id);
-            if (!product) return null; // produto não existe mais → ignora
+            if (!product) return null;
             return {
               ...item,
               nome: product.nome,
@@ -52,9 +45,9 @@ export default function CarrinhoPage() {
               img: product.img || "/images/default-product.png",
             };
           })
-          .filter(Boolean) as CartItem[];
+          .filter(Boolean);
 
-        setDisplayCart(updatedItems);
+        updateCart(updatedItems as typeof cartItems);
       } catch (err) {
         console.error(err);
       } finally {
@@ -63,10 +56,11 @@ export default function CarrinhoPage() {
     };
 
     fetchProducts();
-  }, [cartItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ✅ Dependências vazias → roda apenas uma vez ao entrar no carrinho
 
   const removerUmaUnidade = (itemId: string) => {
-    const item = displayCart.find(i => i.id === itemId);
+    const item = cartItems.find(i => i.id === itemId);
     if (!item) return;
 
     if (item.quantidade === 1) {
@@ -77,13 +71,13 @@ export default function CarrinhoPage() {
   };
 
   const adicionarUmaUnidade = (itemId: string) => {
-    const item = displayCart.find(i => i.id === itemId);
+    const item = cartItems.find(i => i.id === itemId);
     if (!item) return;
 
     updateItemQuantity(itemId, item.quantidade + 1);
   };
 
-  const total = displayCart.reduce(
+  const total = cartItems.reduce(
     (sum, item) => sum + (item.valor || 0) * item.quantidade,
     0
   );
@@ -106,7 +100,7 @@ export default function CarrinhoPage() {
       <main className="max-w-6xl mx-auto px-4 py-10">
         <h1 className="text-3xl font-bold mb-6">Meu Carrinho</h1>
 
-        {displayCart.length === 0 ? (
+        {cartItems.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-gray-600 mb-4">Seu carrinho está vazio.</p>
             <Link
@@ -119,7 +113,7 @@ export default function CarrinhoPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {displayCart.map(item => (
+              {cartItems.map(item => (
                 <div
                   key={item.id}
                   className="flex items-center bg-white shadow rounded-lg p-4 gap-4"
@@ -136,14 +130,10 @@ export default function CarrinhoPage() {
                   <div className="flex-1">
                     <h2 className="font-bold text-lg">{item.nome}</h2>
                     <p className="text-gray-600">
-                      R${item.valor.toFixed(2).replace(".", ",")} x{" "}
-                      {item.quantidade}
+                      R${item.valor.toFixed(2).replace(".", ",")} x {item.quantidade}
                     </p>
                     <p className="font-semibold mt-1">
-                      Subtotal: R$
-                      {(item.valor * item.quantidade)
-                        .toFixed(2)
-                        .replace(".", ",")}
+                      Subtotal: R${(item.valor * item.quantidade).toFixed(2).replace(".", ",")}
                     </p>
 
                     <div className="flex gap-2 mt-2">
