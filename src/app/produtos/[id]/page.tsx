@@ -1,11 +1,12 @@
 "use client";
 
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import Footer from "@/components/Footer";
+import { useCart } from "@/context/CartContext"; // importando contexto do carrinho
 
 interface ItemCardapio {
   _id: string;
@@ -32,6 +33,8 @@ export default function ProdutoDetalhePage() {
   const [produtosRelacionados, setProdutosRelacionados] = useState<ItemCardapio[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { addItem } = useCart(); // pega função de adicionar ao carrinho
 
   useEffect(() => {
     if (params?.id) {
@@ -67,7 +70,6 @@ export default function ProdutoDetalhePage() {
           if (produtoEncontrado) {
             setProduto(produtoEncontrado);
 
-            // Buscar até 4 produtos relacionados
             const relacionados = itens.filter((item) => item._id !== id).slice(0, 4);
             setProdutosRelacionados(relacionados);
 
@@ -84,6 +86,19 @@ export default function ProdutoDetalhePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddToCart = () => {
+    if (!produto) return;
+
+    addItem({
+      id: produto._id,
+      nome: produto.nome,
+      valor: produto.valor,
+      quantidade: 1,
+      img: produto.img, // ✅ agora enviamos a imagem junto
+    });
+
   };
 
   if (loading) {
@@ -172,12 +187,13 @@ export default function ProdutoDetalhePage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  href="/fale-conosco"
+                <button
+                  onClick={handleAddToCart}
                   className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
                 >
-                  Fazer Pedido
-                </Link>
+                  Adicionar ao Carrinho
+                </button>
+
                 <Link
                   href="/produtos"
                   className="flex-1 border border-amber-600 text-amber-600 hover:bg-amber-50 text-center px-6 py-3 rounded-lg font-semibold transition-colors"
@@ -192,9 +208,7 @@ export default function ProdutoDetalhePage() {
         {/* Descrição + Produtos Relacionados */}
         <section className="px-4 md:px-20 py-10 mt-10 shadow-lg">
           <div className="mb-6">
-            <h5
-              className="inline-block px-5 py-2 text-md font-bold text-gray-800 border-2 border-gray-300 rounded-md bg-white shadow-sm"
-            >
+            <h5 className="inline-block px-5 py-2 text-md font-bold text-gray-800 border-2 border-gray-300 rounded-md bg-white shadow-sm">
               Descrição
             </h5>
           </div>

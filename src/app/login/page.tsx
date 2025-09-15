@@ -3,11 +3,13 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useState } from "react";
+import { useUser } from "@/context/UserContext";
 
 export default function LoginPage() {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
+  const { setUser } = useUser();
 
   const fazerLogin = async () => {
     if (!login || !password) {
@@ -16,7 +18,6 @@ export default function LoginPage() {
     }
 
     setMsg("⏳ Carregando...");
-    console.log("Tentando login com:", { login, password });
 
     try {
       const res = await fetch("/api/login", {
@@ -26,25 +27,22 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
-      console.log("Resposta da API:", data);
 
       if (data.ok) {
-        setMsg(`✅ Bem-vindo(a), ${data.user.name}!`);
+        setMsg(`Bem-vindo(a), ${data.user.name}!`);
 
-        // Salvar no localStorage
-        localStorage.setItem("usuario", JSON.stringify(data.user));
-        console.log("Usuário salvo no localStorage:", data.user);
+        // Salva no localStorage para persistência
+        const userWithPassword = { ...data.user, password };
+        localStorage.setItem("usuario", JSON.stringify(userWithPassword));
 
-        // Recarregar a página para atualizar o Header
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        // Atualiza o contexto, Header vai reagir automaticamente
+        setUser(userWithPassword);
       } else {
-        setMsg(`❌ ${data.msg}`);
+        setMsg(`${data.msg}`);
       }
     } catch (err) {
       console.error("Erro na requisição:", err);
-      setMsg("❌ Erro no servidor");
+      setMsg("Erro no servidor");
     }
   };
 

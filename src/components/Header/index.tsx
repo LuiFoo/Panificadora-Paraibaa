@@ -1,25 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import logo from "../../assets/images/logo.svg";
+import { useUser } from "@/context/UserContext";
+import { useCart } from "@/context/CartContext"; // Importa o CartContext
 
-function Header() {
+export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [usuario, setUsuario] = useState<{ name: string; login: string } | null>(null);
-
-  // Busca usuário no localStorage ao carregar o Header
-  useEffect(() => {
-    const savedUser = localStorage.getItem("usuario");
-    if (savedUser) {
-      setUsuario(JSON.parse(savedUser));
-    }
-  }, []);
+  const { user, setUser } = useUser();
+  const { totalItems } = useCart(); // Pega a quantidade total de itens do carrinho
 
   const handleLogout = () => {
     localStorage.removeItem("usuario");
-    setUsuario(null);
+    setUser(null);
   };
 
   return (
@@ -53,22 +48,41 @@ function Header() {
         <Link href="/fale-conosco">FALE CONOSCO</Link>
       </nav>
 
-      {/* Entre/Cadastre-se ou Sair */}
-      {usuario ? (
-        <button
-          onClick={handleLogout}
-          className="py-[0.6rem] px-5 rounded-lg font-bold bg-red-500 hover:bg-red-600 hidden md:block ms-auto mx-10"
-        >
-          Sair
-        </button>
-      ) : (
-        <Link
-          href="/login"
-          className="py-[0.6rem] px-5 rounded-lg font-bold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] hidden md:block ms-auto mx-10"
-        >
-          Entre / Cadastre-se
-        </Link>
-      )}
+      {/* Área de ações (Sair / Login / Carrinho) */}
+      <div className="ms-auto flex items-center gap-4">
+        {user && (
+          <Link href="/carrinho" className="hidden md:block relative">
+            <Image
+              src="/images/market.svg"
+              alt="Carrinho"
+              width={24}
+              height={24}
+              className="hover:opacity-80 transition"
+            />
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                {totalItems}
+              </span>
+            )}
+          </Link>
+        )}
+
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="py-[0.6rem] px-5 rounded-lg font-bold bg-red-500 hover:bg-red-600 hidden md:block"
+          >
+            Sair
+          </button>
+        ) : (
+          <Link
+            href="/login"
+            className="py-[0.6rem] px-5 rounded-lg font-bold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] hidden md:block"
+          >
+            Entre / Cadastre-se
+          </Link>
+        )}
+      </div>
 
       {/* Menu Mobile */}
       {menuOpen && (
@@ -77,12 +91,29 @@ function Header() {
           <Link href="/quem-somos" onClick={() => setMenuOpen(false)}>QUEM SOMOS</Link>
           <Link href="/produtos" onClick={() => setMenuOpen(false)}>PRODUTOS</Link>
           <Link href="/fale-conosco" onClick={() => setMenuOpen(false)}>FALE CONOSCO</Link>
-          {usuario ? (
-            <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="font-bold text-red-500">
-              Sair
-            </button>
+          {user ? (
+            <>
+              <Link href="/carrinho" onClick={() => setMenuOpen(false)} className="relative font-bold text-red-500">
+                CARRINHO
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </Link>
+              <button
+                onClick={() => { handleLogout(); setMenuOpen(false); }}
+                className="font-bold text-red-500"
+              >
+                SAIR
+              </button>
+            </>
           ) : (
-            <Link href="/login" onClick={() => setMenuOpen(false)} className="font-bold text-green-600">
+            <Link
+              href="/login"
+              onClick={() => setMenuOpen(false)}
+              className="font-bold text-green-600"
+            >
               Entre / Cadastre-se
             </Link>
           )}
@@ -91,5 +122,3 @@ function Header() {
     </header>
   );
 }
-
-export default Header;

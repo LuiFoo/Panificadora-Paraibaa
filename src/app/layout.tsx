@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-// import { Geist, Geist_Mono } from "next/font/google";
 import "../assets/styles/globals.css";
+import { UserProvider } from "@/context/UserContext";
+import { CartProvider } from "@/context/CartContext";
 
 export const metadata: Metadata = {
   title: 'Panificadora Paraíba',
@@ -18,7 +19,11 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        {children}
+        <UserProvider>
+          <CartProvider>
+            {children}
+          </CartProvider>
+        </UserProvider>
       </body>
     </html>
   );
