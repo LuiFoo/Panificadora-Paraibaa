@@ -32,18 +32,25 @@ export default function CadastroPage() {
 
       const data = await res.json();
 
-      if (data.ok) {
-        setMsg(`Bem-vindo(a), ${nome}!`);
+      if (data.ok && data.user) {
+        // Cria objeto compatível com User
+        const novoUsuario = {
+          _id: data.user._id,
+          login: data.user.login,
+          password, // mantém a senha para autenticação futura
+          name: data.user.name,
+          permissao: data.user.permissao || "usuario", // padrão "usuario" se não vier do backend
+        };
 
-        const novoUsuario = { name: nome, login, password };
         localStorage.setItem("usuario", JSON.stringify(novoUsuario));
         setUser(novoUsuario);
+
+        setMsg(`Bem-vindo(a), ${data.user.name}!`);
 
         setTimeout(() => {
           window.location.href = "/";
         }, 2500);
       } else {
-        // Aqui a API pode retornar msg como "login já existente"
         setMsg(data.msg || "Erro ao cadastrar usuário");
       }
     } catch (err) {
@@ -120,9 +127,7 @@ export default function CadastroPage() {
 
           {/* Já tem conta */}
           <div className="flex flex-col items-center gap-2">
-            <p className="text-gray-300 text-sm">
-              Já possui uma conta?
-            </p>
+            <p className="text-gray-300 text-sm">Já possui uma conta?</p>
             <Link
               href="/login"
               className="w-full border border-[#B69B4C] text-[#B69B4C] hover:bg-[#B69B4C] hover:text-black text-center px-6 py-3 rounded-lg font-semibold transition-colors"
