@@ -2,7 +2,7 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useCart } from "@/context/CartContext";
+import { useCart, CartItem as ContextCartItem } from "@/context/CartContext";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -19,8 +19,16 @@ interface CartItem {
   quantidade: number;
 }
 
+// tipo da resposta da API
+interface Product {
+  _id: string;
+  nome: string;
+  valor: number;
+  img?: string;
+}
+
 export default function CarrinhoPage() {
-  const { cartItems, updateCart, removeItem, updateItemQuantity } = useCart();
+  const { cartItems, removeItem, updateItemQuantity } = useCart();
   const [loading, setLoading] = useState(true);
   const [localCart, setLocalCart] = useState<CartItem[]>([]);
 
@@ -38,12 +46,12 @@ export default function CarrinhoPage() {
       try {
         const res = await fetch("/api/bolos-doces-especiais");
         if (!res.ok) throw new Error("Erro ao buscar produtos");
-        const data = await res.json();
+        const data: { bolosDocesEspeciais: Product[] } = await res.json();
         const products = data.bolosDocesEspeciais;
 
         const updatedItems: CartItem[] = cartItems
           .map(item => {
-            const product = products.find((p: any) => p._id === item.id);
+            const product = products.find(p => p._id === item.id);
             if (!product) return null; // remove item que não existe mais
             return {
               ...item,
@@ -55,7 +63,11 @@ export default function CarrinhoPage() {
           .filter(Boolean) as CartItem[];
 
         setLocalCart(updatedItems);
-        updateCart(updatedItems); // atualiza contexto e localStorage
+
+        // Sincroniza quantidade atualizada do contexto
+        updatedItems.forEach(item => {
+          updateItemQuantity(item.id, item.quantidade);
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -64,7 +76,7 @@ export default function CarrinhoPage() {
     };
 
     fetchAndSyncCart();
-  }, []);
+  }, [cartItems, updateItemQuantity]);
 
   const removerUmaUnidade = (itemId: string) => {
     const item = localCart.find(i => i.id === itemId);
