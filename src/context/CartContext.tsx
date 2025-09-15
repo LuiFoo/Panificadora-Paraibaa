@@ -1,14 +1,15 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { useUser } from "@/context/UserContext"; // importa o contexto do usuário
+import { useUser } from "@/context/UserContext";
 
-interface CartItem {
+export interface CartItem {
   id: string;
   nome: string;
   valor: number;
   quantidade: number;
   img: string;
+  user?: string; // ✅ adiciona o login do usuário como opcional
 }
 
 interface CartContextType {
@@ -23,7 +24,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useUser();
-  const login = user?.login || "guest"; // se não tiver login, usa "guest"
+  const login = user?.login || "guest";
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
@@ -31,7 +32,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const saved = localStorage.getItem(`carrinho_${login}`);
     if (saved) setCartItems(JSON.parse(saved));
-    else setCartItems([]); // zera o carrinho se não existir
+    else setCartItems([]);
   }, [login]);
 
   // Salvar carrinho no localStorage sempre que itens mudarem
@@ -41,10 +42,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addItem = (item: CartItem) => {
     setCartItems((prev) => {
-      const exists = prev.find((i) => i.id === item.id);
+      const exists = prev.find((i) => i.id === item.id && i.user === item.user); // garante que seja do mesmo usuário
       if (exists) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantidade: i.quantidade + item.quantidade } : i
+          i.id === item.id && i.user === item.user
+            ? { ...i, quantidade: i.quantidade + item.quantidade }
+            : i
         );
       }
       return [...prev, item];
@@ -52,12 +55,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeItem = (id: string) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== id));
+    setCartItems((prev) => prev.filter((i) => i.id !== id || i.user !== login));
   };
 
   const clearCart = () => setCartItems([]);
 
-  const totalItems = cartItems.reduce((sum, i) => sum + i.quantidade, 0);
+  const totalItems = cartItems
+    .filter((i) => i.user === login) // conta apenas itens do usuário atual
+    .reduce((sum, i) => sum + i.quantidade, 0);
 
   return (
     <CartContext.Provider value={{ cartItems, addItem, removeItem, clearCart, totalItems }}>

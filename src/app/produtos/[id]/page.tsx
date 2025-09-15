@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCart } from "@/context/CartContext"; // importando contexto do carrinho
-import { useUser } from "@/context/UserContext"; // pega o usuário logado
+import { useCart } from "@/context/CartContext";
+import { useUser } from "@/context/UserContext";
 
 interface ItemCardapio {
   _id: string;
@@ -35,8 +35,8 @@ export default function ProdutoDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { addItem } = useCart(); // pega função de adicionar ao carrinho
-  const { user } = useUser(); // pega usuário logado
+  const { addItem } = useCart();
+  const { user } = useUser();
 
   useEffect(() => {
     if (params?.id) {
@@ -91,7 +91,12 @@ export default function ProdutoDetalhePage() {
   };
 
   const handleAddToCart = () => {
-    if (!produto || !user) {
+    if (!produto) {
+      alert("Produto não encontrado.");
+      return;
+    }
+
+    if (!user || !user.login) {
       alert("Você precisa estar logado para adicionar ao carrinho.");
       return;
     }
@@ -102,8 +107,10 @@ export default function ProdutoDetalhePage() {
       valor: produto.valor,
       quantidade: 1,
       img: produto.img,
-      user: user.login, // salva o login junto no item
+      user: user.login, // agora seguro e aceito pelo tipo CartItem
     });
+
+    alert(`${produto.nome} adicionado ao carrinho!`);
   };
 
   if (loading) {
