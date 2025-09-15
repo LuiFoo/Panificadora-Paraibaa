@@ -27,10 +27,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ ok: false, msg: "Já existe" });
     }
 
-    await users.insertOne({ login, password, name });
+    // Define permissao padrão como "usuario"
+    const novoUser = { login, password, name, permissao: "usuario" };
+
+    const result = await users.insertOne(novoUser);
     console.log("Usuário registrado com sucesso:", login);
 
-    return res.status(200).json({ ok: true });
+    // Retorna o usuário completo, incluindo _id e permissao
+    return res.status(200).json({
+      ok: true,
+      msg: "Usuário cadastrado com sucesso",
+      user: {
+        _id: result.insertedId.toString(),
+        login,
+        name,
+        permissao: novoUser.permissao,
+      },
+    });
   } catch (err) {
     console.error("ERRO REGISTER:", err);
     return res.status(500).json({ ok: false, msg: "Erro no servidor" });

@@ -33,19 +33,19 @@ export default function CadastroPage() {
       const data = await res.json();
 
       if (data.ok && data.user) {
-        // Cria objeto compatível com User
+        // Cria objeto compatível com User e salva no localStorage
         const novoUsuario = {
           _id: data.user._id,
           login: data.user.login,
           password, // mantém a senha para autenticação futura
           name: data.user.name,
-          permissao: data.user.permissao || "usuario", // padrão "usuario" se não vier do backend
+          permissao: data.user.permissao || "usuario", // padrão "usuario"
         };
 
         localStorage.setItem("usuario", JSON.stringify(novoUsuario));
         setUser(novoUsuario);
 
-        setMsg(`Bem-vindo(a), ${data.user.name}!`);
+        setMsg(data.msg || `Bem-vindo(a), ${data.user.name}!`);
 
         setTimeout(() => {
           window.location.href = "/";

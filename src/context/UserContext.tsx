@@ -32,7 +32,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     const parsed = JSON.parse(saved) as User;
 
-    // Verifica no servidor se o login e senha ainda são válidos
+    // Verifica no servidor se login e senha ainda são válidos
     fetch("/api/verificar-admin", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -41,25 +41,25 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       .then(res => res.json())
       .then(data => {
         if (data.ok && data.user) {
-          // Mantém todos os campos importantes, inclusive permissao
+          // Usuário válido no servidor
           const userWithInfo: User = {
             _id: data.user._id,
             login: data.user.login,
             name: data.user.name,
-            permissao: data.user.permissao, // mantém o valor do MongoDB
-            password: parsed.password,       // mantém a senha
+            permissao: data.user.permissao,
+            password: parsed.password,
           };
           setUser(userWithInfo);
           localStorage.setItem("usuario", JSON.stringify(userWithInfo));
         } else {
-          setUser(null);
-          localStorage.removeItem("usuario");
+          // Usuário não é admin, mas continua logado
+          setUser(parsed); // mantém dados do localStorage
+          // não remove do localStorage
         }
       })
       .catch(err => {
         console.error("Erro ao verificar usuário:", err);
-        setUser(null);
-        localStorage.removeItem("usuario");
+        setUser(parsed); // mantém usuário mesmo se houver erro de verificação
       })
       .finally(() => setLoading(false));
   }, []);
