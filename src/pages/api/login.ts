@@ -30,7 +30,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     console.log("Usuário encontrado:", user);
-    return res.status(200).json({ ok: true, user: { name: user.name, login: user.login } });
+    // Retorna _id, login, name e permissao
+    return res.status(200).json({
+      ok: true,
+      user: {
+        _id: user._id,
+        login: user.login,
+        name: user.name,
+        permissao: user.permissao, // administrador ou outro
+      },
+    });
   } catch (err) {
     console.error("ERRO LOGIN:", err);
     return res.status(500).json({ ok: false, msg: "Erro no servidor" });

@@ -33,24 +33,34 @@ export default function LoginPage() {
 
       const data = await res.json();
 
-      if (data.ok) {
-        const userWithPassword = { ...data.user, password };
-        localStorage.setItem("usuario", JSON.stringify(userWithPassword));
-        setUser(userWithPassword);
+      if (data.ok && data.user) {
+        // Salva todos os campos importantes no localStorage
+        const userWithInfo = {
+          _id: data.user._id,
+          login: data.user.login,
+          password, // só para manter login automático (não seguro em produção)
+          name: data.user.name,
+          permissao: data.user.permissao, // ADMIN ou outro valor do MongoDB
+        };
 
-        // mostra mensagem de boas-vindas
+        localStorage.setItem("usuario", JSON.stringify(userWithInfo));
+        setUser(userWithInfo);
+
         setMsg(`Bem-vindo(a), ${data.user.name}!`);
 
-        // espera 2 segundos e redireciona para a página principal
         setTimeout(() => {
           router.push("/");
         }, 2000);
       } else {
-        setMsg(data.msg);
+        setMsg(data.msg || "Login inválido");
+        setUser(null);
+        localStorage.removeItem("usuario");
       }
     } catch (err) {
       console.error("Erro na requisição:", err);
       setMsg("Erro no servidor");
+      setUser(null);
+      localStorage.removeItem("usuario");
     }
   };
 

@@ -5,12 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import logo from "../../assets/images/logo.svg";
 import { useUser } from "@/context/UserContext";
-import { useCart } from "@/context/CartContext"; // Importa o CartContext
+import { useCart } from "@/context/CartContext";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, setUser } = useUser();
-  const { totalItems } = useCart(); // Pega a quantidade total de itens do carrinho
+  const { user, setUser, isAdmin } = useUser(); // agora pega isAdmin
+  const { totalItems } = useCart();
 
   const handleLogout = () => {
     localStorage.removeItem("usuario");
@@ -48,23 +48,39 @@ export default function Header() {
         <Link href="/fale-conosco">FALE CONOSCO</Link>
       </nav>
 
-      {/* Área de ações (Sair / Login / Carrinho) */}
+      {/* Área de ações */}
       <div className="ms-auto flex items-center gap-4">
         {user && (
-          <Link href="/carrinho" className="hidden md:block relative">
-            <Image
-              src="/images/market.svg"
-              alt="Carrinho"
-              width={24}
-              height={24}
-              className="hover:opacity-80 transition"
-            />
-            {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {totalItems}
-              </span>
+          <>
+            {/* Ícone do painel só para administradores */}
+            {isAdmin && (
+              <Link href="/painel" className="hidden md:block">
+                <Image
+                  src="/images/admin.svg"
+                  alt="Painel Admin"
+                  width={24}
+                  height={24}
+                  className="hover:opacity-80 transition"
+                />
+              </Link>
             )}
-          </Link>
+
+            {/* Ícone do carrinho */}
+            <Link href="/carrinho" className="hidden md:block relative">
+              <Image
+                src="/images/market.svg"
+                alt="Carrinho"
+                width={24}
+                height={24}
+                className="hover:opacity-80 transition"
+              />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          </>
         )}
 
         {user ? (
@@ -91,6 +107,13 @@ export default function Header() {
           <Link href="/quem-somos" onClick={() => setMenuOpen(false)}>QUEM SOMOS</Link>
           <Link href="/produtos" onClick={() => setMenuOpen(false)}>PRODUTOS</Link>
           <Link href="/fale-conosco" onClick={() => setMenuOpen(false)}>FALE CONOSCO</Link>
+
+          {isAdmin && (
+            <Link href="/painel" onClick={() => setMenuOpen(false)} className="text-blue-600">
+              PAINEL ADMIN
+            </Link>
+          )}
+
           {user ? (
             <>
               <Link href="/carrinho" onClick={() => setMenuOpen(false)} className="relative font-bold text-red-500">
