@@ -1,8 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
+import bcrypt from "bcryptjs"; // Biblioteca para hash de senha
+import jwt from "jsonwebtoken"; // Biblioteca para gerar tokens JWT
+
+const JWT_SECRET = process.env.JWT_SECRET || "secretkey"; // Chave secreta para JWT
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log("Login API chamada"); // log inicial
+  console.log("Login API chamada");
 
   if (req.method !== "POST") {
     console.log("Método não permitido:", req.method);
@@ -22,17 +26,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const users = db.collection("users");
 
     console.log("Procurando usuário no banco...");
-    const user = await users.findOne({ login, password });
+    const user = await users.findOne({ login });
 
     if (!user) {
       console.log("Usuário não encontrado");
       return res.status(200).json({ ok: false, msg: "Login ou senha inválidos" });
     }
 
+    // Verificando a senha usando bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log("Senha inválida");
+      return res.status(200).json({ ok: false, msg: "Login ou senha inválidos" });
+    }
+
     console.log("Usuário encontrado:", user);
-    // Retorna _id, login, name e permissao
+
+    // Gerar o token JWT
+    const token = jwt.sign(
+      { _id: user._id, login: user.login },
+      JWT_SECRET,
+      { expiresIn: "1h" } // Expiração do token em 1 hora
+    );
+
+    // Retorna o token e os dados do usuário
     return res.status(200).json({
       ok: true,
+      token,
       user: {
         _id: user._id,
         login: user.login,

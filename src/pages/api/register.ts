@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
+import bcrypt from "bcryptjs"; // Biblioteca para hash de senha
+import jwt from "jsonwebtoken"; // Biblioteca para gerar tokens JWT
+
+const JWT_SECRET = process.env.JWT_SECRET || "secretkey"; // Chave secreta para JWT
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log("Register API chamada");
@@ -27,16 +31,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ ok: false, msg: "Já existe" });
     }
 
+    // Criptografar a senha antes de armazená-la
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Define permissao padrão como "usuario"
-    const novoUser = { login, password, name, permissao: "usuario" };
+    const novoUser = { login, password: hashedPassword, name, permissao: "usuario" };
 
     const result = await users.insertOne(novoUser);
     console.log("Usuário registrado com sucesso:", login);
 
-    // Retorna o usuário completo, incluindo _id e permissao
+    // Gerar o token JWT para o usuário
+    const token = jwt.sign(
+      { _id: result.insertedId, login },
+      JWT_SECRET,
+      { expiresIn: "1h" } // Expiração do token em 1 hora
+    );
+
+    // Retorna o usuário completo, incluindo _id, permissao e token
     return res.status(200).json({
       ok: true,
       msg: "Usuário cadastrado com sucesso",
+      token,
       user: {
         _id: result.insertedId.toString(),
         login,

@@ -37,51 +37,47 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Carrega do localStorage ao montar
+  // Carrega o carrinho do MongoDB ao montar
   useEffect(() => {
-    const saved = localStorage.getItem(`carrinho_${login}`);
-    if (saved) setCartItems(JSON.parse(saved));
-  }, [login]);
-
-  // Filtra itens inválidos e sincroniza com localStorage
-  useEffect(() => {
-    const syncCart = async () => {
+    const fetchCart = async () => {
       try {
-        const res = await fetch("/api/bolos-doces-especiais");
-        if (!res.ok) throw new Error("Erro ao buscar produtos");
-        const data: { bolosDocesEspeciais: Product[] } = await res.json();
-        const products = data.bolosDocesEspeciais;
-
-        setCartItems(prev =>
-          prev
-            .filter(i => products.some(p => p._id === i.id))
-            .map(i => {
-              const prod = products.find(p => p._id === i.id)!;
-              return { ...i, nome: prod.nome, valor: prod.valor, img: prod.img || "/images/default-product.png" };
-            })
-        );
+        const res = await fetch("/api/cart"); // Requisição para buscar carrinho do MongoDB
+        if (!res.ok) throw new Error("Erro ao buscar carrinho");
+        const data = await res.json();
+        setCartItems(data.produtos || []);
       } catch (err) {
         console.error(err);
       }
     };
 
-    syncCart();
-  }, []);
+    fetchCart();
+  }, [login]);
 
-  // Atualiza localStorage sempre que cartItems muda
+  // Atualiza o carrinho no MongoDB sempre que cartItems mudar
   useEffect(() => {
-    if (cartItems.length === 0) {
-      localStorage.removeItem(`carrinho_${login}`);
-    } else {
-      localStorage.setItem(`carrinho_${login}`, JSON.stringify(cartItems));
-    }
+    const updateCart = async () => {
+      try {
+        if (cartItems.length === 0) return; // Não faz nada se o carrinho estiver vazio
+        await fetch("/api/cart", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ produtos: cartItems }), // Envia os dados do carrinho para o MongoDB
+        });
+      } catch (err) {
+        console.error("Erro ao atualizar o carrinho:", err);
+      }
+    };
+
+    updateCart();
   }, [cartItems, login]);
 
   const addItem = (item: CartItem) => {
-    setCartItems(prev => {
-      const exists = prev.find(i => i.id === item.id && i.user === login);
+    setCartItems((prev) => {
+      const exists = prev.find((i) => i.id === item.id && i.user === login);
       if (exists) {
-        return prev.map(i =>
+        return prev.map((i) =>
           i.id === item.id && i.user === login
             ? { ...i, quantidade: i.quantidade + item.quantidade }
             : i
@@ -92,12 +88,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeItem = (id: string) => {
-    setCartItems(prev => prev.filter(i => !(i.id === id && i.user === login)));
+    setCartItems((prev) => prev.filter((i) => !(i.id === id && i.user === login)));
   };
 
   const updateItemQuantity = (id: string, quantidade: number) => {
-    setCartItems(prev =>
-      prev.map(i =>
+    setCartItems((prev) =>
+      prev.map((i) =>
         i.id === id && i.user === login ? { ...i, quantidade } : i
       )
     );
@@ -108,7 +104,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateCart = (items: CartItem[]) => {
-    setCartItems(items.map(i => ({ ...i, user: login })));
+    setCartItems(items.map((i) => ({ ...i, user: login })));
   };
 
   const totalItems = cartItems.reduce((sum, i) => sum + i.quantidade, 0);
