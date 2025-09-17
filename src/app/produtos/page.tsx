@@ -32,7 +32,6 @@ export default function CardapioPage() {
   const [categoriaAtual, setCategoriaAtual] = useState<string>(categoriaPadrao);
   const [itens, setItens] = useState<ItemCardapio[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState<boolean>(false);
 
   // Atualiza a categoria atual da URL ou define a padrão
@@ -50,12 +49,11 @@ export default function CardapioPage() {
       window.history.replaceState({}, "", url);
     }
 
-    buscarItensPorCategoria(categoriaAtual); // Busca itens ao iniciar a página ou ao mudar a categoria
-  }, []);
+    buscarItensPorCategoria(categoriaPadrao); // Busca itens ao iniciar a página ou ao mudar a categoria
+  }, []); // Deixe a lista de dependências vazia, porque você precisa buscar a categoria inicial
 
   const buscarItensPorCategoria = async (categoria: string) => {
     setLoading(true);
-    setError(null);
 
     try {
       const categoriaUrl = categoria.toLowerCase().replace(/\s+/g, "-");
@@ -81,7 +79,6 @@ export default function CardapioPage() {
       setItens(data[chave] || []);
     } catch (error) {
       console.error(`Erro ao buscar itens da categoria ${categoria}:`, error);
-      setError("Não foi possível carregar os itens da categoria.");
     } finally {
       setLoading(false);
     }
