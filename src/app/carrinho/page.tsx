@@ -19,23 +19,32 @@ interface Product {
 }
 
 export default function CarrinhoPage() {
-  const { cartItems, removeItem, updateItemQuantity, clearCart } = useCart(); // Funções do CartContext
+  const { cartItems, removeItem, updateItemQuantity, clearCart } = useCart();
   const [loading, setLoading] = useState<boolean>(true);
 
   // Função para carregar os produtos do MongoDB e sincronizar com o localStorage
   useEffect(() => {
     const fetchProducts = async () => {
+      console.log("Buscando produtos do MongoDB...");
       try {
         const res = await fetch("/api/bolos-doces-especiais");
-        if (!res.ok) throw new Error("Erro ao buscar produtos");
+        if (!res.ok) {
+          throw new Error("Erro ao buscar produtos");
+        }
 
         const data: { bolosDocesEspeciais: Product[] } = await res.json();
         const products = data.bolosDocesEspeciais;
 
+        console.log("Produtos carregados:", products);
+
         // Atualiza os itens do carrinho com os produtos do MongoDB
-        const updatedItems = cartItems.map(item => {
-          const product = products.find(p => p._id === item.id);
-          if (!product) return item; // Retorna item original caso o produto não seja encontrado
+        const updatedItems = cartItems.map((item) => {
+          const product = products.find((p) => p._id === item.id);
+          if (!product) {
+            console.log(`Produto não encontrado: ${item.id}`);
+            return item; // Retorna item original caso o produto não seja encontrado
+          }
+          console.log(`Produto encontrado: ${item.id}`);
           return {
             ...item,
             nome: product.nome,
@@ -47,6 +56,7 @@ export default function CarrinhoPage() {
         // Atualiza o carrinho no localStorage e no estado
         localStorage.setItem("carrinho", JSON.stringify(updatedItems));
         setLoading(false);
+        console.log("Carrinho atualizado com sucesso.");
       } catch (err) {
         console.error("Erro ao buscar produtos:", err);
         setLoading(false);
@@ -54,7 +64,7 @@ export default function CarrinhoPage() {
     };
 
     fetchProducts();
-  }, [cartItems]); // Recarregar sempre que o carrinho mudar
+  }, [cartItems]);
 
   // Calcula o total do carrinho
   const total = cartItems.reduce(
@@ -94,7 +104,7 @@ export default function CarrinhoPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {cartItems.map(item => (
+              {cartItems.map((item) => (
                 <div
                   key={item.id}
                   className="flex items-center bg-white shadow rounded-lg p-4 gap-4"
@@ -129,7 +139,7 @@ export default function CarrinhoPage() {
                       <button
                         onClick={() => removeItem(item.id)}
                         className="p-2 bg-red-500 rounded hover:bg-red-600 text-white"
-                        title="Remover tudo"
+                        title="Remover do carrinho"
                       >
                         <Image src={imagem_limpar} alt="x" width={20} height={20} />
                       </button>

@@ -128,7 +128,7 @@ export default function ProdutoDetalhePage() {
         <Header />
         <div className="mx-auto py-8">
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500" aria-label="Carregando..."></div>
           </div>
         </div>
       </>
@@ -198,6 +198,7 @@ export default function ProdutoDetalhePage() {
                   value={quantidade}
                   onChange={(e) => setQuantidade(parseInt(e.target.value))}
                   className="w-20 border border-gray-300 rounded px-2 py-1"
+                  aria-label="Quantidade"
                 />
               </div>
 

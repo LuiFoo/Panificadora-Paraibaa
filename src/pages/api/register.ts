@@ -17,18 +17,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { login, password, name } = req.body;
     console.log("Recebido registro:", login, name);
 
+    // Validação dos dados de entrada
     if (!login || !password || !name) {
       console.log("Dados incompletos para registro");
       return res.status(400).json({ ok: false, msg: "Todos os campos são obrigatórios" });
     }
 
+    // Verificação simples para o formato do login (exemplo: não permitir caracteres especiais)
+    const loginRegex = /^[a-zA-Z0-9_]+$/;
+    if (!loginRegex.test(login)) {
+      return res.status(400).json({ ok: false, msg: "Login inválido. Use apenas letras, números e _." });
+    }
+
     const db = client.db("paraiba");
     const users = db.collection("users");
 
+    // Verificar se o login já existe
     const existe = await users.findOne({ login });
     if (existe) {
       console.log("Usuário já existe:", login);
-      return res.status(200).json({ ok: false, msg: "Já existe" });
+      return res.status(200).json({ ok: false, msg: "Já existe um usuário com esse login" });
     }
 
     // Criptografar a senha antes de armazená-la

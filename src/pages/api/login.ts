@@ -8,6 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "secretkey"; // Chave secreta para 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log("Login API chamada");
 
+  // Verifica se o método da requisição é POST
   if (req.method !== "POST") {
     console.log("Método não permitido:", req.method);
     return res.status(405).json({ msg: "Método não permitido" });
@@ -15,17 +16,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { login, password } = req.body;
-    console.log("Recebido login:", login);
 
+    // Verifica se login e senha foram fornecidos
     if (!login || !password) {
       console.log("Login ou senha não fornecidos");
-      return res.status(400).json({ ok: false, msg: "Login ou senha obrigatórios" });
+      return res.status(400).json({ ok: false, msg: "Login e senha são obrigatórios" });
     }
 
     const db = client.db("paraiba");
     const users = db.collection("users");
 
-    console.log("Procurando usuário no banco...");
+    // Busca o usuário no banco de dados
     const user = await users.findOne({ login });
 
     if (!user) {
@@ -33,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ ok: false, msg: "Login ou senha inválidos" });
     }
 
-    // Verificando a senha usando bcrypt
+    // Verifica se a senha é válida usando bcrypt
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       console.log("Senha inválida");
@@ -42,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("Usuário encontrado:", user);
 
-    // Gerar o token JWT
+    // Gera o token JWT
     const token = jwt.sign(
       { _id: user._id, login: user.login },
       JWT_SECRET,
@@ -62,6 +63,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   } catch (err) {
     console.error("ERRO LOGIN:", err);
-    return res.status(500).json({ ok: false, msg: "Erro no servidor" });
+    return res.status(500).json({ ok: false, msg: "Erro interno no servidor" });
   }
 }

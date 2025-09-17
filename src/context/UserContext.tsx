@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 
 interface User {
   _id: string;
@@ -52,18 +52,20 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             login: data.user.login,
             name: data.user.name,
             permissao: data.user.permissao,
-            password: parsedUser.password,
+            password: parsedUser.password, // Não devemos retornar ou salvar a senha
           };
 
           setUser(validUser);
-          localStorage.setItem("usuario", JSON.stringify(validUser));
+          localStorage.setItem("usuario", JSON.stringify(validUser)); // Salva no localStorage
         } else {
-          // Usuário não encontrado ou inválido
-          setUser(parsedUser); // Ainda mantém os dados do localStorage
+          // Usuário não válido, limpando localStorage
+          localStorage.removeItem("usuario");
+          setUser(null);
         }
       } catch (error) {
         console.error("Erro ao verificar usuário:", error);
-        setUser(parsedUser); // Mantém o usuário no localStorage mesmo se houver erro
+        // Se erro ocorrer, mantém o usuário no localStorage, mas pode ser uma falha de verificação
+        setUser(parsedUser); // Mantém o usuário do localStorage
       } finally {
         setLoading(false); // Finaliza o carregamento
       }
@@ -72,8 +74,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     validateUser();
   }, []); // Executa uma única vez ao montar o componente
 
-  // Verifica se o usuário tem permissão de administrador
-  const isAdmin = user?.permissao === "administrador";
+  // Verifica se o usuário tem permissão de administrador usando useMemo para performance
+  const isAdmin = useMemo(() => user?.permissao === "administrador", [user]);
 
   return (
     <UserContext.Provider value={{ user, setUser, isAdmin, loading }}>

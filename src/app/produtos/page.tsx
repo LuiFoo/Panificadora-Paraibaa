@@ -29,11 +29,13 @@ const categoriasMenu: string[] = [
 const categoriaPadrao = categoriasMenu[0];
 
 export default function CardapioPage() {
-  const [categoriaAtual, setCategoriaAtual] = useState<string | null>(null);
+  const [categoriaAtual, setCategoriaAtual] = useState<string>(categoriaPadrao);
   const [itens, setItens] = useState<ItemCardapio[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isClient, setIsClient] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState<boolean>(false);
 
+  // Atualiza a categoria atual da URL ou define a padrão
   useEffect(() => {
     setIsClient(true);
     const params = new URLSearchParams(window.location.search);
@@ -41,19 +43,20 @@ export default function CardapioPage() {
 
     if (categoriaParam && categoriasMenu.includes(categoriaParam)) {
       setCategoriaAtual(categoriaParam);
-      buscarItensPorCategoria(categoriaParam);
     } else {
       setCategoriaAtual(categoriaPadrao);
-      buscarItensPorCategoria(categoriaPadrao);
-
       const url = new URL(window.location.href);
       url.searchParams.set("categoria", categoriaPadrao);
       window.history.replaceState({}, "", url);
     }
+
+    buscarItensPorCategoria(categoriaAtual); // Busca itens ao iniciar a página ou ao mudar a categoria
   }, []);
 
   const buscarItensPorCategoria = async (categoria: string) => {
     setLoading(true);
+    setError(null);
+
     try {
       const categoriaUrl = categoria.toLowerCase().replace(/\s+/g, "-");
       const response = await fetch(`/api/${categoriaUrl}`);
@@ -78,7 +81,7 @@ export default function CardapioPage() {
       setItens(data[chave] || []);
     } catch (error) {
       console.error(`Erro ao buscar itens da categoria ${categoria}:`, error);
-      setItens([]);
+      setError("Não foi possível carregar os itens da categoria.");
     } finally {
       setLoading(false);
     }
@@ -115,7 +118,7 @@ export default function CardapioPage() {
             <p className="text-center text-gray-500">Carregando...</p>
           ) : loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--color-avocado-500)]"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--color-avocado-500)]" aria-label="Carregando..."></div>
             </div>
           ) : categoriaAtual ? (
             <div className="flex flex-wrap justify-center gap-[30px]">
@@ -123,7 +126,7 @@ export default function CardapioPage() {
                 itens.map((item) => (
                   <div
                     key={item._id}
-                    className="bg-white rounded-lg shadow-lg overflow-hidden w-75 rounded-lg shadow-md p-5 hover:shadow-lg transition"
+                    className="bg-white rounded-lg shadow-lg overflow-hidden w-75 p-5 hover:shadow-lg transition"
                   >
                     <Image
                       src={item.img}

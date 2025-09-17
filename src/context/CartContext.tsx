@@ -18,7 +18,7 @@ interface CartContextType {
   removeItem: (id: string) => void;
   updateItemQuantity: (id: string, quantidade: number) => void;
   clearCart: () => void;
-  addItem: (item: CartItem) => void; // Função para adicionar item
+  addItem: (item: CartItem) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -32,18 +32,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // Carregar o carrinho do localStorage e sincronizar com o MongoDB
   useEffect(() => {
     const fetchCart = async () => {
-      // Primeiro, tenta carregar o carrinho do localStorage
+      console.log(`Buscando carrinho para o usuário: ${login}`);
+
+      // Primeiro tenta carregar o carrinho do localStorage
       const storedCart = localStorage.getItem(`carrinho_${login}`);
       if (storedCart) {
+        console.log("Carrinho carregado do localStorage.");
         setCartItems(JSON.parse(storedCart));
       } else {
-        // Caso não haja carrinho no localStorage, tenta carregar do MongoDB
         try {
+          console.log("Buscando carrinho do MongoDB...");
           const res = await fetch(`/api/cart?userId=${login}`);
           if (!res.ok) throw new Error("Erro ao buscar carrinho");
           const data = await res.json();
-          setCartItems(data.produtos || []); // Pega os produtos do carrinho do MongoDB
-          localStorage.setItem(`carrinho_${login}`, JSON.stringify(data.produtos)); // Salva o carrinho no localStorage
+          setCartItems(data.produtos || []);
+          localStorage.setItem(`carrinho_${login}`, JSON.stringify(data.produtos)); // Salva no localStorage
+          console.log("Carrinho carregado do MongoDB.");
         } catch (err) {
           console.error("Erro ao carregar carrinho do MongoDB:", err);
         }
@@ -51,53 +55,79 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
 
     fetchCart();
-  }, [login]); // Executa a lógica de carga apenas na primeira renderização ou se o login mudar
+  }, [login]);
 
   // Total de itens no carrinho
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantidade, 0);
 
   // Função para remover um item
-  const removeItem = (id: string) => {
+  const removeItem = async (id: string) => {
+    console.log(`Removendo item com ID: ${id} do carrinho.`);
     const updatedCart = cartItems.filter(item => item.id !== id);
-    setCartItems(updatedCart);
-    // Atualiza o localStorage
-    localStorage.setItem(`carrinho_${login}`, JSON.stringify(updatedCart));
 
-    // Envia a requisição para o MongoDB (mas sem sobrescrever o localStorage)
-    fetch(`/api/cart?userId=${login}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ produtoId: id }),
-    }).catch((err) => console.error("Erro ao remover produto:", err));
+    try {
+      const res = await fetch(`/api/cart?userId=${login}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produtoId: id }), // A chave deve ser produtoId
+      });
+
+      if (res.ok) {
+        setCartItems(updatedCart);
+        localStorage.setItem(`carrinho_${login}`, JSON.stringify(updatedCart));
+        console.log("Produto removido com sucesso.");
+      } else {
+        console.error("Erro ao remover produto no MongoDB");
+      }
+    } catch (err) {
+      console.error("Erro ao remover produto:", err);
+    }
   };
 
   // Função para adicionar um item ao carrinho
-  const addItem = (item: CartItem) => {
+  const addItem = async (item: CartItem) => {
+    console.log(`Adicionando item ao carrinho: ${item.id}`);
+
     const existingItemIndex = cartItems.findIndex((i) => i.id === item.id);
-    
+    let updatedItems: CartItem[];
+
     if (existingItemIndex !== -1) {
-      // Se o item já existe, atualiza a quantidade
-      const updatedItems = [...cartItems];
+      updatedItems = [...cartItems];
       updatedItems[existingItemIndex].quantidade += item.quantidade;
-      setCartItems(updatedItems);
+      console.log(`Item já existente, quantidade atualizada: ${item.quantidade}`);
     } else {
-      // Se o item não existe, adiciona ao carrinho
-      setCartItems((prevItems) => [...prevItems, item]);
+      updatedItems = [...cartItems, item];
+      console.log("Novo item adicionado ao carrinho.");
     }
 
-    // Atualiza o localStorage imediatamente
-    localStorage.setItem(`carrinho_${login}`, JSON.stringify(cartItems));
+    try {
+      const res = await fetch(`/api/cart?userId=${login}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          produtoId: item.id, // Mudança aqui, utilizando produtoId
+          nome: item.nome,
+          valor: item.valor,
+          quantidade: item.quantidade,
+          img: item.img,
+        }),
+      });
 
-    // Envia os dados para o MongoDB (sem sobrescrever localStorage)
-    fetch(`/api/cart?userId=${login}`, {
-      method: "POST", // Ou "PUT", dependendo do caso
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(item),
-    }).catch((err) => console.error("Erro ao adicionar produto:", err));
+      if (res.ok) {
+        setCartItems(updatedItems);
+        localStorage.setItem(`carrinho_${login}`, JSON.stringify(updatedItems));
+        console.log("Produto adicionado ou atualizado com sucesso.");
+      } else {
+        console.error("Erro ao adicionar produto no MongoDB");
+      }
+    } catch (err) {
+      console.error("Erro ao adicionar produto:", err);
+    }
   };
 
   // Função para atualizar a quantidade de um item
-  const updateItemQuantity = (id: string, quantidade: number) => {
+  const updateItemQuantity = async (id: string, quantidade: number) => {
+    console.log(`Atualizando a quantidade do item ${id} para ${quantidade}`);
     if (quantidade < 1) {
       quantidade = 1; // Impede que a quantidade seja 0 ou negativa
     }
@@ -105,27 +135,45 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const updatedCart = cartItems.map((item) =>
       item.id === id ? { ...item, quantidade } : item
     );
-    setCartItems(updatedCart);
 
-    // Atualiza o localStorage e MongoDB
-    localStorage.setItem(`carrinho_${login}`, JSON.stringify(updatedCart));
-    fetch(`/api/cart?userId=${login}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ produtoId: id, quantidade }),
-    }).catch((err) => console.error("Erro ao atualizar produto:", err));
+    try {
+      const res = await fetch(`/api/cart?userId=${login}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produtoId: id, quantidade }),
+      });
+
+      if (res.ok) {
+        setCartItems(updatedCart);
+        localStorage.setItem(`carrinho_${login}`, JSON.stringify(updatedCart));
+        console.log("Quantidade do produto atualizada com sucesso.");
+      } else {
+        console.error("Erro ao atualizar produto no MongoDB");
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar produto:", err);
+    }
   };
 
   // Função para limpar o carrinho
-  const clearCart = () => {
+  const clearCart = async () => {
+    console.log("Limpar carrinho...");
     setCartItems([]);
-    localStorage.removeItem(`carrinho_${login}`); // Limpa o localStorage
-    // Limpa o carrinho no MongoDB
-    fetch(`/api/cart?userId=${login}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ produtoId: "" }), // Limpar todos os itens do carrinho
-    }).catch((err) => console.error("Erro ao limpar carrinho:", err));
+    localStorage.removeItem(`carrinho_${login}`);
+
+    try {
+      const res = await fetch(`/api/cart?userId=${login}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produtoId: "" }), // Limpar todos os itens do carrinho
+      });
+
+      if (!res.ok) {
+        console.error("Erro ao limpar o carrinho no MongoDB");
+      }
+    } catch (err) {
+      console.error("Erro ao limpar carrinho:", err);
+    }
   };
 
   return (
