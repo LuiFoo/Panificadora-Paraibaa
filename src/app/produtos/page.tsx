@@ -93,8 +93,6 @@ export default function CardapioPage() {
     window.history.pushState({}, "", url);
   };
 
-
-
   return (
     <>
       <Header />

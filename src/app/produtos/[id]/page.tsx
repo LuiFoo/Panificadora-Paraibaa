@@ -32,14 +32,15 @@ export default function ProdutoDetalhePage() {
   const params = useParams();
   const [produto, setProduto] = useState<ItemCardapio | null>(null);
   const [produtosRelacionados, setProdutosRelacionados] = useState<ItemCardapio[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [quantidade, setQuantidade] = useState<number>(1);
-  const [mensagem, setMensagem] = useState<string>(""); // nova state para feedback
+  const [mensagem, setMensagem] = useState<string>("");
 
   const { addItem } = useCart();
   const { user } = useUser();
 
+  // Função de busca do produto
   useEffect(() => {
     if (params?.id) {
       buscarProduto(params.id as string);
@@ -112,7 +113,6 @@ export default function ProdutoDetalhePage() {
       valor: produto.valor,
       quantidade,
       img: produto.img,
-      user: user.login,
     });
 
     // Mostra a mensagem no front

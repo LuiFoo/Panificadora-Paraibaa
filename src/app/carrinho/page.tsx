@@ -19,69 +19,50 @@ interface Product {
 }
 
 export default function CarrinhoPage() {
-  const { cartItems, removeItem, updateItemQuantity, updateCart, clearCart } = useCart();
-  const [loading, setLoading] = useState(true);
+  const { cartItems, removeItem, updateItemQuantity, clearCart } = useCart(); // Funções do CartContext
+  const [loading, setLoading] = useState<boolean>(true);
 
+  // Função para carregar os produtos do MongoDB e sincronizar com o localStorage
   useEffect(() => {
-    // Pega o estado atual do carrinho na montagem
-    const currentCart = [...cartItems];
-
     const fetchProducts = async () => {
       try {
         const res = await fetch("/api/bolos-doces-especiais");
         if (!res.ok) throw new Error("Erro ao buscar produtos");
+
         const data: { bolosDocesEspeciais: Product[] } = await res.json();
         const products = data.bolosDocesEspeciais;
 
-        // Filtra e atualiza apenas os produtos válidos
-        const updatedItems = currentCart
-          .map(item => {
-            const product = products.find(p => p._id === item.id);
-            if (!product) return null;
-            return {
-              ...item,
-              nome: product.nome,
-              valor: product.valor,
-              img: product.img || "/images/default-product.png",
-            };
-          })
-          .filter(Boolean);
+        // Atualiza os itens do carrinho com os produtos do MongoDB
+        const updatedItems = cartItems.map(item => {
+          const product = products.find(p => p._id === item.id);
+          if (!product) return item; // Retorna item original caso o produto não seja encontrado
+          return {
+            ...item,
+            nome: product.nome,
+            valor: product.valor,
+            img: product.img || "/images/default-product.png",
+          };
+        });
 
-        updateCart(updatedItems as typeof cartItems);
+        // Atualiza o carrinho no localStorage e no estado
+        localStorage.setItem("carrinho", JSON.stringify(updatedItems));
+        setLoading(false);
       } catch (err) {
-        console.error(err);
-      } finally {
+        console.error("Erro ao buscar produtos:", err);
         setLoading(false);
       }
     };
 
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ✅ Dependências vazias → roda apenas uma vez ao entrar no carrinho
+  }, [cartItems]); // Recarregar sempre que o carrinho mudar
 
-  const removerUmaUnidade = (itemId: string) => {
-    const item = cartItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    if (item.quantidade === 1) {
-      removeItem(itemId);
-    } else {
-      updateItemQuantity(itemId, item.quantidade - 1);
-    }
-  };
-
-  const adicionarUmaUnidade = (itemId: string) => {
-    const item = cartItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    updateItemQuantity(itemId, item.quantidade + 1);
-  };
-
+  // Calcula o total do carrinho
   const total = cartItems.reduce(
     (sum, item) => sum + (item.valor || 0) * item.quantidade,
     0
   );
 
+  // Se estiver carregando, exibe o estado de carregamento
   if (loading) {
     return (
       <>
@@ -138,7 +119,7 @@ export default function CarrinhoPage() {
 
                     <div className="flex gap-2 mt-2">
                       <button
-                        onClick={() => removerUmaUnidade(item.id)}
+                        onClick={() => updateItemQuantity(item.id, item.quantidade - 1)}
                         className="p-2 bg-gray-200 rounded hover:bg-gray-300"
                         title="Remover 1 unidade"
                       >
@@ -154,7 +135,7 @@ export default function CarrinhoPage() {
                       </button>
 
                       <button
-                        onClick={() => adicionarUmaUnidade(item.id)}
+                        onClick={() => updateItemQuantity(item.id, item.quantidade + 1)}
                         className="p-2 bg-gray-200 rounded hover:bg-gray-300"
                         title="Adicionar 1 unidade"
                       >
