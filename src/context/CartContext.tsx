@@ -12,13 +12,6 @@ export interface CartItem {
   user?: string;
 }
 
-interface Product {
-  _id: string;
-  nome: string;
-  valor: number;
-  img?: string;
-}
-
 interface CartContextType {
   cartItems: CartItem[];
   addItem: (item: CartItem) => void;
