@@ -58,6 +58,7 @@ export default function MensagensAdminPage() {
 
   // Definir conversaAtual antes dos useEffects
   const conversaAtual = conversas.find(c => c.userId === conversaSelecionada);
+  const [ultimoTamanhoMensagens, setUltimoTamanhoMensagens] = useState<number>(0);
 
   useEffect(() => {
     fetchConversas();
@@ -70,16 +71,23 @@ export default function MensagensAdminPage() {
     // Marcar mensagens do cliente como lidas quando admin abre a conversa
     if (conversaSelecionada) {
       marcarComoLida(conversaSelecionada);
+      // Resetar o contador quando trocar de conversa (não faz scroll)
+      setUltimoTamanhoMensagens(conversaAtual?.mensagens.length || 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversaSelecionada]);
 
-  // Scroll automático apenas quando as mensagens da conversa atual mudarem
+  // Scroll automático APENAS quando uma nova mensagem for adicionada
   useEffect(() => {
     if (conversaAtual && conversaAtual.mensagens.length > 0) {
-      scrollToBottom();
+      // Só faz scroll se o número de mensagens aumentou (nova mensagem)
+      if (conversaAtual.mensagens.length > ultimoTamanhoMensagens) {
+        scrollToBottom();
+      }
+      setUltimoTamanhoMensagens(conversaAtual.mensagens.length);
     }
-  }, [conversaAtual]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversaAtual?.mensagens.length]);
 
   const marcarComoLida = async (userId: string) => {
     try {

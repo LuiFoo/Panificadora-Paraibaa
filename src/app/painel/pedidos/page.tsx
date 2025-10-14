@@ -48,9 +48,13 @@ export default function PedidosPage() {
   const [loadingPedidos, setLoadingPedidos] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroModalidade, setFiltroModalidade] = useState<string>("todos");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<string>("todos");
+  const [dataInicio, setDataInicio] = useState<string>("");
+  const [dataFim, setDataFim] = useState<string>("");
   const [buscaTexto, setBuscaTexto] = useState<string>("");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [pedidoExpandido, setPedidoExpandido] = useState<string | null>(null);
+  const [agruparPorDia, setAgruparPorDia] = useState<boolean>(true);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -166,6 +170,38 @@ export default function PedidosPage() {
     }
   };
 
+  const getDataRange = () => {
+    const hoje = new Date();
+    const ontem = new Date(hoje);
+    ontem.setDate(ontem.getDate() - 1);
+    
+    const seteDiasAtras = new Date(hoje);
+    seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
+    
+    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    
+    switch (filtroPeriodo) {
+      case 'hoje':
+        return { inicio: hoje.toDateString(), fim: hoje.toDateString() };
+      case 'ontem':
+        return { inicio: ontem.toDateString(), fim: ontem.toDateString() };
+      case 'ultimos7':
+        return { inicio: seteDiasAtras.toDateString(), fim: hoje.toDateString() };
+      case 'mesAtual':
+        return { inicio: inicioMes.toDateString(), fim: hoje.toDateString() };
+      case 'personalizado':
+        if (dataInicio && dataFim) {
+          return { 
+            inicio: new Date(dataInicio).toDateString(), 
+            fim: new Date(dataFim).toDateString() 
+          };
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
+
   const filteredPedidos = pedidos.filter(pedido => {
     // Filtro de status
     const matchStatus = filtroStatus === "todos" || pedido.status === filtroStatus;
@@ -180,8 +216,33 @@ export default function PedidosPage() {
       pedido.telefone?.includes(buscaTexto) ||
       pedido.produtos.some(p => p.nome.toLowerCase().includes(buscaTexto.toLowerCase()));
     
-    return matchStatus && matchModalidade && matchBusca;
+    // Filtro por data
+    let matchData = true;
+    if (filtroPeriodo !== "todos") {
+      const dataRange = getDataRange();
+      if (dataRange) {
+        const dataPedido = new Date(pedido.dataPedido).toDateString();
+        const dataInicio = new Date(dataRange.inicio);
+        const dataFim = new Date(dataRange.fim);
+        const pedidoDate = new Date(dataPedido);
+        matchData = pedidoDate >= dataInicio && pedidoDate <= dataFim;
+      }
+    }
+    
+    return matchStatus && matchModalidade && matchBusca && matchData;
   });
+
+  // Agrupar pedidos por dia se solicitado
+  const pedidosAgrupados: { [key: string]: Pedido[] } = {};
+  if (agruparPorDia) {
+    filteredPedidos.forEach(pedido => {
+      const data = new Date(pedido.dataPedido).toLocaleDateString('pt-BR');
+      if (!pedidosAgrupados[data]) {
+        pedidosAgrupados[data] = [];
+      }
+      pedidosAgrupados[data].push(pedido);
+    });
+  }
 
   if (loading || loadingPedidos) {
     return (
@@ -248,12 +309,24 @@ export default function PedidosPage() {
 
         {/* Filtros Avançados */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <span>🔍</span>
-            Filtros Avançados
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <span>🔍</span>
+              Filtros Avançados
+            </h3>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agruparPorDia}
+                onChange={(e) => setAgruparPorDia(e.target.checked)}
+                className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+              />
+              📅 Agrupar por Dia
+            </label>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Primeira linha de filtros */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             {/* Busca */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -261,11 +334,36 @@ export default function PedidosPage() {
               </label>
               <input
                 type="text"
-                placeholder="ID, cliente, produto ou telefone..."
+                placeholder="ID, cliente, produto..."
                 value={buscaTexto}
                 onChange={(e) => setBuscaTexto(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
+            </div>
+
+            {/* Período */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Período:
+              </label>
+              <select
+                value={filtroPeriodo}
+                onChange={(e) => {
+                  setFiltroPeriodo(e.target.value);
+                  if (e.target.value !== 'personalizado') {
+                    setDataInicio("");
+                    setDataFim("");
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="todos">📅 Todos</option>
+                <option value="hoje">📌 Hoje</option>
+                <option value="ontem">⏮️ Ontem</option>
+                <option value="ultimos7">📊 Últimos 7 dias</option>
+                <option value="mesAtual">📆 Mês Atual</option>
+                <option value="personalizado">🔧 Personalizado</option>
+              </select>
             </div>
 
             {/* Status */}
@@ -305,17 +403,53 @@ export default function PedidosPage() {
             </div>
           </div>
 
-          {/* Contador de resultados */}
-          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              <strong>{filteredPedidos.length}</strong> {filteredPedidos.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
-            </p>
-            {(buscaTexto || filtroStatus !== "todos" || filtroModalidade !== "todos") && (
+          {/* Data personalizada */}
+          {filtroPeriodo === 'personalizado' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div>
+                <label className="block text-sm font-medium text-blue-900 mb-2">
+                  Data Início:
+                </label>
+                <input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-blue-900 mb-2">
+                  Data Fim:
+                </label>
+                <input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Contador de resultados e totalizador */}
+          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-600">
+                <strong>{filteredPedidos.length}</strong> {filteredPedidos.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
+              </p>
+              <p className="text-sm font-semibold text-amber-600">
+                Total: R$ {filteredPedidos.reduce((sum, p) => sum + p.total, 0).toFixed(2).replace(".", ",")}
+              </p>
+            </div>
+            {(buscaTexto || filtroStatus !== "todos" || filtroModalidade !== "todos" || filtroPeriodo !== "todos") && (
               <button
                 onClick={() => {
                   setBuscaTexto("");
                   setFiltroStatus("todos");
                   setFiltroModalidade("todos");
+                  setFiltroPeriodo("todos");
+                  setDataInicio("");
+                  setDataFim("");
                 }}
                 className="text-amber-600 hover:text-amber-700 font-medium text-sm flex items-center gap-1"
               >
@@ -326,13 +460,78 @@ export default function PedidosPage() {
         </div>
 
         {/* Lista de Pedidos */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {filteredPedidos.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600">Nenhum pedido encontrado.</p>
             </div>
+          ) : agruparPorDia ? (
+            // Visualização agrupada por dia
+            Object.keys(pedidosAgrupados).sort((a, b) => {
+              const dateA = a.split('/').reverse().join('-');
+              const dateB = b.split('/').reverse().join('-');
+              return dateB.localeCompare(dateA);
+            }).map((data) => {
+              const pedidosDoDia = pedidosAgrupados[data];
+              const totalDia = pedidosDoDia.reduce((sum, p) => sum + p.total, 0);
+              const qtdItensDia = pedidosDoDia.reduce((sum, p) => sum + p.produtos.reduce((s, prod) => s + prod.quantidade, 0), 0);
+              
+              return (
+                <div key={data} className="space-y-3">
+                  {/* Cabeçalho do Dia */}
+                  <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg p-4 shadow-md">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div>
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          📅 {data}
+                        </h3>
+                        <p className="text-amber-100 text-sm mt-1">
+                          {pedidosDoDia.length} {pedidosDoDia.length === 1 ? 'pedido' : 'pedidos'} • {qtdItensDia} {qtdItensDia === 1 ? 'item' : 'itens'}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-amber-100 uppercase tracking-wide">Total do Dia</p>
+                        <p className="text-2xl font-bold text-white">
+                          R$ {totalDia.toFixed(2).replace(".", ",")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Pedidos do dia */}
+                  <div className="space-y-3 ml-4">
+                    {pedidosDoDia.map((pedido) => (
+                      renderPedido(pedido)
+                    ))}
+                  </div>
+                </div>
+              );
+            })
           ) : (
-            filteredPedidos.map((pedido) => (
+            // Visualização em lista simples
+            filteredPedidos.map((pedido) => renderPedido(pedido))
+          )}
+        </div>
+      </main>
+      <Footer showMap={false} />
+
+      {/* Modal */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ ...modalState, isOpen: false })}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
+    </>
+  );
+
+  // Função para renderizar um pedido
+  function renderPedido(pedido: Pedido) {
+    return (
               <div key={pedido._id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                 {/* Cabeçalho do Pedido */}
                 <div className="p-6 border-b border-gray-200">
@@ -537,23 +736,6 @@ export default function PedidosPage() {
                   </div>
                 )}
               </div>
-            ))
-          )}
-        </div>
-      </main>
-      <Footer showMap={false} />
-
-      {/* Modal */}
-      <Modal
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState({ ...modalState, isOpen: false })}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText="Confirmar"
-        cancelText="Cancelar"
-      />
-    </>
-  );
+    );
+  }
 }
