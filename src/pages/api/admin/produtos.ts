@@ -1,18 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 
-interface Produto {
-  _id?: string;
-  subc: string; // subcategoria
-  nome: string;
-  valor: number;
-  vtipo: string; // tipo de venda (UN, KG, etc)
-  ingredientes: string;
-  img: string;
-  dataCriacao: Date;
-  dataAtualizacao: Date;
-}
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
 

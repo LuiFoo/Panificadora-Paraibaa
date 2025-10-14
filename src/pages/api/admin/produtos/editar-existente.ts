@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "ID inválido" });
       }
 
-      const updateData: any = {
+      const updateData: Record<string, string | number | Date> = {
         nome,
         valor: parseFloat(valor),
         dataAtualizacao: new Date()
