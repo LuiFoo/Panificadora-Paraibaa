@@ -6,6 +6,7 @@ import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface Endereco {
   rua: string;
@@ -226,9 +227,6 @@ export default function CheckoutPage() {
         
         setSuccess(true);
         clearCart();
-        setTimeout(() => {
-          router.push("/");
-        }, 3000);
       } else {
         setError(data.error || "Erro ao processar pedido");
       }
@@ -268,11 +266,111 @@ export default function CheckoutPage() {
     return (
       <>
         <Header />
-        <main className="max-w-6xl mx-auto px-4 py-10 text-center">
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            <h2 className="text-2xl font-bold mb-2">Pedido Realizado com Sucesso! 🎉</h2>
-            <p>Seu pedido foi enviado e será processado em breve.</p>
-            <p className="text-sm mt-2">Você será redirecionado para a página inicial em alguns segundos...</p>
+        <main className="max-w-4xl mx-auto px-4 py-10">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            {/* Ícone de sucesso */}
+            <div className="flex justify-center mb-6">
+              <div className="bg-green-100 rounded-full p-6">
+                <svg className="w-16 h-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Mensagem principal */}
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">
+              Pedido Realizado com Sucesso! 🎉
+            </h2>
+            <p className="text-lg text-gray-600 mb-2">
+              Seu pedido foi enviado e será processado em breve.
+            </p>
+            <p className="text-gray-500 mb-8">
+              Você receberá uma confirmação assim que seu pedido for aprovado.
+            </p>
+
+            {/* Cards informativos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-500 rounded-full p-2 flex-shrink-0">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-900 mb-1">Acompanhe seu pedido</h3>
+                    <p className="text-sm text-blue-700">
+                      Acesse &quot;Meus Pedidos&quot; para ver o status em tempo real
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="bg-yellow-500 rounded-full p-2 flex-shrink-0">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-yellow-900 mb-1">Tempo de preparo</h3>
+                    <p className="text-sm text-yellow-700">
+                      {modalidadeEntrega === 'retirada' 
+                        ? `Retire em: ${new Date(dataEntrega).toLocaleDateString()} às ${horaEntrega}`
+                        : 'Sua encomenda será processada em breve'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Botões de ação */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/meus-pedidos"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#B69B4C] text-white font-semibold rounded-lg hover:bg-[#9d8540] transition-colors shadow-md hover:shadow-lg"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Ver Meus Pedidos
+              </Link>
+
+              <Link
+                href="/produtos"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#B69B4C] font-semibold rounded-lg hover:bg-gray-50 transition-colors border-2 border-[#B69B4C]"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                Continuar Comprando
+              </Link>
+
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Voltar ao Início
+              </Link>
+            </div>
+
+            {/* Informação adicional */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <p className="text-sm text-gray-500">
+                💬 Dúvidas? Entre em contato pelo{' '}
+                <Link href="/chat" className="text-blue-600 hover:underline font-semibold">
+                  chat online
+                </Link>
+                {' '}ou pelo{' '}
+                <a href="https://api.whatsapp.com/send?phone=551636151947" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline font-semibold">
+                  WhatsApp
+                </a>
+              </p>
+            </div>
           </div>
         </main>
         <Footer showMap={false} />
