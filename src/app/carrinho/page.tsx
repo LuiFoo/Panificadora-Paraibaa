@@ -11,29 +11,21 @@ import imagem_mais from "../../../public/images/car_mais.svg";
 import imagem_menos from "../../../public/images/car_menos.svg";
 import imagem_limpar from "../../../public/images/car_limpar.svg";
 
-interface Product {
-  _id: string;
-  nome: string;
-  valor: number;
-  img?: string;
-}
-
 export default function CarrinhoPage() {
   const { cartItems, removeItem, updateItemQuantity, clearCart } = useCart();
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Simplesmente define o loading como false, pois o carrinho já é carregado pelo CartContext
+  // O CartContext já carrega o carrinho; aqui só desligamos o loading
   useEffect(() => {
     setLoading(false);
   }, []);
 
-  // Calcula o total do carrinho
+  // Total do carrinho
   const total = cartItems.reduce(
     (sum, item) => sum + (item.valor || 0) * item.quantidade,
     0
   );
 
-  // Se estiver carregando, exibe o estado de carregamento
   if (loading) {
     return (
       <>
@@ -68,55 +60,64 @@ export default function CarrinhoPage() {
               {cartItems.map((item) => {
                 console.log("Item do carrinho:", item);
                 return (
-                <div
-                  key={item.id}
-                  className="flex items-center bg-white shadow rounded-lg p-4 gap-4"
-                >
-                  <div className="w-24 h-24 relative">
-                    <Image
-                      src={item.img || "/images/default-product.png"}
-                      alt={item.nome}
-                      fill
-                      className="object-cover rounded"
-                    />
-                  </div>
+                  <div
+                    key={item.id}
+                    className="flex items-center bg-white shadow rounded-lg p-4 gap-4"
+                  >
+                    <div className="w-24 h-24 relative">
+                      <Image
+                        src={item.img || "/images/default-product.png"}
+                        alt={item.nome}
+                        fill
+                        className="object-cover rounded"
+                      />
+                    </div>
 
-                  <div className="flex-1">
-                    <h2 className="font-bold text-lg">{item.nome}</h2>
-                    <p className="text-gray-600">
-                      R${item.valor.toFixed(2).replace(".", ",")} x {item.quantidade}
-                    </p>
-                    <p className="font-semibold mt-1">
-                      Subtotal: R${(item.valor * item.quantidade).toFixed(2).replace(".", ",")}
-                    </p>
+                    <div className="flex-1">
+                      <h2 className="font-bold text-lg">{item.nome}</h2>
+                      <p className="text-gray-600">
+                        R$
+                        {item.valor.toFixed(2).replace(".", ",")} x{" "}
+                        {item.quantidade}
+                      </p>
+                      <p className="font-semibold mt-1">
+                        Subtotal: R$
+                        {(item.valor * item.quantidade)
+                          .toFixed(2)
+                          .replace(".", ",")}
+                      </p>
 
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => updateItemQuantity(item.id, item.quantidade - 1)}
-                        className="p-2 bg-gray-200 rounded hover:bg-gray-300"
-                        title="Remover 1 unidade"
-                      >
-                        <Image src={imagem_menos} alt="-" width={20} height={20} />
-                      </button>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() =>
+                            updateItemQuantity(item.id, item.quantidade - 1)
+                          }
+                          className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+                          title="Remover 1 unidade"
+                        >
+                          <Image src={imagem_menos} alt="-" width={20} height={20} />
+                        </button>
 
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="p-2 bg-red-500 rounded hover:bg-red-600 text-white"
-                        title="Remover do carrinho"
-                      >
-                        <Image src={imagem_limpar} alt="x" width={20} height={20} />
-                      </button>
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="p-2 bg-red-500 rounded hover:bg-red-600 text-white"
+                          title="Remover do carrinho"
+                        >
+                          <Image src={imagem_limpar} alt="x" width={20} height={20} />
+                        </button>
 
-                      <button
-                        onClick={() => updateItemQuantity(item.id, item.quantidade + 1)}
-                        className="p-2 bg-gray-200 rounded hover:bg-gray-300"
-                        title="Adicionar 1 unidade"
-                      >
-                        <Image src={imagem_mais} alt="+" width={20} height={20} />
-                      </button>
+                        <button
+                          onClick={() =>
+                            updateItemQuantity(item.id, item.quantidade + 1)
+                          }
+                          className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+                          title="Adicionar 1 unidade"
+                        >
+                          <Image src={imagem_mais} alt="+" width={20} height={20} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
                 );
               })}
             </div>
