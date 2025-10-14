@@ -123,12 +123,21 @@ export default function CarrinhoPage() {
             </div>
 
             <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <button
-                onClick={() => clearCart()}
-                className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold"
-              >
-                Limpar Carrinho
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => clearCart()}
+                  className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold"
+                >
+                  Limpar Carrinho
+                </button>
+                
+                <Link
+                  href="/meus-pedidos"
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold"
+                >
+                  📦 Meus Pedidos
+                </Link>
+              </div>
 
               <p className="text-xl font-bold">
                 Total: R${total.toFixed(2).replace(".", ",")}

@@ -107,13 +107,57 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Adicionar item
   const addItem = async (item: CartItem) => {
+    // Validações do frontend antes de enviar para API
+    if (item.quantidade <= 0) {
+      alert("Quantidade deve ser maior que zero");
+      return;
+    }
+
+    if (item.quantidade > 50) {
+      alert("Quantidade máxima permitida por produto é 50 unidades");
+      return;
+    }
+
+    if (item.valor > 1000) {
+      alert("Valor do produto muito alto. Entre em contato conosco para pedidos especiais.");
+      return;
+    }
+
     const existingItemIndex = cartItems.findIndex((i) => i.id === item.id);
     let updatedItems: CartItem[];
 
     if (existingItemIndex !== -1) {
       updatedItems = [...cartItems];
-      updatedItems[existingItemIndex].quantidade += item.quantidade;
+      const novaQuantidade = updatedItems[existingItemIndex].quantidade + item.quantidade;
+      
+      // Verificar limite total de itens no carrinho
+      const totalItens = cartItems.reduce((sum, cartItem) => {
+        if (cartItem.id === item.id) {
+          return sum + novaQuantidade;
+        }
+        return sum + cartItem.quantidade;
+      }, 0);
+
+      if (totalItens > 100) {
+        alert("Limite máximo de 100 itens no carrinho atingido");
+        return;
+      }
+
+      updatedItems[existingItemIndex].quantidade = novaQuantidade;
     } else {
+      // Verificar limite de tipos de produtos
+      if (cartItems.length >= 20) {
+        alert("Limite máximo de 20 tipos de produtos no carrinho atingido");
+        return;
+      }
+
+      // Verificar limite total de itens
+      const totalItens = cartItems.reduce((sum, cartItem) => sum + cartItem.quantidade, 0) + item.quantidade;
+      if (totalItens > 100) {
+        alert("Limite máximo de 100 itens no carrinho atingido");
+        return;
+      }
+
       updatedItems = [...cartItems, item];
     }
 
@@ -133,10 +177,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (res.ok) {
         setCartItems(updatedItems);
       } else {
-        console.error("Erro ao adicionar produto no MongoDB");
+        const errorData = await res.json();
+        alert(errorData.error || "Erro ao adicionar produto");
       }
     } catch (err) {
       console.error("Erro ao adicionar produto:", err);
+      alert("Erro ao adicionar produto. Tente novamente.");
     }
   };
 
@@ -147,8 +193,27 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // Validações de quantidade
     if (quantidade < 1) {
       quantidade = 1; // Impede quantidade 0/negativa
+    }
+
+    if (quantidade > 50) {
+      alert("Quantidade máxima permitida por produto é 50 unidades");
+      return;
+    }
+
+    // Verificar limite total de itens no carrinho
+    const totalItens = cartItems.reduce((sum, item) => {
+      if (item.id === id) {
+        return sum + quantidade;
+      }
+      return sum + item.quantidade;
+    }, 0);
+
+    if (totalItens > 100) {
+      alert("Limite máximo de 100 itens no carrinho atingido");
+      return;
     }
 
     const updatedCart = cartItems.map((item) =>
@@ -165,10 +230,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (res.ok) {
         setCartItems(updatedCart);
       } else {
-        console.error("Erro ao atualizar produto no MongoDB");
+        const errorData = await res.json();
+        alert(errorData.error || "Erro ao atualizar produto");
       }
     } catch (err) {
       console.error("Erro ao atualizar produto:", err);
+      alert("Erro ao atualizar produto. Tente novamente.");
     }
   };
 
