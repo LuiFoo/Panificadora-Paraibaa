@@ -2,6 +2,7 @@
 
 import Header from "@/components/Header";
 import MenuCategoria from "@/components/MenuCategoria";
+import StarRating from "@/components/StarRating";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,6 +15,8 @@ interface ItemCardapio {
   img: string;
   subc: string;
   vtipo: string;
+  mediaAvaliacao?: number;
+  totalAvaliacoes?: number;
 }
 
 const categoriasMenu: string[] = [
@@ -76,7 +79,31 @@ export default function CardapioPage() {
       };
 
       const chave = chavesAPI[categoria] || Object.keys(data)[0];
-      setItens(data[chave] || []);
+      const itensData: ItemCardapio[] = data[chave] || [];
+      
+      // Buscar avaliações para cada produto
+      const itensComAvaliacoes = await Promise.all(
+        itensData.map(async (item) => {
+          try {
+            const avaliacoesRes = await fetch(`/api/avaliacoes?produtoId=${item._id}`);
+            const avaliacoesData = await avaliacoesRes.json();
+            
+            return {
+              ...item,
+              mediaAvaliacao: avaliacoesData.media || 0,
+              totalAvaliacoes: avaliacoesData.total || 0
+            };
+          } catch {
+            return {
+              ...item,
+              mediaAvaliacao: 0,
+              totalAvaliacoes: 0
+            };
+          }
+        })
+      );
+      
+      setItens(itensComAvaliacoes);
     } catch (error) {
       console.error(`Erro ao buscar itens da categoria ${categoria}:`, error);
     } finally {
@@ -134,8 +161,19 @@ export default function CardapioPage() {
                     />
                     <p className="font-bold text-[#646464]">{item.subc}</p>
                     <h3 className="text-lg font-semibold mb-2">{item.nome}</h3>
+                    
+                    {/* Avaliações */}
+                    <div className="mb-3">
+                      <StarRating 
+                        rating={item.mediaAvaliacao || 0} 
+                        total={item.totalAvaliacoes || 0}
+                        size="sm"
+                        showNumber={false}
+                      />
+                    </div>
+                    
                     <p className="text-[var(--color-avocado-600)] font-bold mb-8">
-                      A partir: R${item.valor.toFixed(2).replace(".", ",")} {item.vtipo}
+                      R${item.valor.toFixed(2).replace(".", ",")} {item.vtipo}
                     </p>
                     <Link
                       href={`/produtos/${item._id}`}

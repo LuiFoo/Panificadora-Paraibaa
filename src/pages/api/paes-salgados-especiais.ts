@@ -39,7 +39,10 @@ export default async function handler(
 
     const paesSalgadosEspeciais = await dbPadaria
       .collection("paes-salgados-especiais")
-      .find({ deleted: { $ne: true } })
+      .find({ 
+        deleted: { $ne: true },
+        status: { $ne: "pause" }
+      })
       .toArray();
 
     return res.status(200).json({

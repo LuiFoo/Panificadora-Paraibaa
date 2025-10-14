@@ -33,6 +33,7 @@ interface ProdutoExistente {
   img?: string;
   colecaoOrigem: string;
   subcategoria: string;
+  status?: string;
   dataCriacao?: Date;
   dataAtualizacao?: Date;
 }
@@ -65,6 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         img: produto.img,
         colecaoOrigem: "produtos",
         subcategoria: produto.subc,
+        status: produto.status, // Incluir status
         dataCriacao: produto.dataCriacao,
         dataAtualizacao: produto.dataAtualizacao
       });
@@ -86,6 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           img: produto.img || "https://via.placeholder.com/300x200?text=Sem+Imagem",
           colecaoOrigem: colecaoAntiga,
           subcategoria: subcategoria, // SEMPRE usar a subcategoria mapeada da coleção
+          status: produto.status, // Incluir status
           dataCriacao: produto.dataCriacao,
           dataAtualizacao: produto.dataAtualizacao
         });

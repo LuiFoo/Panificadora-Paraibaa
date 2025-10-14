@@ -39,7 +39,10 @@ export default async function handler(
 
     const bolosDocesEspeciais = await dbPadaria
       .collection("bolos-doces-especiais")
-      .find({ deleted: { $ne: true } })
+      .find({ 
+        deleted: { $ne: true },
+        status: { $ne: "pause" } // Filtrar produtos pausados
+      })
       .toArray();
 
     return res.status(200).json({

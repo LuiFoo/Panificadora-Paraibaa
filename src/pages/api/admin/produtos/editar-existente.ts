@@ -76,6 +76,74 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    if (method === "PATCH") {
+      // Método para atualizar apenas o status do produto (pausar/ativar)
+      const { id, colecaoOrigem, status } = req.body;
+
+      if (!id || !colecaoOrigem) {
+        return res.status(400).json({ error: "ID e coleção de origem são obrigatórios" });
+      }
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ error: "ID inválido" });
+      }
+
+      const updateData: Record<string, string | Date> = {
+        dataAtualizacao: new Date()
+      };
+
+      // Se status for "pause", adiciona; se for "active", remove o campo status
+      if (status === "pause") {
+        updateData.status = "pause";
+      }
+
+      let result;
+
+      if (colecaoOrigem === "produtos") {
+        if (status === "active") {
+          // Remover o campo status se ativar
+          result = await db.collection("produtos").updateOne(
+            { _id: new ObjectId(id) },
+            { 
+              $set: { dataAtualizacao: new Date() },
+              $unset: { status: "" }
+            }
+          );
+        } else {
+          result = await db.collection("produtos").updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+          );
+        }
+      } else if (MAPEAMENTO_COLECOES[colecaoOrigem as keyof typeof MAPEAMENTO_COLECOES]) {
+        if (status === "active") {
+          result = await db.collection(colecaoOrigem).updateOne(
+            { _id: new ObjectId(id) },
+            { 
+              $set: { dataAtualizacao: new Date() },
+              $unset: { status: "" }
+            }
+          );
+        } else {
+          result = await db.collection(colecaoOrigem).updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+          );
+        }
+      } else {
+        return res.status(400).json({ error: "Coleção de origem inválida" });
+      }
+
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
+      return res.status(200).json({ 
+        success: true,
+        message: `Produto ${status === "pause" ? "pausado" : "ativado"} com sucesso`
+      });
+    }
+
     if (method === "DELETE") {
       const { id, colecaoOrigem } = req.body;
 
@@ -87,30 +155,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "ID inválido" });
       }
 
+      let deleteResult;
+
       if (colecaoOrigem === "produtos") {
-        // Excluir da nova coleção unificada
-        const deleteResult = await db.collection("produtos").deleteOne({ _id: new ObjectId(id) });
-        
-        if (deleteResult.deletedCount === 0) {
-          return res.status(404).json({ error: "Produto não encontrado" });
-        }
+        // Excluir permanentemente da nova coleção unificada
+        deleteResult = await db.collection("produtos").deleteOne({ _id: new ObjectId(id) });
       } else if (MAPEAMENTO_COLECOES[colecaoOrigem as keyof typeof MAPEAMENTO_COLECOES]) {
-        // Marcar como deletado na coleção antiga (soft delete)
-        const updateResult = await db.collection(colecaoOrigem).updateOne(
-          { _id: new ObjectId(id) },
-          { $set: { deleted: true, dataAtualizacao: new Date() } }
-        );
-        
-        if (updateResult.matchedCount === 0) {
-          return res.status(404).json({ error: "Produto não encontrado" });
-        }
+        // Excluir permanentemente da coleção antiga (HARD DELETE)
+        deleteResult = await db.collection(colecaoOrigem).deleteOne({ _id: new ObjectId(id) });
       } else {
         return res.status(400).json({ error: "Coleção de origem inválida" });
       }
 
+      if (deleteResult.deletedCount === 0) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
       return res.status(200).json({ 
         success: true,
-        message: "Produto excluído com sucesso"
+        message: "Produto excluído definitivamente com sucesso"
       });
     }
 

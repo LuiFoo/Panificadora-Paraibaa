@@ -19,6 +19,7 @@ interface Produto {
   ingredientes: string;
   img: string;
   colecaoOrigem: string; // coleção de origem do produto
+  status?: "pause" | "active"; // status do produto (pause = pausado, active ou undefined = ativo)
   dataCriacao?: string | Date;
   dataAtualizacao?: string | Date;
 }
@@ -43,6 +44,7 @@ export default function ProdutosPage() {
   const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
   const [filtroSubcategoria, setFiltroSubcategoria] = useState<string>("todos");
+  const [filtroStatus, setFiltroStatus] = useState<string>("todos"); // Filtro para status (todos/ativos/pausados)
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [criandoExemplo, setCriandoExemplo] = useState(false);
@@ -211,8 +213,8 @@ export default function ProdutosPage() {
     setModalState({
       isOpen: true,
       type: "warning",
-      title: "Confirmar Exclusão",
-      message: `Tem certeza que deseja excluir o produto "${produto.nome}"?`,
+      title: "⚠️ Confirmar Exclusão Definitiva",
+      message: `Tem certeza que deseja EXCLUIR DEFINITIVAMENTE o produto "${produto.nome}"? Esta ação NÃO pode ser desfeita! Se quiser apenas desativá-lo temporariamente, use o botão "Pausar Produto".`,
       onConfirm: async () => {
         try {
           const response = await fetch("/api/admin/produtos/editar-existente", {
@@ -257,6 +259,47 @@ export default function ProdutosPage() {
     });
   };
 
+  const toggleStatusProduto = async (produto: Produto) => {
+    const novoStatus = produto.status === "pause" ? "active" : "pause";
+    const acao = novoStatus === "pause" ? "pausar" : "ativar";
+    
+    try {
+      const response = await fetch("/api/admin/produtos/editar-existente", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: produto._id,
+          colecaoOrigem: produto.colecaoOrigem,
+          status: novoStatus
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        fetchProdutos();
+        // Não mostrar modal de sucesso, apenas recarregar a lista
+      } else {
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: data.error || `Erro ao ${acao} produto`
+        });
+      }
+    } catch (error) {
+      console.error(`Erro ao ${acao} produto:`, error);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Erro",
+        message: `Erro ao ${acao} produto. Tente novamente.`
+      });
+    }
+  };
+
   const criarProdutoExemplo = async () => {
     setCriandoExemplo(true);
     
@@ -299,7 +342,17 @@ export default function ProdutosPage() {
 
   const filteredProdutos = produtos.filter(produto => {
     const subcategoria = produto.subc || produto.subcategoria;
-    return filtroSubcategoria === "todos" || subcategoria === filtroSubcategoria;
+    const matchSubcategoria = filtroSubcategoria === "todos" || subcategoria === filtroSubcategoria;
+    
+    // Filtro de status
+    let matchStatus = true;
+    if (filtroStatus === "ativos") {
+      matchStatus = produto.status !== "pause";
+    } else if (filtroStatus === "pausados") {
+      matchStatus = produto.status === "pause";
+    }
+    
+    return matchSubcategoria && matchStatus;
   });
 
   if (loading) {
@@ -364,21 +417,60 @@ export default function ProdutosPage() {
         </div>
 
         {/* Filtros */}
-        <div className="mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Subcategoria:
-            </label>
-            <select
-              value={filtroSubcategoria}
-              onChange={(e) => setFiltroSubcategoria(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="todos">Todas as Subcategorias</option>
-              {subcategorias.map(subcategoria => (
-                <option key={subcategoria} value={subcategoria}>{subcategoria}</option>
-              ))}
-            </select>
+        <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+          <h3 className="text-lg font-semibold mb-4">Filtros</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subcategoria:
+              </label>
+              <select
+                value={filtroSubcategoria}
+                onChange={(e) => setFiltroSubcategoria(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="todos">Todas as Subcategorias</option>
+                {subcategorias.map(subcategoria => (
+                  <option key={subcategoria} value={subcategoria}>{subcategoria}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status:
+              </label>
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="todos">Todos os Status</option>
+                <option value="ativos">✅ Ativos</option>
+                <option value="pausados">⏸️ Pausados</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-blue-700">📊 Produtos encontrados:</span>
+                  <span className="font-bold text-blue-900">{filteredProdutos.length}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-green-700">✅ Ativos:</span>
+                  <span className="font-semibold text-green-900">
+                    {produtos.filter(p => p.status !== "pause").length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-red-700">⏸️ Pausados:</span>
+                  <span className="font-semibold text-red-900">
+                    {produtos.filter(p => p.status === "pause").length}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -548,12 +640,22 @@ export default function ProdutosPage() {
             </div>
           ) : (
             filteredProdutos.map((produto) => (
-              <div key={produto._id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div key={produto._id} className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${produto.status === 'pause' ? 'border-red-300 bg-red-50/30' : 'border-gray-200'}`}>
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="font-semibold text-lg">{produto.nome}</h3>
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {produto.vtipo}
-                  </span>
+                  <div className="flex gap-2">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {produto.vtipo}
+                    </span>
+                    {produto.status === 'pause' && (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        PAUSADO
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {produto.img && (
@@ -595,16 +697,40 @@ export default function ProdutosPage() {
                   )}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => toggleStatusProduto(produto)}
+                    className={`col-span-2 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                      produto.status === 'pause'
+                        ? 'bg-green-600 hover:bg-green-500 text-white'
+                        : 'bg-yellow-600 hover:bg-yellow-500 text-white'
+                    }`}
+                  >
+                    {produto.status === 'pause' ? (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                        Ativar Produto
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Pausar Produto
+                      </>
+                    )}
+                  </button>
                   <button
                     onClick={() => editarProduto(produto)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => excluirProduto(produto)}
-                    className="flex-1 bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
+                    className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
                   >
                     Excluir
                   </button>

@@ -2,12 +2,14 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import StarRating from "@/components/StarRating";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/context/ToastContext";
 
 interface ItemCardapio {
   _id: string;
@@ -36,9 +38,16 @@ export default function ProdutoDetalhePage() {
   const [error, setError] = useState<string | null>(null);
   const [quantidade, setQuantidade] = useState<number>(1);
   const [mensagem, setMensagem] = useState<string>("");
+  
+  // Estados para avaliações
+  const [mediaAvaliacao, setMediaAvaliacao] = useState<number>(0);
+  const [totalAvaliacoes, setTotalAvaliacoes] = useState<number>(0);
+  const [minhaAvaliacao, setMinhaAvaliacao] = useState<number | null>(null);
+  const [avaliandoProduto, setAvaliandoProduto] = useState<boolean>(false);
 
   const { addItem } = useCart();
   const { user } = useUser();
+  const { showToast } = useToast();
 
   // Função de busca do produto
   useEffect(() => {
@@ -76,6 +85,10 @@ export default function ProdutoDetalhePage() {
             setProduto(produtoEncontrado);
             const relacionados = itens.filter((item) => item._id !== id).slice(0, 4);
             setProdutosRelacionados(relacionados);
+            
+            // Buscar avaliações do produto
+            buscarAvaliacoes(id);
+            
             setLoading(false);
             return;
           }
@@ -88,6 +101,68 @@ export default function ProdutoDetalhePage() {
       setError("Erro ao carregar produto");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const buscarAvaliacoes = async (produtoId: string) => {
+    try {
+      // Buscar média de avaliações
+      const responseMedia = await fetch(`/api/avaliacoes?produtoId=${produtoId}`);
+      const dataMedia = await responseMedia.json();
+      
+      if (dataMedia.success) {
+        setMediaAvaliacao(dataMedia.media);
+        setTotalAvaliacoes(dataMedia.total);
+      }
+
+      // Se usuário logado, buscar sua avaliação
+      if (user?.login) {
+        const responseMinhaAv = await fetch(`/api/minha-avaliacao?produtoId=${produtoId}&userId=${user.login}`);
+        const dataMinhaAv = await responseMinhaAv.json();
+        
+        if (dataMinhaAv.success && dataMinhaAv.avaliacao) {
+          setMinhaAvaliacao(dataMinhaAv.avaliacao.nota);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar avaliações:", error);
+    }
+  };
+
+  const enviarAvaliacao = async (nota: number) => {
+    if (!user?.login) {
+      showToast("Faça login para avaliar este produto", "warning");
+      return;
+    }
+
+    if (!produto) return;
+
+    setAvaliandoProduto(true);
+
+    try {
+      const response = await fetch("/api/avaliacoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          produtoId: produto._id,
+          userId: user.login,
+          nota
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMinhaAvaliacao(nota);
+        showToast("Avaliação enviada com sucesso!", "success");
+        // Atualizar média
+        buscarAvaliacoes(produto._id);
+      }
+    } catch (error) {
+      console.error("Erro ao enviar avaliação:", error);
+      showToast("Erro ao enviar avaliação", "error");
+    } finally {
+      setAvaliandoProduto(false);
     }
   };
 
@@ -177,7 +252,7 @@ export default function ProdutoDetalhePage() {
             <h1 className="text-3xl font-bold mb-4">{produto.nome}</h1>
             <div className="mb-6">
               <p className="text-2xl font-bold text-[var(--color-avocado-600)]">
-                A partir: R${produto.valor.toFixed(2).replace(".", ",")} {produto.vtipo}
+                R${produto.valor.toFixed(2).replace(".", ",")} {produto.vtipo}
               </p>
             </div>
 
@@ -187,6 +262,54 @@ export default function ProdutoDetalhePage() {
                 <p className="text-gray-600 leading-relaxed">
                   Este é um produto da categoria <strong>{produto.subc}</strong>. Entre em contato conosco para mais informações sobre disponibilidade, tamanhos e opções de personalização.
                 </p>
+              </div>
+
+              {/* Avaliações do produto */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold mb-3">Avaliação dos Clientes</h3>
+                
+                {/* Média de avaliações */}
+                <div className="mb-4">
+                  <StarRating 
+                    rating={mediaAvaliacao} 
+                    total={totalAvaliacoes}
+                    size="lg"
+                    showNumber={true}
+                  />
+                </div>
+
+                {/* Avaliar produto */}
+                {user?.login && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-sm font-semibold mb-2">
+                      {minhaAvaliacao ? "Sua avaliação:" : "Avalie este produto:"}
+                    </p>
+                    <StarRating 
+                      rating={minhaAvaliacao || 0}
+                      size="md"
+                      showNumber={false}
+                      interactive={true}
+                      onRate={enviarAvaliacao}
+                    />
+                    {avaliandoProduto && (
+                      <p className="text-xs text-gray-500 mt-2">Enviando avaliação...</p>
+                    )}
+                    {minhaAvaliacao && (
+                      <p className="text-xs text-green-600 mt-2">✓ Você avaliou com {minhaAvaliacao} estrela{minhaAvaliacao > 1 ? 's' : ''}</p>
+                    )}
+                  </div>
+                )}
+
+                {!user?.login && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-600">
+                      <Link href="/login" className="text-amber-600 hover:underline font-semibold">
+                        Faça login
+                      </Link>
+                      {' '}para avaliar este produto
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Input de quantidade */}
