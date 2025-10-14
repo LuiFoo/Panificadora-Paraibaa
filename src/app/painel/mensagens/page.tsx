@@ -438,7 +438,7 @@ export default function MensagensAdminPage() {
               </div>
 
               {/* Área de Chat */}
-              <div className="md:col-span-2 flex flex-col h-full">
+              <div className="md:col-span-2 flex flex-col" style={{ height: "calc(100vh - 200px)", minHeight: "600px" }}>
                 {!conversaSelecionada ? (
                   <div className="flex items-center justify-center h-full bg-gray-50">
                     <div className="text-center">
@@ -473,7 +473,7 @@ export default function MensagensAdminPage() {
                       </button>
                     </div>
 
-                    {/* Mensagens */}
+                    {/* Mensagens - Área com scroll */}
                     <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
                       <div className="space-y-4">
                         {conversaAtual?.mensagens.map((msg) => (

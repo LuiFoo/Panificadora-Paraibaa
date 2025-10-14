@@ -24,32 +24,16 @@ interface ToastData {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastData[]>([]);
-  let nextId = 0;
-
+  // Toasts desabilitados - mensagens agora aparecem inline no frontend
   const showToast = (message: string, type: "success" | "error" | "warning" | "info") => {
-    const id = nextId++;
-    setToasts((prev) => [...prev, { id, message, type }]);
-  };
-
-  const removeToast = (id: number) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    // Função vazia - não mostra mais pop-ups
+    // As mensagens já aparecem inline nas páginas (como em produtos/[id])
+    console.log(`[${type.toUpperCase()}]`, message); // Log para debug
   };
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-20 right-4 z-50 space-y-2">
-        {toasts.map((toast, index) => (
-          <div key={toast.id} style={{ marginTop: index > 0 ? '8px' : '0' }}>
-            <Toast
-              message={toast.message}
-              type={toast.type}
-              onClose={() => removeToast(toast.id)}
-            />
-          </div>
-        ))}
-      </div>
     </ToastContext.Provider>
   );
 }

@@ -135,6 +135,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       updatedItems = [...cartItems];
       const novaQuantidade = updatedItems[existingItemIndex].quantidade + item.quantidade;
       
+      // Verificar limite por produto (50 unidades)
+      if (novaQuantidade > 50) {
+        const msg = "Quantidade máxima permitida por produto é 50 unidades";
+        showToast(msg, "warning");
+        return { success: false, message: msg };
+      }
+      
       // Verificar limite total de itens no carrinho
       const totalItens = cartItems.reduce((sum, cartItem) => {
         if (cartItem.id === item.id) {
@@ -213,22 +220,29 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       quantidade = 1; // Impede quantidade 0/negativa
     }
 
-    if (quantidade > 50) {
-      showToast("Quantidade máxima permitida por produto é 50 unidades", "warning");
-      return;
-    }
+    // Buscar item atual para comparar
+    const itemAtual = cartItems.find(item => item.id === id);
+    const quantidadeAtual = itemAtual?.quantidade || 0;
 
-    // Verificar limite total de itens no carrinho
-    const totalItens = cartItems.reduce((sum, item) => {
-      if (item.id === id) {
-        return sum + quantidade;
+    // Só validar limites se estiver AUMENTANDO a quantidade
+    if (quantidade > quantidadeAtual) {
+      if (quantidade > 50) {
+        showToast("Quantidade máxima permitida por produto é 50 unidades", "warning");
+        return;
       }
-      return sum + item.quantidade;
-    }, 0);
 
-    if (totalItens > 100) {
-      showToast("Limite máximo de 100 itens no carrinho atingido", "warning");
-      return;
+      // Verificar limite total de itens no carrinho
+      const totalItens = cartItems.reduce((sum, item) => {
+        if (item.id === id) {
+          return sum + quantidade;
+        }
+        return sum + item.quantidade;
+      }, 0);
+
+      if (totalItens > 100) {
+        showToast("Limite máximo de 100 itens no carrinho atingido", "warning");
+        return;
+      }
     }
 
     const updatedCart = cartItems.map((item) =>
