@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
+import { ObjectId } from "mongodb";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -43,9 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Permissão inválida. Use 'usuario' ou 'administrador'" });
       }
 
-      const { ObjectId } = require("mongodb");
       const result = await db.collection("users").updateOne(
-        { _id: new ObjectId(userId) },
+        { _id: new ObjectId(userId as string) },
         { 
           $set: { 
             permissao: permission,
@@ -72,7 +72,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "userId é obrigatório" });
       }
 
-      const { ObjectId } = require("mongodb");
       const result = await db.collection("users").deleteOne({
         _id: new ObjectId(userId as string)
       });

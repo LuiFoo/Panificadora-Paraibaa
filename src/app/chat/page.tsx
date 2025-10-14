@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Modal from "@/components/Modal";
 import { useUser } from "@/context/UserContext";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 interface Mensagem {
@@ -38,30 +38,7 @@ export default function ChatPage() {
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  useEffect(() => {
-    if (user) {
-      fetchMensagens();
-      // Atualizar a cada 5 segundos
-      const interval = setInterval(fetchMensagens, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [mensagens]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const fetchMensagens = async () => {
+  const fetchMensagens = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -92,7 +69,26 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/login");
+    }
+  }, [user, router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMensagens();
+      // Atualizar a cada 5 segundos
+      const interval = setInterval(fetchMensagens, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [user, fetchMensagens]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [mensagens]);
 
   const handleEnviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();

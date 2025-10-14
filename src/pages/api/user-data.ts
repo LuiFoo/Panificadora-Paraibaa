@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
-import { ObjectId } from "mongodb";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -40,7 +39,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "userId é obrigatório" });
       }
 
-      const updateData: any = {
+      const updateData: {
+        dataAtualizacao: Date;
+        telefone?: string;
+        endereco?: string;
+      } = {
         dataAtualizacao: new Date()
       };
 

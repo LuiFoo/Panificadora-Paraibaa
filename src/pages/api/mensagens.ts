@@ -2,6 +2,14 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
 
+interface Conversa {
+  userId: string;
+  userName: string;
+  mensagens: unknown[];
+  ultimaMensagem: string;
+  naoLidas: number;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
 
@@ -31,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Agrupar mensagens por usuário (para o admin)
       if (isAdmin === "true") {
-        const conversas: { [key: string]: any } = {};
+        const conversas: { [key: string]: Conversa } = {};
         
         mensagens.forEach((msg) => {
           const userId = msg.userId;
