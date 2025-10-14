@@ -460,9 +460,9 @@ export default function MensagensAdminPage() {
                     <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between flex-shrink-0">
                       <div>
                         <h3 className="font-semibold text-gray-800">
-                          {conversaAtual?.userName}
+                          {conversaAtual?.userName || "Nome não disponível"}
                         </h3>
-                        <p className="text-xs text-gray-500">@{conversaAtual?.userId}</p>
+                        <p className="text-xs text-gray-500">@{conversaAtual?.userId || "usuario"}</p>
                       </div>
                       <button
                         onClick={handleDeletarConversa}
@@ -479,43 +479,62 @@ export default function MensagensAdminPage() {
                     {/* Mensagens - Área com scroll */}
                     <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
                       <div className="space-y-4">
-                        {conversaAtual?.mensagens.map((msg) => (
-                          <div
-                            key={msg._id}
-                            className={`flex ${
-                              msg.remetente === "admin" ? "justify-end" : "justify-start"
-                            }`}
-                          >
+                        {conversaAtual?.mensagens && conversaAtual.mensagens.length > 0 ? (
+                          conversaAtual.mensagens.map((msg) => (
                             <div
-                              className={`max-w-[70%] rounded-lg p-3 ${
-                                msg.remetente === "admin"
-                                  ? "bg-blue-500 text-white"
-                                  : "bg-white border border-gray-200 text-gray-800"
+                              key={msg._id}
+                              className={`flex ${
+                                msg.remetente === "admin" ? "justify-end" : "justify-start"
                               }`}
                             >
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-semibold">
-                                  {msg.remetente === "admin" ? "🍞 Você (Padaria)" : "👤 Cliente"}
-                                </span>
-                              </div>
-                              <p className="text-sm break-words">{msg.mensagem}</p>
-                              <span
-                                className={`text-xs mt-1 block ${
+                              <div
+                                className={`max-w-[70%] rounded-lg p-3 ${
                                   msg.remetente === "admin"
-                                    ? "text-blue-100"
-                                    : "text-gray-500"
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-white border border-gray-200 text-gray-800"
                                 }`}
                               >
-                                {new Date(msg.dataEnvio).toLocaleString("pt-BR", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  hour: "2-digit",
-                                  minute: "2-digit"
-                                })}
-                              </span>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-semibold">
+                                    {msg.remetente === "admin" ? "🍞 Você (Padaria)" : "👤 Cliente"}
+                                  </span>
+                                </div>
+                                <p className="text-sm break-words">{msg.mensagem}</p>
+                                <span
+                                  className={`text-xs mt-1 block ${
+                                    msg.remetente === "admin"
+                                      ? "text-blue-100"
+                                      : "text-gray-500"
+                                  }`}
+                                >
+                                  {new Date(msg.dataEnvio).toLocaleString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-center h-full min-h-[200px]">
+                            <div className="text-center">
+                              <div className="text-4xl mb-4">💬</div>
+                              <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                                Nova Conversa
+                              </h3>
+                              <p className="text-gray-500 mb-4">
+                                Envie a primeira mensagem para {conversaAtual?.userName || "este cliente"}
+                              </p>
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <p className="text-sm text-blue-800">
+                                  💡 Digite sua mensagem no campo abaixo para iniciar a conversa
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        ))}
+                        )}
                         <div ref={messagesEndRef} />
                       </div>
                     </div>
