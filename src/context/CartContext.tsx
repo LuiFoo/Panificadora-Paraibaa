@@ -1,9 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 
-// Define o tipo do item no carrinho
+// ---------------- Tipos ----------------
 export interface CartItem {
   id: string;
   nome: string;
@@ -11,6 +11,16 @@ export interface CartItem {
   quantidade: number;
   img: string;
 }
+
+// Resposta vinda da API / MongoDB
+interface MongoCartItem {
+  produtoId: string;
+  nome: string;
+  valor: number;
+  quantidade: number;
+  img?: string;
+}
+type GetCartResponse = { produtos?: MongoCartItem[] };
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -21,15 +31,17 @@ interface CartContextType {
   addItem: (item: CartItem) => void;
 }
 
+// --------------- Contexto ---------------
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// --------------- Provider ---------------
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useUser();
-  const login = user?.login || "guest"; // Usa o login para buscar o carrinho
+  const login = user?.login ?? "guest";
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Carregar o carrinho do MongoDB
+  // Carregar o carrinho do MongoDB quando o login mudar
   useEffect(() => {
     const fetchCart = async () => {
       if (login === "guest") {
@@ -38,19 +50,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const res = await fetch(`/api/cart?userId=${login}`);
+        const res = await fetch(`/api/cart?userId=${encodeURIComponent(login)}`);
         if (!res.ok) throw new Error("Erro ao buscar carrinho");
-        const data = await res.json();
-        
-        // Mapeia os dados do MongoDB para a estrutura esperada pelo frontend
-        const mappedItems = (data.produtos || []).map((item: any) => ({
-          id: item.produtoId, // Mapeia produtoId para id
-          nome: item.nome,
-          valor: item.valor,
-          quantidade: item.quantidade,
-          img: item.img || "/images/default-product.png"
-        }));
-        
+
+        const data = (await res.json()) as GetCartResponse;
+
+        const produtos: MongoCartItem[] = Array.isArray(data?.produtos) ? data.produtos : [];
+        const mappedItems: CartItem[] = produtos.map(
+          ({ produtoId, nome, valor, quantidade, img }: MongoCartItem) => ({
+            id: produtoId,
+            nome,
+            valor,
+            quantidade,
+            img: img ?? "/images/default-product.png",
+          })
+        );
+
         setCartItems(mappedItems);
       } catch (err) {
         console.error("Erro ao carregar carrinho do MongoDB:", err);
@@ -58,23 +73,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    fetchCart();
+    void fetchCart();
   }, [login]);
 
   // Total de itens no carrinho
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantidade, 0);
 
-  // Função para remover um item
+  // Remover item
   const removeItem = async (id: string) => {
     if (!id) {
       console.error("ID do produto é undefined ou vazio!");
       return;
     }
-    
-    const updatedCart = cartItems.filter(item => item.id !== id);
+
+    const updatedCart = cartItems.filter((item) => item.id !== id);
 
     try {
-      const res = await fetch(`/api/cart?userId=${login}`, {
+      const res = await fetch(`/api/cart?userId=${encodeURIComponent(login)}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ produtoId: id }),
@@ -90,7 +105,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Função para adicionar um item ao carrinho
+  // Adicionar item
   const addItem = async (item: CartItem) => {
     const existingItemIndex = cartItems.findIndex((i) => i.id === item.id);
     let updatedItems: CartItem[];
@@ -103,7 +118,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      const res = await fetch(`/api/cart?userId=${login}`, {
+      const res = await fetch(`/api/cart?userId=${encodeURIComponent(login)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -125,15 +140,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Função para atualizar a quantidade de um item
+  // Atualizar quantidade
   const updateItemQuantity = async (id: string, quantidade: number) => {
     if (!id) {
       console.error("ID do produto é undefined ou vazio!");
       return;
     }
-    
+
     if (quantidade < 1) {
-      quantidade = 1; // Impede que a quantidade seja 0 ou negativa
+      quantidade = 1; // Impede quantidade 0/negativa
     }
 
     const updatedCart = cartItems.map((item) =>
@@ -141,7 +156,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
 
     try {
-      const res = await fetch(`/api/cart?userId=${login}`, {
+      const res = await fetch(`/api/cart?userId=${encodeURIComponent(login)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ produtoId: id, quantidade }),
@@ -157,20 +172,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Função para limpar o carrinho
+  // Limpar carrinho
   const clearCart = async () => {
     setCartItems([]);
 
     try {
-      const res = await fetch(`/api/cart?userId=${login}`, {
+      const res = await fetch(`/api/cart?userId=${encodeURIComponent(login)}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ produtoId: "" }), // Limpar todos os itens do carrinho
+        // Mantido conforme seu backend: limpa tudo quando produtoId = ""
+        body: JSON.stringify({ produtoId: "" }),
       });
 
-      if (res.ok) {
-        setCartItems([]);
-      } else {
+      if (!res.ok) {
         console.error("Erro ao limpar o carrinho no MongoDB");
       }
     } catch (err) {
@@ -179,13 +193,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <CartContext.Provider value={{ cartItems, totalItems, removeItem, updateItemQuantity, clearCart, addItem }}>
+    <CartContext.Provider
+      value={{ cartItems, totalItems, removeItem, updateItemQuantity, clearCart, addItem }}
+    >
       {children}
     </CartContext.Provider>
   );
 };
 
-// Hook para usar o contexto do carrinho
+// --------------- Hook ---------------
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) throw new Error("useCart deve ser usado dentro de CartProvider");
