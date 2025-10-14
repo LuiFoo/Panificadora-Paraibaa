@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 interface FooterProps {
   showMap?: boolean; // controla se o mapa aparece
@@ -22,11 +23,14 @@ function Footer({ showMap = true }: FooterProps) {
         ></iframe>
       )}
 
-      <figure>
-        <img
+      <figure className="w-full relative h-auto">
+        <Image
           src="/images/linha.png"
           alt="Produtos da Padaria Paraíba"
-          className="w-full"
+          width={1920}
+          height={200}
+          className="w-full h-auto"
+          priority
         />
         <figcaption className="sr-only">Linha de produtos da padaria</figcaption>
       </figure>
@@ -35,9 +39,11 @@ function Footer({ showMap = true }: FooterProps) {
         {/* Seção de Marca */}
         <section className="brand-section mb-6 md:mb-0" aria-labelledby="brand-title">
           <h2 id="brand-title" className="sr-only">Marca</h2>
-          <img
+          <Image
             src="/images/logo.svg"
             alt="Logo da Padaria Paraíba"
+            width={144}
+            height={144}
             className="w-36 mb-4"
           />
           <p className="text-4 font-semibold max-w-70 mb-6">
@@ -49,9 +55,11 @@ function Footer({ showMap = true }: FooterProps) {
             aria-label="Siga-nos no Instagram"
             className="inline-block"
           >
-            <img
+            <Image
               src="/images/logoInstagram.svg"
               alt="Instagram da padaria"
+              width={48}
+              height={48}
               className="w-12 h-12"
             />
           </a>
@@ -62,19 +70,19 @@ function Footer({ showMap = true }: FooterProps) {
           <h2 id="footer-navigation" className="font-bold mb-3">Navegue</h2>
           <ul className="space-y-2">
             <li className="flex items-center gap-2">
-              <img src="/images/seta.svg" alt="Seta" />
+              <Image src="/images/seta.svg" alt="Seta" width={16} height={16} />
               <Link href="/quem-somos" className="hover:underline">Quem Somos</Link>
             </li>
             <li className="flex items-center gap-2">
-              <img src="/images/seta.svg" alt="Seta" />
+              <Image src="/images/seta.svg" alt="Seta" width={16} height={16} />
               <Link href="/fale-conosco" className="hover:underline">Fale Conosco</Link>
             </li>
             <li className="flex items-center gap-2">
-              <img src="/images/seta.svg" alt="Seta" />
+              <Image src="/images/seta.svg" alt="Seta" width={16} height={16} />
               <Link href="/produtos" className="hover:underline">Produtos</Link>
             </li>
             <li className="flex items-center gap-2">
-              <img src="/images/seta.svg" alt="Seta" />
+              <Image src="/images/seta.svg" alt="Seta" width={16} height={16} />
               <Link href="https://maps.app.goo.gl/VUQhKXqCBWc1gQ8FA" className="hover:underline">Google Maps</Link>
             </li>
           </ul>
@@ -84,7 +92,7 @@ function Footer({ showMap = true }: FooterProps) {
         <section className="mb-6 md:mb-0" aria-labelledby="hours-heading">
           <h2 id="hours-heading" className="font-bold mb-3">Funcionamento</h2>
           <div className="flex items-center gap-2 mb-4">
-            <img src="/images/padaria.svg" alt="Ícone de padaria" />
+            <Image src="/images/padaria.svg" alt="Ícone de padaria" width={24} height={24} />
             <h3 className="text-base font-extrabold">Padaria</h3>
           </div>
           <p className="text-sm mb-2">Segunda a sábado: 06h às 19h</p>
@@ -96,17 +104,17 @@ function Footer({ showMap = true }: FooterProps) {
           <h2 id="contact-heading" className="font-bold mb-3">Contato</h2>
           <ul className="space-y-2">
             <li className="flex items-center gap-2">
-              <img src="/images/telefone.svg" alt="Telefone" />
+              <Image src="/images/telefone.svg" alt="Telefone" width={20} height={20} />
               <a href="tel:+551636151947" className="hover:underline">(16) 3615-1947</a>
             </li>
             <li className="flex items-center gap-2">
-              <img src="/images/gmail.svg" alt="Email" />
+              <Image src="/images/gmail.svg" alt="Email" width={20} height={20} />
               <a href="mailto:padariaparaiba@gmail.com" className="hover:underline">
                 padariaparaiba@gmail.com
               </a>
             </li>
             <li className="flex items-center gap-2 max-w-78">
-              <img src="/images/setaNavegacao.svg" alt="Endereço" />
+              <Image src="/images/setaNavegacao.svg" alt="Endereço" width={20} height={20} />
               <p>
                 Av. Ernesto Guevara Lã Serna, 72 - Jardim Heitor Rigon, Ribeirão Preto - SP
               </p>
@@ -119,9 +127,11 @@ function Footer({ showMap = true }: FooterProps) {
             aria-label="Contato via WhatsApp"
             className="pt-12 flex justify-end"
           >
-            <img
+            <Image
               src="/images/botaoWhatsaap.svg"
               alt="Botão do WhatsApp"
+              width={80}
+              height={80}
               className="w-20"
             />
           </a>
