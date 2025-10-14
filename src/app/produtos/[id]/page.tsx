@@ -167,23 +167,26 @@ export default function ProdutoDetalhePage() {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!produto) {
       setMensagem("Produto não encontrado.");
+      setTimeout(() => setMensagem(""), 3000);
       return;
     }
 
     if (!user || !user.login) {
       setMensagem("Você precisa estar logado para adicionar ao carrinho.");
+      setTimeout(() => setMensagem(""), 3000);
       return;
     }
 
     if (quantidade < 1) {
       setMensagem("A quantidade deve ser pelo menos 1.");
+      setTimeout(() => setMensagem(""), 3000);
       return;
     }
 
-    addItem({
+    const resultado = await addItem({
       id: produto._id,
       nome: produto.nome,
       valor: produto.valor,
@@ -191,9 +194,9 @@ export default function ProdutoDetalhePage() {
       img: produto.img,
     });
 
-    // Mostra a mensagem no front
-    setMensagem(`${quantidade}x ${produto.nome} adicionado ao carrinho!`);
-
+    // Mostrar mensagem de sucesso ou erro retornada
+    setMensagem(resultado.message);
+    
     // Desaparece após 3 segundos
     setTimeout(() => setMensagem(""), 3000);
   };
@@ -344,7 +347,15 @@ export default function ProdutoDetalhePage() {
 
               {/* Mensagem de feedback */}
               {mensagem && (
-                <p className="mt-2 text-[var(--color-avocado-600)] font-semibold">{mensagem}</p>
+                <p className={`mt-2 font-semibold ${
+                  mensagem.includes("sucesso") || mensagem.includes("adicionado") 
+                    ? "text-green-600" 
+                    : mensagem.includes("Limite") || mensagem.includes("máximo") || mensagem.includes("Erro")
+                    ? "text-red-600"
+                    : "text-amber-600"
+                }`}>
+                  {mensagem}
+                </p>
               )}
             </div>
           </div>

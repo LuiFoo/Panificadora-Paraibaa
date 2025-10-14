@@ -25,12 +25,22 @@ interface Conversa {
   naoLidas: number;
 }
 
+interface Usuario {
+  _id: string;
+  login: string;
+  name: string;
+}
+
 export default function MensagensAdminPage() {
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [conversaSelecionada, setConversaSelecionada] = useState<string | null>(null);
   const [novaMensagem, setNovaMensagem] = useState("");
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [mostrarNovaConversa, setMostrarNovaConversa] = useState(false);
+  const [buscaUsuario, setBuscaUsuario] = useState("");
+  const [usuariosEncontrados, setUsuariosEncontrados] = useState<Usuario[]>([]);
+  const [buscandoUsuarios, setBuscandoUsuarios] = useState(false);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -214,6 +224,59 @@ export default function MensagensAdminPage() {
     }
   };
 
+  const buscarUsuarios = async (termo: string) => {
+    if (!termo || termo.length < 2) {
+      setUsuariosEncontrados([]);
+      return;
+    }
+
+    setBuscandoUsuarios(true);
+    try {
+      const response = await fetch(`/api/buscar-usuarios?search=${encodeURIComponent(termo)}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setUsuariosEncontrados(data.usuarios);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar usuários:", error);
+    } finally {
+      setBuscandoUsuarios(false);
+    }
+  };
+
+  const iniciarNovaConversa = async (usuario: Usuario) => {
+    // Verificar se já existe conversa com esse usuário
+    const conversaExistente = conversas.find(c => c.userId === usuario.login);
+    
+    if (conversaExistente) {
+      setConversaSelecionada(usuario.login);
+      setMostrarNovaConversa(false);
+      setBuscaUsuario("");
+      setUsuariosEncontrados([]);
+      setModalState({
+        isOpen: true,
+        type: "info",
+        title: "ℹ️ Conversa Existente",
+        message: `Conversa com ${usuario.name} já existe. Selecionando...`
+      });
+      return;
+    }
+
+    // Criar primeira mensagem do admin para o cliente
+    setConversaSelecionada(usuario.login);
+    setMostrarNovaConversa(false);
+    setBuscaUsuario("");
+    setUsuariosEncontrados([]);
+    
+    setModalState({
+      isOpen: true,
+      type: "success",
+      title: "✅ Nova Conversa",
+      message: `Conversa iniciada com ${usuario.name}. Envie a primeira mensagem!`
+    });
+  };
+
   const totalNaoLidas = conversas.reduce((sum, c) => sum + c.naoLidas, 0);
 
   return (
@@ -243,26 +306,91 @@ export default function MensagensAdminPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 h-[600px]">
+            <div className="grid grid-cols-1 md:grid-cols-3" style={{ height: "calc(100vh - 250px)", minHeight: "600px" }}>
               {/* Lista de Conversas */}
-              <div className="border-r border-gray-200 overflow-y-auto bg-gray-50">
+              <div className="border-r border-gray-200 flex flex-col bg-gray-50">
                 <div className="p-4 border-b border-gray-200 bg-white">
-                  <h2 className="font-semibold text-gray-800">
-                    Conversas ({conversas.length})
-                  </h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-gray-800">
+                      Conversas ({conversas.length})
+                    </h2>
+                    <button
+                      onClick={() => setMostrarNovaConversa(!mostrarNovaConversa)}
+                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1"
+                      title="Iniciar nova conversa"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Nova
+                    </button>
+                  </div>
+                  
+                  {/* Buscar usuário para nova conversa */}
+                  {mostrarNovaConversa && (
+                    <div className="mb-3">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={buscaUsuario}
+                          onChange={(e) => {
+                            setBuscaUsuario(e.target.value);
+                            buscarUsuarios(e.target.value);
+                          }}
+                          placeholder="Digite o username ou nome..."
+                          className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                        {buscandoUsuarios && (
+                          <div className="absolute right-2 top-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-500"></div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Lista de usuários encontrados */}
+                      {usuariosEncontrados.length > 0 && (
+                        <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {usuariosEncontrados.map((usuario) => (
+                            <button
+                              key={usuario._id}
+                              onClick={() => iniciarNovaConversa(usuario)}
+                              className="w-full p-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
+                            >
+                              <p className="font-semibold text-gray-800 text-sm">{usuario.name}</p>
+                              <p className="text-xs text-gray-500">@{usuario.login}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {buscaUsuario.length >= 2 && !buscandoUsuarios && usuariosEncontrados.length === 0 && (
+                        <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                          Nenhum usuário encontrado com &quot;{buscaUsuario}&quot;
+                        </div>
+                      )}
+                      
+                      {buscaUsuario.length > 0 && buscaUsuario.length < 2 && (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                          Digite pelo menos 2 caracteres para buscar
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
-                {loading ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                  </div>
-                ) : conversas.length === 0 ? (
-                  <div className="text-center py-10 px-4">
-                    <div className="text-4xl mb-2">💬</div>
-                    <p className="text-gray-500 text-sm">Nenhuma mensagem ainda</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-200">
+                {/* Lista de conversas com scroll */}
+                <div className="flex-1 overflow-y-auto">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-32">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : conversas.length === 0 ? (
+                    <div className="text-center py-10 px-4">
+                      <div className="text-4xl mb-2">💬</div>
+                      <p className="text-gray-500 text-sm">Nenhuma mensagem ainda</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200">
                     {conversas.map((conversa) => (
                       <button
                         key={conversa.userId}
@@ -296,12 +424,13 @@ export default function MensagensAdminPage() {
                         </div>
                       </button>
                     ))}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Área de Chat */}
-              <div className="md:col-span-2 flex flex-col">
+              <div className="md:col-span-2 flex flex-col h-full">
                 {!conversaSelecionada ? (
                   <div className="flex items-center justify-center h-full bg-gray-50">
                     <div className="text-center">
@@ -317,7 +446,7 @@ export default function MensagensAdminPage() {
                 ) : (
                   <>
                     {/* Header da Conversa */}
-                    <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
+                    <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between flex-shrink-0">
                       <div>
                         <h3 className="font-semibold text-gray-800">
                           {conversaAtual?.userName}
@@ -381,7 +510,7 @@ export default function MensagensAdminPage() {
                     </div>
 
                     {/* Formulário de Resposta */}
-                    <form onSubmit={handleEnviarResposta} className="border-t border-gray-200 p-4 bg-white">
+                    <form onSubmit={handleEnviarResposta} className="border-t border-gray-200 p-4 bg-white flex-shrink-0">
                       <div className="flex gap-2">
                         <input
                           type="text"

@@ -29,7 +29,7 @@ interface CartContextType {
   removeItem: (id: string) => void;
   updateItemQuantity: (id: string, quantidade: number) => void;
   clearCart: () => void;
-  addItem: (item: CartItem) => void;
+  addItem: (item: CartItem) => Promise<{ success: boolean; message: string }>;
 }
 
 // --------------- Contexto ---------------
@@ -108,21 +108,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Adicionar item
-  const addItem = async (item: CartItem) => {
+  const addItem = async (item: CartItem): Promise<{ success: boolean; message: string }> => {
     // Validações do frontend antes de enviar para API
     if (item.quantidade <= 0) {
-      showToast("Quantidade deve ser maior que zero", "warning");
-      return;
+      const msg = "Quantidade deve ser maior que zero";
+      showToast(msg, "warning");
+      return { success: false, message: msg };
     }
 
     if (item.quantidade > 50) {
-      showToast("Quantidade máxima permitida por produto é 50 unidades", "warning");
-      return;
+      const msg = "Quantidade máxima permitida por produto é 50 unidades";
+      showToast(msg, "warning");
+      return { success: false, message: msg };
     }
 
     if (item.valor > 1000) {
-      showToast("Valor do produto muito alto. Entre em contato conosco para pedidos especiais.", "warning");
-      return;
+      const msg = "Valor do produto muito alto. Entre em contato conosco para pedidos especiais.";
+      showToast(msg, "warning");
+      return { success: false, message: msg };
     }
 
     const existingItemIndex = cartItems.findIndex((i) => i.id === item.id);
@@ -141,23 +144,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }, 0);
 
       if (totalItens > 100) {
-        showToast("Limite máximo de 100 itens no carrinho atingido", "warning");
-        return;
+        const msg = "Limite máximo de 100 itens no carrinho atingido";
+        showToast(msg, "warning");
+        return { success: false, message: msg };
       }
 
       updatedItems[existingItemIndex].quantidade = novaQuantidade;
     } else {
       // Verificar limite de tipos de produtos
       if (cartItems.length >= 20) {
-        showToast("Limite máximo de 20 tipos de produtos no carrinho atingido", "warning");
-        return;
+        const msg = "Limite máximo de 20 tipos de produtos no carrinho atingido";
+        showToast(msg, "warning");
+        return { success: false, message: msg };
       }
 
       // Verificar limite total de itens
       const totalItens = cartItems.reduce((sum, cartItem) => sum + cartItem.quantidade, 0) + item.quantidade;
       if (totalItens > 100) {
-        showToast("Limite máximo de 100 itens no carrinho atingido", "warning");
-        return;
+        const msg = "Limite máximo de 100 itens no carrinho atingido";
+        showToast(msg, "warning");
+        return { success: false, message: msg };
       }
 
       updatedItems = [...cartItems, item];
@@ -178,14 +184,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       if (res.ok) {
         setCartItems(updatedItems);
-        showToast("Produto adicionado ao carrinho!", "success");
+        const msg = "Produto adicionado ao carrinho!";
+        showToast(msg, "success");
+        return { success: true, message: msg };
       } else {
         const errorData = await res.json();
-        showToast(errorData.error || "Erro ao adicionar produto", "error");
+        const msg = errorData.error || "Erro ao adicionar produto";
+        showToast(msg, "error");
+        return { success: false, message: msg };
       }
     } catch (err) {
       console.error("Erro ao adicionar produto:", err);
-      showToast("Erro ao adicionar produto. Tente novamente.", "error");
+      const msg = "Erro ao adicionar produto. Tente novamente.";
+      showToast(msg, "error");
+      return { success: false, message: msg };
     }
   };
 
