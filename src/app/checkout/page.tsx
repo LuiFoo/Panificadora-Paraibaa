@@ -430,16 +430,16 @@ export default function CheckoutPage() {
                     </h4>
                     <div className="text-xs text-yellow-800 space-y-2">
                       <p>
-                        📋 Após finalizar seu pedido, ele ficará com status <strong>"Pendente"</strong> até ser analisado por nossa equipe.
+                        📋 Após finalizar seu pedido, ele ficará com status <strong>&quot;Pendente&quot;</strong> até ser analisado por nossa equipe.
                       </p>
                       <p>
-                        ✅ <strong>Se o pedido for ACEITO:</strong> O status mudará para <strong>"Confirmado"</strong> e você poderá retirar seu pedido na data e hora escolhidas.
+                        ✅ <strong>Se o pedido for ACEITO:</strong> O status mudará para <strong>&quot;Confirmado&quot;</strong> e você poderá retirar seu pedido na data e hora escolhidas.
                       </p>
                       <p>
-                        ❌ <strong>Se o pedido for RECUSADO:</strong> O status mudará para <strong>"Cancelado"</strong> e infelizmente não será possível realizar a retirada. Entraremos em contato para explicar o motivo.
+                        ❌ <strong>Se o pedido for RECUSADO:</strong> O status mudará para <strong>&quot;Cancelado&quot;</strong> e infelizmente não será possível realizar a retirada. Entraremos em contato para explicar o motivo.
                       </p>
                       <p className="mt-2 font-medium">
-                        💡 Você pode acompanhar o status do seu pedido na página <strong>"Meus Pedidos"</strong>.
+                        💡 Você pode acompanhar o status do seu pedido na página <strong>&quot;Meus Pedidos&quot;</strong>.
                       </p>
                     </div>
                   </div>
