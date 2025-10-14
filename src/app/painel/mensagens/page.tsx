@@ -271,53 +271,21 @@ export default function MensagensAdminPage() {
       return;
     }
 
-    try {
-      // Criar conversa no banco de dados enviando uma mensagem inicial
-      const response = await fetch("/api/mensagens", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: usuario.login,
-          userName: usuario.name,
-          mensagem: "Olá! Como posso ajudá-lo hoje?",
-          remetente: "admin"
-        })
-      });
-
-      const data = await response.json();
-      
-      console.log("Resposta da API:", data);
-      console.log("Status da resposta:", response.status);
-      
-      if (data.success) {
-        // Selecionar a nova conversa
-        setConversaSelecionada(usuario.login);
-        setMostrarNovaConversa(false);
-        setBuscaUsuario("");
-        setUsuariosEncontrados([]);
-        
-        // Atualizar lista de conversas
-        await fetchConversas();
-        
-        setModalState({
-          isOpen: true,
-          type: "success",
-          title: "✅ Nova Conversa",
-          message: `Conversa iniciada com ${usuario.name}. Mensagem de boas-vindas enviada!`
-        });
-      } else {
-        console.error("Erro da API:", data.error);
-        throw new Error(data.error || "Erro ao criar conversa");
-      }
-    } catch (error) {
-      console.error("Erro ao iniciar conversa:", error);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Erro",
-        message: `Erro ao iniciar conversa: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Tente novamente.`
-      });
-    }
+    // Selecionar a nova conversa sem enviar mensagem automática
+    setConversaSelecionada(usuario.login);
+    setMostrarNovaConversa(false);
+    setBuscaUsuario("");
+    setUsuariosEncontrados([]);
+    
+    // Atualizar lista de conversas
+    await fetchConversas();
+    
+    setModalState({
+      isOpen: true,
+      type: "success",
+      title: "✅ Nova Conversa",
+      message: `Conversa iniciada com ${usuario.name}. Agora você pode enviar a primeira mensagem!`
+    });
   };
 
   const totalNaoLidas = conversas.reduce((sum, c) => sum + c.naoLidas, 0);
