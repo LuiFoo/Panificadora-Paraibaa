@@ -3,7 +3,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import StarRating from "@/components/StarRating";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -49,14 +49,7 @@ export default function ProdutoDetalhePage() {
   const { user } = useUser();
   const { showToast } = useToast();
 
-  // Função de busca do produto
-  useEffect(() => {
-    if (params?.id) {
-      buscarProduto(params.id as string);
-    }
-  }, [params?.id]);
-
-  const buscarProduto = async (id: string) => {
+  const buscarProduto = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
 
@@ -102,7 +95,14 @@ export default function ProdutoDetalhePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Função de busca do produto
+  useEffect(() => {
+    if (params?.id) {
+      buscarProduto(params.id as string);
+    }
+  }, [params?.id, buscarProduto]);
 
   const buscarAvaliacoes = async (produtoId: string) => {
     try {
