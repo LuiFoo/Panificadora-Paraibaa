@@ -520,14 +520,31 @@ export default function MensagensAdminPage() {
                     {/* Formulário de Resposta */}
                     <form onSubmit={handleEnviarResposta} className="border-t border-gray-200 p-4 bg-white flex-shrink-0">
                       <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={novaMensagem}
-                          onChange={(e) => setNovaMensagem(e.target.value)}
-                          placeholder="Digite sua resposta..."
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={enviando}
-                        />
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={novaMensagem}
+                            onChange={(e) => {
+                              if (e.target.value.length <= 500) {
+                                setNovaMensagem(e.target.value);
+                              }
+                            }}
+                            placeholder="Digite sua resposta..."
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            disabled={enviando}
+                            maxLength={500}
+                          />
+                          <div className="flex justify-between items-center mt-1">
+                            <span className={`text-xs ${novaMensagem.length > 450 ? 'text-red-500' : 'text-gray-500'}`}>
+                              {novaMensagem.length}/500 caracteres
+                            </span>
+                            {novaMensagem.length > 450 && (
+                              <span className="text-xs text-red-500 font-medium">
+                                Limite próximo!
+                              </span>
+                            )}
+                          </div>
+                        </div>
                         <button
                           type="submit"
                           disabled={enviando || !novaMensagem.trim()}

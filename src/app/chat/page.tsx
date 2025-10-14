@@ -237,7 +237,7 @@ export default function ChatPage() {
           </div>
 
           {/* Área de Mensagens */}
-          <div className="h-[500px] overflow-y-auto p-4 bg-gray-50">
+          <div className="overflow-y-auto p-4 bg-gray-50" style={{ height: "calc(100vh - 200px)", minHeight: "400px", maxHeight: "calc(100vh - 200px)" }}>
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -304,14 +304,31 @@ export default function ChatPage() {
           {/* Formulário de Envio */}
           <form onSubmit={handleEnviarMensagem} className="border-t border-gray-200 p-4 bg-white">
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={novaMensagem}
-                onChange={(e) => setNovaMensagem(e.target.value)}
-                placeholder="Digite sua mensagem..."
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                disabled={enviando}
-              />
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={novaMensagem}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 500) {
+                      setNovaMensagem(e.target.value);
+                    }
+                  }}
+                  placeholder="Digite sua mensagem..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  disabled={enviando}
+                  maxLength={500}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-xs ${novaMensagem.length > 450 ? 'text-red-500' : 'text-gray-500'}`}>
+                    {novaMensagem.length}/500 caracteres
+                  </span>
+                  {novaMensagem.length > 450 && (
+                    <span className="text-xs text-red-500 font-medium">
+                      Limite próximo!
+                    </span>
+                  )}
+                </div>
+              </div>
               <button
                 type="submit"
                 disabled={enviando || !novaMensagem.trim()}
