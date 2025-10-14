@@ -221,7 +221,9 @@ export default function CheckoutPage() {
         }
       }
 
-      if (!telefone || telefone.length < 10) {
+      // Validar telefone (considerando formatação)
+      const telefoneNumeros = telefone.replace(/\D/g, '');
+      if (!telefone || telefoneNumeros.length < 10) {
         setError("Telefone deve ter pelo menos 10 dígitos");
         setLoading(false);
         return;
@@ -543,7 +545,7 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        CEP *
+                        CEP
                       </label>
                       <div className="relative">
                         <input
@@ -559,9 +561,8 @@ export default function CheckoutPage() {
                             }
                           }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                          placeholder="Apenas números (8 dígitos)"
+                          placeholder="Apenas números (8 dígitos) - Opcional"
                           maxLength={8}
-                          required
                         />
                         {buscandoCep && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -574,6 +575,9 @@ export default function CheckoutPage() {
                           ✅ CEP válido - Buscando endereço...
                         </p>
                       )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 Digite o CEP para preencher automaticamente o endereço
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -756,11 +760,27 @@ export default function CheckoutPage() {
                   value={telefone}
                   onChange={(e) => {
                     const valor = e.target.value.replace(/\D/g, '');
-                    setTelefone(valor);
+                    let telefoneFormatado = valor;
+                    
+                    // Formatar telefone: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+                    if (valor.length >= 2) {
+                      telefoneFormatado = `(${valor.slice(0, 2)})`;
+                      if (valor.length > 2) {
+                        if (valor.length <= 6) {
+                          telefoneFormatado += ` ${valor.slice(2)}`;
+                        } else if (valor.length <= 10) {
+                          telefoneFormatado += ` ${valor.slice(2, 6)}-${valor.slice(6)}`;
+                        } else {
+                          telefoneFormatado += ` ${valor.slice(2, 7)}-${valor.slice(7, 11)}`;
+                        }
+                      }
+                    }
+                    
+                    setTelefone(telefoneFormatado);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  placeholder="Apenas números (10-11 dígitos)"
-                  maxLength={11}
+                  placeholder="(00) 00000-0000"
+                  maxLength={15}
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
