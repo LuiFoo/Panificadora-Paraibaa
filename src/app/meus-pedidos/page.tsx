@@ -52,6 +52,7 @@ export default function MeusPedidosPage() {
     if (user) {
       fetchPedidos();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchPedidos = async () => {

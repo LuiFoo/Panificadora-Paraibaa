@@ -36,7 +36,7 @@ interface Pedido {
 }
 
 export default function PedidosPage() {
-  const { user, isAdmin, loading } = useUser();
+  const { isAdmin, loading } = useUser();
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
@@ -59,6 +59,7 @@ export default function PedidosPage() {
     if (isAdmin) {
       fetchPedidos();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
 
   const fetchPedidos = async () => {

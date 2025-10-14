@@ -3,7 +3,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useUser } from "@/context/UserContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -36,7 +36,7 @@ const SUBCATEGORIAS_PADRAO = [
 ];
 
 export default function ProdutosPage() {
-  const { user, isAdmin, loading } = useUser();
+  const { isAdmin, loading } = useUser();
   const router = useRouter();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
@@ -56,22 +56,7 @@ export default function ProdutosPage() {
     img: ""
   });
 
-  useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push("/");
-    }
-  }, [isAdmin, loading, router]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchProdutos();
-    } else if (!loading) {
-      setLoadingProdutos(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, loading]);
-
-  const fetchProdutos = async () => {
+  const fetchProdutos = useCallback(async () => {
     setLoadingProdutos(true);
     try {
       const response = await fetch("/api/admin/produtos/todos");
@@ -88,7 +73,21 @@ export default function ProdutosPage() {
     } finally {
       setLoadingProdutos(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      router.push("/");
+    }
+  }, [isAdmin, loading, router]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchProdutos();
+    } else if (!loading) {
+      setLoadingProdutos(false);
+    }
+  }, [isAdmin, loading, fetchProdutos]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
