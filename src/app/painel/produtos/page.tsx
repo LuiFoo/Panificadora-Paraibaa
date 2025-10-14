@@ -2,6 +2,7 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Modal from "@/components/Modal";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -45,6 +46,18 @@ export default function ProdutosPage() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [criandoExemplo, setCriandoExemplo] = useState(false);
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: "info" | "warning" | "error" | "success" | "confirm";
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "info",
+    title: "",
+    message: ""
+  });
 
   // Estados do formulário
   const [formData, setFormData] = useState({
@@ -140,16 +153,31 @@ export default function ProdutosPage() {
       console.log("📡 Resposta da API:", { status: response.status, data });
 
       if (response.ok && data.success) {
-        alert(produtoEditando ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!");
+        setModalState({
+          isOpen: true,
+          type: "success",
+          title: "Sucesso",
+          message: produtoEditando ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!"
+        });
         resetFormulario();
         fetchProdutos();
       } else {
         console.error("❌ Erro na resposta:", data);
-        alert(`Erro: ${data.error || "Erro desconhecido"}`);
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: data.error || "Erro desconhecido"
+        });
       }
     } catch (error) {
       console.error("💥 Erro ao salvar produto:", error);
-      alert("Erro ao salvar produto. Tente novamente.");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Erro",
+        message: "Erro ao salvar produto. Tente novamente."
+      });
     }
   };
 
@@ -179,35 +207,54 @@ export default function ProdutosPage() {
     setMostrarFormulario(true);
   };
 
-  const excluirProduto = async (produto: Produto) => {
-    if (!confirm("Tem certeza que deseja excluir este produto?")) {
-      return;
-    }
+  const excluirProduto = (produto: Produto) => {
+    setModalState({
+      isOpen: true,
+      type: "warning",
+      title: "Confirmar Exclusão",
+      message: `Tem certeza que deseja excluir o produto "${produto.nome}"?`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch("/api/admin/produtos/editar-existente", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              id: produto._id,
+              colecaoOrigem: produto.colecaoOrigem
+            })
+          });
 
-    try {
-      const response = await fetch("/api/admin/produtos/editar-existente", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          id: produto._id,
-          colecaoOrigem: produto.colecaoOrigem
-        })
-      });
+          const data = await response.json();
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        fetchProdutos();
-        alert("Produto excluído com sucesso!");
-      } else {
-        alert(`Erro: ${data.error || "Erro desconhecido"}`);
+          if (response.ok && data.success) {
+            fetchProdutos();
+            setModalState({
+              isOpen: true,
+              type: "success",
+              title: "Sucesso",
+              message: "Produto excluído com sucesso!"
+            });
+          } else {
+            setModalState({
+              isOpen: true,
+              type: "error",
+              title: "Erro",
+              message: data.error || "Erro desconhecido"
+            });
+          }
+        } catch (error) {
+          console.error("Erro ao excluir produto:", error);
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Erro",
+            message: "Erro ao excluir produto. Tente novamente."
+          });
+        }
       }
-    } catch (error) {
-      console.error("Erro ao excluir produto:", error);
-      alert("Erro ao excluir produto. Tente novamente.");
-    }
+    });
   };
 
   const criarProdutoExemplo = async () => {
@@ -221,14 +268,29 @@ export default function ProdutosPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert("Produto de exemplo criado com sucesso!");
+        setModalState({
+          isOpen: true,
+          type: "success",
+          title: "Sucesso",
+          message: "Produto de exemplo criado com sucesso!"
+        });
         fetchProdutos(); // Recarregar lista
       } else {
-        alert(`Erro: ${data.error || "Erro desconhecido"}`);
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: data.error || "Erro desconhecido"
+        });
       }
     } catch (error) {
       console.error("Erro ao criar produto de exemplo:", error);
-      alert("Erro ao criar produto de exemplo. Tente novamente.");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Erro",
+        message: "Erro ao criar produto de exemplo. Tente novamente."
+      });
     } finally {
       setCriandoExemplo(false);
     }
@@ -553,6 +615,18 @@ export default function ProdutosPage() {
         </div>
       </main>
       <Footer showMap={false} />
+
+      {/* Modal */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ ...modalState, isOpen: false })}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
     </>
   );
 }

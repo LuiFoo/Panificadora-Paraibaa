@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
     // 2. Contar total de usuários
-    const totalUsuarios = await db.collection("usuarios").countDocuments({});
+    const totalUsuarios = await db.collection("users").countDocuments({});
 
     // 3. Contar total de produtos (da coleção unificada produtos)
     const totalProdutos = await db.collection("produtos").countDocuments({});

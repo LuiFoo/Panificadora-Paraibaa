@@ -76,7 +76,7 @@ export default function Painel() {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
               {/* Card de Estatísticas Rápidas */}
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200 flex flex-col h-full min-h-[200px]">
                 <h3 className="text-lg font-semibold text-blue-800 mb-2">📊 Dashboard</h3>
@@ -100,23 +100,35 @@ export default function Painel() {
                       <span className="font-bold text-blue-800">{stats.totalProdutos}</span>
                     </div>
                     <div className="mt-3 pt-3 border-t border-blue-300">
-                      <p className="text-xs text-blue-700 font-semibold mb-1">Status dos Pedidos:</p>
-                      <div className="grid grid-cols-2 gap-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="text-yellow-600">⏳ Pendente:</span>
-                          <span className="font-bold">{stats.pedidosPorStatus.pendente}</span>
+                      <p className="text-xs text-blue-700 font-semibold mb-2">Status Pedidos:</p>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-yellow-600 flex items-center gap-1">
+                            <span>⏳</span>
+                            <span className="hidden sm:inline">Pendente</span>
+                          </span>
+                          <span className="font-bold bg-yellow-100 px-2 py-0.5 rounded">{stats.pedidosPorStatus.pendente}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-green-600">✅ Confirmado:</span>
-                          <span className="font-bold">{stats.pedidosPorStatus.confirmado}</span>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-green-600 flex items-center gap-1">
+                            <span>✅</span>
+                            <span className="hidden sm:inline">Confirmado</span>
+                          </span>
+                          <span className="font-bold bg-green-100 px-2 py-0.5 rounded">{stats.pedidosPorStatus.confirmado}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-red-600">❌ Cancelado:</span>
-                          <span className="font-bold">{stats.pedidosPorStatus.cancelado}</span>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-red-600 flex items-center gap-1">
+                            <span>❌</span>
+                            <span className="hidden sm:inline">Cancelado</span>
+                          </span>
+                          <span className="font-bold bg-red-100 px-2 py-0.5 rounded">{stats.pedidosPorStatus.cancelado}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-blue-600">🚚 Entregue:</span>
-                          <span className="font-bold">{stats.pedidosPorStatus.entregue}</span>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-blue-600 flex items-center gap-1">
+                            <span>🚚</span>
+                            <span className="hidden sm:inline">Entregue</span>
+                          </span>
+                          <span className="font-bold bg-blue-100 px-2 py-0.5 rounded">{stats.pedidosPorStatus.entregue}</span>
                         </div>
                       </div>
                     </div>
@@ -128,16 +140,19 @@ export default function Painel() {
                 )}
               </div>
 
-              {/* Card de Usuários */}
-              <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 rounded-lg border border-indigo-200 flex flex-col h-full min-h-[200px] opacity-70">
-                <h3 className="text-lg font-semibold text-indigo-800 mb-2">👥 Usuários</h3>
-                <p className="text-indigo-600 mb-3 flex-grow">Gerenciar usuários do sistema</p>
-                <div className="mt-auto">
-                  <div className="bg-indigo-200 text-indigo-800 text-xs font-semibold px-3 py-2 rounded-full inline-block">
-                    🔒 Em desenvolvimento
+              {/* Card de Usuários - Link Ativo */}
+              <Link href="/painel/usuarios" className="block h-full min-h-[200px] group">
+                <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 rounded-lg hover:from-indigo-100 hover:to-indigo-200 transition-all cursor-pointer border-2 border-indigo-300 hover:border-indigo-400 hover:shadow-lg flex flex-col h-full transform hover:scale-105 duration-200">
+                  <h3 className="text-lg font-semibold text-indigo-800 mb-2">👥 Usuários</h3>
+                  <p className="text-indigo-700 mb-3 flex-grow">Gerenciar usuários do sistema</p>
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="bg-indigo-600 text-white text-xs font-semibold px-3 py-2 rounded-full">
+                      ✅ Disponível
+                    </div>
+                    <span className="text-indigo-600 group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </div>
-              </div>
+              </Link>
               
               {/* Card de Produtos - Link Ativo */}
               <Link href="/painel/produtos" className="block h-full min-h-[200px] group">
@@ -163,6 +178,20 @@ export default function Painel() {
                       ✅ Disponível
                     </div>
                     <span className="text-purple-600 group-hover:translate-x-1 transition-transform">→</span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Card de Mensagens - Link Ativo */}
+              <Link href="/painel/mensagens" className="block h-full min-h-[200px] group">
+                <div className="bg-gradient-to-r from-cyan-50 to-cyan-100 p-6 rounded-lg hover:from-cyan-100 hover:to-cyan-200 transition-all cursor-pointer border-2 border-cyan-300 hover:border-cyan-400 hover:shadow-lg flex flex-col h-full transform hover:scale-105 duration-200">
+                  <h3 className="text-lg font-semibold text-cyan-800 mb-2">💬 Mensagens</h3>
+                  <p className="text-cyan-700 mb-3 flex-grow">Responder mensagens dos clientes</p>
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="bg-cyan-600 text-white text-xs font-semibold px-3 py-2 rounded-full">
+                      ✅ Disponível
+                    </div>
+                    <span className="text-cyan-600 group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 </div>
               </Link>

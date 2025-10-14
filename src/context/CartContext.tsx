@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/context/ToastContext";
 
 // ---------------- Tipos ----------------
 export interface CartItem {
@@ -37,6 +38,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 // --------------- Provider ---------------
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useUser();
+  const { showToast } = useToast();
   const login = user?.login ?? "guest";
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -109,17 +111,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const addItem = async (item: CartItem) => {
     // Validações do frontend antes de enviar para API
     if (item.quantidade <= 0) {
-      alert("Quantidade deve ser maior que zero");
+      showToast("Quantidade deve ser maior que zero", "warning");
       return;
     }
 
     if (item.quantidade > 50) {
-      alert("Quantidade máxima permitida por produto é 50 unidades");
+      showToast("Quantidade máxima permitida por produto é 50 unidades", "warning");
       return;
     }
 
     if (item.valor > 1000) {
-      alert("Valor do produto muito alto. Entre em contato conosco para pedidos especiais.");
+      showToast("Valor do produto muito alto. Entre em contato conosco para pedidos especiais.", "warning");
       return;
     }
 
@@ -139,7 +141,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }, 0);
 
       if (totalItens > 100) {
-        alert("Limite máximo de 100 itens no carrinho atingido");
+        showToast("Limite máximo de 100 itens no carrinho atingido", "warning");
         return;
       }
 
@@ -147,14 +149,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } else {
       // Verificar limite de tipos de produtos
       if (cartItems.length >= 20) {
-        alert("Limite máximo de 20 tipos de produtos no carrinho atingido");
+        showToast("Limite máximo de 20 tipos de produtos no carrinho atingido", "warning");
         return;
       }
 
       // Verificar limite total de itens
       const totalItens = cartItems.reduce((sum, cartItem) => sum + cartItem.quantidade, 0) + item.quantidade;
       if (totalItens > 100) {
-        alert("Limite máximo de 100 itens no carrinho atingido");
+        showToast("Limite máximo de 100 itens no carrinho atingido", "warning");
         return;
       }
 
@@ -176,13 +178,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       if (res.ok) {
         setCartItems(updatedItems);
+        showToast("Produto adicionado ao carrinho!", "success");
       } else {
         const errorData = await res.json();
-        alert(errorData.error || "Erro ao adicionar produto");
+        showToast(errorData.error || "Erro ao adicionar produto", "error");
       }
     } catch (err) {
       console.error("Erro ao adicionar produto:", err);
-      alert("Erro ao adicionar produto. Tente novamente.");
+      showToast("Erro ao adicionar produto. Tente novamente.", "error");
     }
   };
 
@@ -199,7 +202,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (quantidade > 50) {
-      alert("Quantidade máxima permitida por produto é 50 unidades");
+      showToast("Quantidade máxima permitida por produto é 50 unidades", "warning");
       return;
     }
 
@@ -212,7 +215,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }, 0);
 
     if (totalItens > 100) {
-      alert("Limite máximo de 100 itens no carrinho atingido");
+      showToast("Limite máximo de 100 itens no carrinho atingido", "warning");
       return;
     }
 
@@ -231,11 +234,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCartItems(updatedCart);
       } else {
         const errorData = await res.json();
-        alert(errorData.error || "Erro ao atualizar produto");
+        showToast(errorData.error || "Erro ao atualizar produto", "error");
       }
     } catch (err) {
       console.error("Erro ao atualizar produto:", err);
-      alert("Erro ao atualizar produto. Tente novamente.");
+      showToast("Erro ao atualizar produto. Tente novamente.", "error");
     }
   };
 

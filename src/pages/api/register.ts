@@ -37,7 +37,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Define permissao padrão como "usuario"
-    const novoUser = { login, password: hashedPassword, name, permissao: "usuario" };
+    const novoUser = { 
+      login, 
+      password: hashedPassword, 
+      name, 
+      permissao: "usuario",
+      dataCriacao: new Date()
+    };
 
     const result = await users.insertOne(novoUser);
 

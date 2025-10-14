@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "../assets/styles/globals.css";
 import { UserProvider } from "@/context/UserContext";
 import { CartProvider } from "@/context/CartContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 export const metadata: Metadata = {
   title: 'Panificadora Paraíba',
@@ -19,11 +20,13 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
-        <UserProvider>
-          <CartProvider>
-            {children}
-          </CartProvider>
-        </UserProvider>
+        <ToastProvider>
+          <UserProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </UserProvider>
+        </ToastProvider>
       </body>
     </html>
   );

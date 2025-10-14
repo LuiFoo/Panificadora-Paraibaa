@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/context/ToastContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export default function ProtectedRoute({
   redirectTo = "/"
 }: ProtectedRouteProps) {
   const { user, loading } = useUser();
+  const { showToast } = useToast();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -35,7 +37,7 @@ export default function ProtectedRoute({
 
       // Verifica a permissão
       if (requiredPermission === "administrador" && user.permissao !== "administrador") {
-        alert("Acesso negado! Você precisa ser um administrador para acessar esta página.");
+        showToast("Acesso negado! Você precisa ser um administrador para acessar esta página.", "error");
         router.replace("/");
         return;
       }
@@ -46,7 +48,7 @@ export default function ProtectedRoute({
     };
 
     checkPermission();
-  }, [user, loading, requiredPermission, redirectTo, router]);
+  }, [user, loading, requiredPermission, redirectTo, router, showToast]);
 
   if (loading || checking) {
     return (

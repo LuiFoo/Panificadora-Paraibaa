@@ -39,3 +39,18 @@ body {
 .swiper-pagination-bullet-active {
   background-color: var(--color-alavaco-100) !important; /* bolinha ativa - ex: avocado */
 }
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}

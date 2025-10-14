@@ -2,6 +2,7 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Modal from "@/components/Modal";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -42,6 +43,18 @@ export default function PedidosPage() {
   const [loadingPedidos, setLoadingPedidos] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: "info" | "warning" | "error" | "success" | "confirm";
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: "info",
+    title: "",
+    message: ""
+  });
   const [stats, setStats] = useState({
     totalPedidos: 0,
     pedidosPendentes: 0,
@@ -69,6 +82,9 @@ export default function PedidosPage() {
         const data = await response.json();
         setPedidos(data.pedidos || []);
         calculateStats(data.pedidos || []);
+        
+        // Disparar evento para atualizar o badge no Header
+        window.dispatchEvent(new Event('refreshPedidosCount'));
       }
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error);
@@ -110,11 +126,21 @@ export default function PedidosPage() {
         fetchPedidos(); // Recarregar lista
       } else {
         console.error("Erro ao atualizar status:", data.error);
-        alert(`Erro ao atualizar status: ${data.error || "Erro desconhecido"}`);
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: data.error || "Erro desconhecido ao atualizar status"
+        });
       }
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      alert("Erro de conexão. Tente novamente.");
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Erro de Conexão",
+        message: "Erro de conexão. Tente novamente."
+      });
     } finally {
       setUpdatingStatus(null);
     }
@@ -337,6 +363,18 @@ export default function PedidosPage() {
         </div>
       </main>
       <Footer showMap={false} />
+
+      {/* Modal */}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ ...modalState, isOpen: false })}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
     </>
   );
 }
