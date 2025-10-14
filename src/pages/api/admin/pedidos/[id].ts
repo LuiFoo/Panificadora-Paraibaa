@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       };
       
-      // @ts-ignore - MongoDB $push operator type conflict
+      // @ts-expect-error - MongoDB $push operator type conflict
       const result = await db.collection("pedidos").updateOne(
         { _id: new ObjectId(id) },
         updateDoc
