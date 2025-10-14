@@ -43,6 +43,32 @@ export default function CheckoutPage() {
   const [dataRetirada, setDataRetirada] = useState("");
   const [horaRetirada, setHoraRetirada] = useState("");
 
+  // Função para obter limites de horário baseado no dia da semana
+  const getHorarioLimites = (data: string) => {
+    if (!data) return { min: "06:00", max: "19:00" };
+    
+    const dataSelecionada = new Date(data + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
+    const diaSemana = dataSelecionada.getDay(); // 0 = Domingo, 6 = Sábado
+    
+    if (diaSemana === 0) { // Domingo
+      return { min: "06:00", max: "12:00" };
+    } else { // Segunda a Sábado
+      return { min: "06:00", max: "19:00" };
+    }
+  };
+
+  const horarioLimites = getHorarioLimites(dataRetirada);
+
+  // Limpar hora se não for válida para o dia selecionado
+  useEffect(() => {
+    if (dataRetirada && horaRetirada) {
+      const limites = getHorarioLimites(dataRetirada);
+      if (horaRetirada < limites.min || horaRetirada > limites.max) {
+        setHoraRetirada("");
+      }
+    }
+  }, [dataRetirada, horaRetirada]);
+
   // Redirecionar se não estiver logado
   useEffect(() => {
     if (!user) {
@@ -90,12 +116,25 @@ export default function CheckoutPage() {
           return;
         }
 
-        // Validar horário de funcionamento (6h às 18h)
+        // Validar horário de funcionamento baseado no dia da semana
+        const dataSelecionada = new Date(dataRetirada + 'T12:00:00');
+        const diaSemana = dataSelecionada.getDay(); // 0 = Domingo
         const hora = parseInt(horaRetirada.split(':')[0]);
-        if (hora < 6 || hora > 18) {
-          setError("Horário de retirada deve ser entre 6h e 18h");
-          setLoading(false);
-          return;
+        const minuto = parseInt(horaRetirada.split(':')[1]);
+        const horarioEmMinutos = hora * 60 + minuto;
+        
+        if (diaSemana === 0) { // Domingo: 6h às 12h
+          if (horarioEmMinutos < 6 * 60 || horarioEmMinutos > 12 * 60) {
+            setError("Aos domingos, o horário de retirada deve ser entre 6h e 12h");
+            setLoading(false);
+            return;
+          }
+        } else { // Segunda a Sábado: 6h às 19h
+          if (horarioEmMinutos < 6 * 60 || horarioEmMinutos > 19 * 60) {
+            setError("De segunda a sábado, o horário de retirada deve ser entre 6h e 19h");
+            setLoading(false);
+            return;
+          }
         }
       }
 
@@ -338,7 +377,7 @@ export default function CheckoutPage() {
                     <p>Rua das Flores, 123 - Centro</p>
                     <p>João Pessoa - PB, 58000-000</p>
                     <p className="mt-2"><strong>Horário de Funcionamento:</strong></p>
-                    <p>Segunda a Sábado: 6h às 18h</p>
+                    <p>Segunda a Sábado: 6h às 19h</p>
                     <p>Domingo: 6h às 12h</p>
                     <p className="mt-2"><strong>Telefone:</strong> (83) 99999-9999</p>
                   </div>
@@ -366,11 +405,42 @@ export default function CheckoutPage() {
                         type="time"
                         value={horaRetirada}
                         onChange={(e) => setHoraRetirada(e.target.value)}
-                        min="06:00"
-                        max="18:00"
+                        min={horarioLimites.min}
+                        max={horarioLimites.max}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       />
+                      {dataRetirada && (
+                        <p className="text-xs text-blue-700 mt-1">
+                          {new Date(dataRetirada + 'T12:00:00').getDay() === 0 
+                            ? "⏰ Domingo: 6h às 12h" 
+                            : "⏰ Seg-Sáb: 6h às 19h"}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Mensagem sobre Status do Pedido */}
+                  <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded-md p-3">
+                    <h4 className="text-sm font-semibold text-yellow-900 mb-2 flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      ℹ️ Importante - Status do Pedido
+                    </h4>
+                    <div className="text-xs text-yellow-800 space-y-2">
+                      <p>
+                        📋 Após finalizar seu pedido, ele ficará com status <strong>"Pendente"</strong> até ser analisado por nossa equipe.
+                      </p>
+                      <p>
+                        ✅ <strong>Se o pedido for ACEITO:</strong> O status mudará para <strong>"Confirmado"</strong> e você poderá retirar seu pedido na data e hora escolhidas.
+                      </p>
+                      <p>
+                        ❌ <strong>Se o pedido for RECUSADO:</strong> O status mudará para <strong>"Cancelado"</strong> e infelizmente não será possível realizar a retirada. Entraremos em contato para explicar o motivo.
+                      </p>
+                      <p className="mt-2 font-medium">
+                        💡 Você pode acompanhar o status do seu pedido na página <strong>"Meus Pedidos"</strong>.
+                      </p>
                     </div>
                   </div>
                 </div>
