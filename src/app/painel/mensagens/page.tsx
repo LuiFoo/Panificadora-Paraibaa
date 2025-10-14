@@ -271,14 +271,23 @@ export default function MensagensAdminPage() {
       return;
     }
 
-    // Selecionar a nova conversa sem enviar mensagem automática
+    // Criar uma conversa temporária com os dados do usuário
+    const conversaTemporaria = {
+      userId: usuario.login,
+      userName: usuario.name,
+      mensagens: [],
+      ultimaMensagem: "",
+      naoLidas: 0
+    };
+    
+    // Adicionar conversa temporária à lista
+    setConversas(prev => [conversaTemporaria, ...prev]);
+    
+    // Selecionar a nova conversa
     setConversaSelecionada(usuario.login);
     setMostrarNovaConversa(false);
     setBuscaUsuario("");
     setUsuariosEncontrados([]);
-    
-    // Atualizar lista de conversas
-    await fetchConversas();
     
     setModalState({
       isOpen: true,
@@ -460,7 +469,7 @@ export default function MensagensAdminPage() {
                     <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between flex-shrink-0">
                       <div>
                         <h3 className="font-semibold text-gray-800">
-                          {conversaAtual?.userName || "Nome não disponível"}
+                          {conversaAtual?.userName || "Carregando..."}
                         </h3>
                         <p className="text-xs text-gray-500">@{conversaAtual?.userId || "usuario"}</p>
                       </div>
