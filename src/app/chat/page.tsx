@@ -81,9 +81,15 @@ export default function ChatPage() {
     }
   }, [user, fetchMensagens]);
 
+  const [ultimoTamanhoMensagens, setUltimoTamanhoMensagens] = useState<number>(0);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [mensagens]);
+    // Só faz scroll se o número de mensagens aumentou (nova mensagem)
+    if (mensagens.length > ultimoTamanhoMensagens) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    setUltimoTamanhoMensagens(mensagens.length);
+  }, [mensagens.length]);
 
   const handleEnviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
