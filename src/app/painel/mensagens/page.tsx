@@ -278,12 +278,16 @@ export default function MensagensAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: usuario.login,
+          userName: usuario.name,
           mensagem: "Olá! Como posso ajudá-lo hoje?",
           remetente: "admin"
         })
       });
 
       const data = await response.json();
+      
+      console.log("Resposta da API:", data);
+      console.log("Status da resposta:", response.status);
       
       if (data.success) {
         // Selecionar a nova conversa
@@ -302,6 +306,7 @@ export default function MensagensAdminPage() {
           message: `Conversa iniciada com ${usuario.name}. Mensagem de boas-vindas enviada!`
         });
       } else {
+        console.error("Erro da API:", data.error);
         throw new Error(data.error || "Erro ao criar conversa");
       }
     } catch (error) {
@@ -310,7 +315,7 @@ export default function MensagensAdminPage() {
         isOpen: true,
         type: "error",
         title: "Erro",
-        message: "Erro ao iniciar conversa. Tente novamente."
+        message: `Erro ao iniciar conversa: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Tente novamente.`
       });
     }
   };
