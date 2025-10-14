@@ -45,6 +45,7 @@ export default function CheckoutPage() {
   const [horaEntrega, setHoraEntrega] = useState("");
   const [salvarDados, setSalvarDados] = useState(false);
   const [dadosCarregados, setDadosCarregados] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
 
   // Calcular data máxima (1 mês a partir de hoje)
   const getDataMaxima = () => {
@@ -52,6 +53,35 @@ export default function CheckoutPage() {
     const umMesDepois = new Date(hoje);
     umMesDepois.setMonth(umMesDepois.getMonth() + 1);
     return umMesDepois.toISOString().split('T')[0];
+  };
+
+  // Função para buscar endereço por CEP
+  const buscarCep = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, '');
+    
+    if (cepLimpo.length !== 8) return;
+    
+    setBuscandoCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await response.json();
+      
+      if (!data.erro) {
+        setEndereco(prev => ({
+          ...prev,
+          rua: data.logradouro || "",
+          bairro: data.bairro || "",
+          cidade: data.localidade || "",
+          cep: cepLimpo
+        }));
+      } else {
+        console.log("CEP não encontrado");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    } finally {
+      setBuscandoCep(false);
+    }
   };
 
   // Carregar dados salvos do usuário
@@ -472,8 +502,12 @@ export default function CheckoutPage() {
                       <input
                         type="text"
                         value={endereco.numero}
-                        onChange={(e) => setEndereco({...endereco, numero: e.target.value})}
+                        onChange={(e) => {
+                          const valor = e.target.value.replace(/\D/g, '');
+                          setEndereco({...endereco, numero: valor});
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        placeholder="Apenas números"
                         required
                       />
                     </div>
@@ -509,15 +543,37 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        CEP
+                        CEP *
                       </label>
-                      <input
-                        type="text"
-                        value={endereco.cep}
-                        onChange={(e) => setEndereco({...endereco, cep: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        placeholder="00000-000"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={endereco.cep}
+                          onChange={(e) => {
+                            const valor = e.target.value.replace(/\D/g, '');
+                            setEndereco({...endereco, cep: valor});
+                            
+                            // Buscar CEP automaticamente quando tiver 8 dígitos
+                            if (valor.length === 8) {
+                              buscarCep(valor);
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          placeholder="Apenas números (8 dígitos)"
+                          maxLength={8}
+                          required
+                        />
+                        {buscandoCep && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500"></div>
+                          </div>
+                        )}
+                      </div>
+                      {endereco.cep.length === 8 && !buscandoCep && (
+                        <p className="text-xs text-green-600 mt-1">
+                          ✅ CEP válido - Buscando endereço...
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -698,11 +754,18 @@ export default function CheckoutPage() {
                 <input
                   type="tel"
                   value={telefone}
-                  onChange={(e) => setTelefone(e.target.value)}
+                  onChange={(e) => {
+                    const valor = e.target.value.replace(/\D/g, '');
+                    setTelefone(valor);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  placeholder="(00) 00000-0000"
+                  placeholder="Apenas números (10-11 dígitos)"
+                  maxLength={11}
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Digite apenas números (ex: 83999999999)
+                </p>
               </div>
 
               <div>
