@@ -44,6 +44,10 @@ export default function MensagensAdminPage() {
     message: ""
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Definir conversaAtual antes dos useEffects
+  const conversaAtual = conversas.find(c => c.userId === conversaSelecionada);
 
   useEffect(() => {
     fetchConversas();
@@ -53,14 +57,19 @@ export default function MensagensAdminPage() {
   }, []);
 
   useEffect(() => {
-    scrollToBottom();
-    
     // Marcar mensagens do cliente como lidas quando admin abre a conversa
     if (conversaSelecionada) {
       marcarComoLida(conversaSelecionada);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversaSelecionada]);
+
+  // Scroll automático apenas quando as mensagens da conversa atual mudarem
+  useEffect(() => {
+    if (conversaAtual && conversaAtual.mensagens.length > 0) {
+      scrollToBottom();
+    }
+  }, [conversaAtual?.mensagens]);
 
   const marcarComoLida = async (userId: string) => {
     try {
@@ -85,7 +94,11 @@ export default function MensagensAdminPage() {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   const fetchConversas = async () => {
@@ -151,7 +164,56 @@ export default function MensagensAdminPage() {
     }
   };
 
-  const conversaAtual = conversas.find(c => c.userId === conversaSelecionada);
+  const handleDeletarConversa = () => {
+    if (!conversaSelecionada) return;
+
+    const conversa = conversas.find(c => c.userId === conversaSelecionada);
+    
+    setModalState({
+      isOpen: true,
+      type: "warning",
+      title: "⚠️ Confirmar Exclusão",
+      message: `Tem certeza que deseja deletar toda a conversa com ${conversa?.userName}? Esta ação não pode ser desfeita.`,
+      onConfirm: confirmarDeletarConversa
+    });
+  };
+
+  const confirmarDeletarConversa = async () => {
+    if (!conversaSelecionada) return;
+
+    try {
+      const response = await fetch(`/api/mensagens?userId=${conversaSelecionada}`, {
+        method: "DELETE"
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setModalState({
+          isOpen: true,
+          type: "success",
+          title: "✅ Sucesso",
+          message: data.message
+        });
+
+        // Limpar seleção e atualizar lista
+        setConversaSelecionada(null);
+        await fetchConversas();
+        
+        // Atualizar contador no header
+        window.dispatchEvent(new Event('refreshMensagensCount'));
+      }
+    } catch (error) {
+      console.error("Erro ao deletar conversa:", error);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Erro",
+        message: "Erro ao deletar conversa. Tente novamente."
+      });
+    }
+  };
+
   const totalNaoLidas = conversas.reduce((sum, c) => sum + c.naoLidas, 0);
 
   return (
@@ -255,15 +317,27 @@ export default function MensagensAdminPage() {
                 ) : (
                   <>
                     {/* Header da Conversa */}
-                    <div className="p-4 border-b border-gray-200 bg-white">
-                      <h3 className="font-semibold text-gray-800">
-                        {conversaAtual?.userName}
-                      </h3>
-                      <p className="text-xs text-gray-500">@{conversaAtual?.userId}</p>
+                    <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-800">
+                          {conversaAtual?.userName}
+                        </h3>
+                        <p className="text-xs text-gray-500">@{conversaAtual?.userId}</p>
+                      </div>
+                      <button
+                        onClick={handleDeletarConversa}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                        title="Deletar conversa"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Deletar Conversa
+                      </button>
                     </div>
 
                     {/* Mensagens */}
-                    <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+                    <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
                       <div className="space-y-4">
                         {conversaAtual?.mensagens.map((msg) => (
                           <div

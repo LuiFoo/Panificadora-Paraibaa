@@ -167,7 +167,7 @@ export default function Header() {
                 className="hover:opacity-80 transition"
               />
               {mensagensNaoLidas > 0 && (
-                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
                   {mensagensNaoLidas}
                 </span>
               )}
@@ -183,7 +183,7 @@ export default function Header() {
                 className="hover:opacity-80 transition"
               />
               {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
                   {totalItems}
                 </span>
               )}
@@ -235,7 +235,7 @@ export default function Header() {
             >
               MENSAGENS
               {mensagensNaoLidas > 0 && (
-                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
                   {mensagensNaoLidas}
                 </span>
               )}
@@ -247,7 +247,7 @@ export default function Header() {
               <Link href="/carrinho" onClick={() => setMenuOpen(false)} className="relative font-bold text-red-500">
                 CARRINHO
                 {totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse">
                     {totalItems}
                   </span>
                 )}
