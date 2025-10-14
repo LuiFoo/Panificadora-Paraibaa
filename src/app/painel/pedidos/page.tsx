@@ -3,6 +3,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Modal from "@/components/Modal";
+import PedidoTimeline from "@/components/PedidoTimeline";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -34,6 +35,10 @@ interface Pedido {
   observacoes?: string;
   dataPedido: string;
   ultimaAtualizacao: string;
+  historico?: Array<{
+    status: string;
+    data: string;
+  }>;
 }
 
 export default function PedidosPage() {
@@ -42,7 +47,10 @@ export default function PedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [filtroModalidade, setFiltroModalidade] = useState<string>("todos");
+  const [buscaTexto, setBuscaTexto] = useState<string>("");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [pedidoExpandido, setPedidoExpandido] = useState<string | null>(null);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -158,9 +166,22 @@ export default function PedidosPage() {
     }
   };
 
-  const filteredPedidos = pedidos.filter(pedido => 
-    filtroStatus === "todos" || pedido.status === filtroStatus
-  );
+  const filteredPedidos = pedidos.filter(pedido => {
+    // Filtro de status
+    const matchStatus = filtroStatus === "todos" || pedido.status === filtroStatus;
+    
+    // Filtro de modalidade
+    const matchModalidade = filtroModalidade === "todos" || pedido.modalidadeEntrega === filtroModalidade;
+    
+    // Filtro de busca (ID, userId, produto ou telefone)
+    const matchBusca = !buscaTexto || 
+      pedido._id.includes(buscaTexto) ||
+      pedido.userId.toLowerCase().includes(buscaTexto.toLowerCase()) ||
+      pedido.telefone?.includes(buscaTexto) ||
+      pedido.produtos.some(p => p.nome.toLowerCase().includes(buscaTexto.toLowerCase()));
+    
+    return matchStatus && matchModalidade && matchBusca;
+  });
 
   if (loading || loadingPedidos) {
     return (
@@ -225,24 +246,83 @@ export default function PedidosPage() {
           </div>
         </div>
 
-        {/* Filtros */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Filtrar por Status:
-          </label>
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-          >
-            <option value="todos">Todos</option>
-            <option value="pendente">Pendentes</option>
-            <option value="confirmado">Confirmados</option>
-            <option value="preparando">Preparando</option>
-            <option value="pronto">Prontos</option>
-            <option value="entregue">Entregues</option>
-            <option value="cancelado">Cancelados</option>
-          </select>
+        {/* Filtros Avançados */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span>🔍</span>
+            Filtros Avançados
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Busca */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Buscar:
+              </label>
+              <input
+                type="text"
+                placeholder="ID, cliente, produto ou telefone..."
+                value={buscaTexto}
+                onChange={(e) => setBuscaTexto(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status:
+              </label>
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="todos">Todos</option>
+                <option value="pendente">⏳ Pendentes</option>
+                <option value="confirmado">✅ Confirmados</option>
+                <option value="preparando">👨‍🍳 Preparando</option>
+                <option value="pronto">🍞 Prontos</option>
+                <option value="entregue">✨ Entregues</option>
+                <option value="cancelado">❌ Cancelados</option>
+              </select>
+            </div>
+
+            {/* Modalidade */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Modalidade:
+              </label>
+              <select
+                value={filtroModalidade}
+                onChange={(e) => setFiltroModalidade(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="todos">Todas</option>
+                <option value="entrega">🚚 Entrega</option>
+                <option value="retirada">🏪 Retirada</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Contador de resultados */}
+          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              <strong>{filteredPedidos.length}</strong> {filteredPedidos.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
+            </p>
+            {(buscaTexto || filtroStatus !== "todos" || filtroModalidade !== "todos") && (
+              <button
+                onClick={() => {
+                  setBuscaTexto("");
+                  setFiltroStatus("todos");
+                  setFiltroModalidade("todos");
+                }}
+                className="text-amber-600 hover:text-amber-700 font-medium text-sm flex items-center gap-1"
+              >
+                🔄 Limpar Filtros
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Lista de Pedidos */}
@@ -253,110 +333,209 @@ export default function PedidosPage() {
             </div>
           ) : (
             filteredPedidos.map((pedido) => (
-              <div key={pedido._id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Pedido #{pedido._id.slice(-6)}</h3>
-                    <p className="text-sm text-gray-600">
-                      Cliente: {pedido.userId}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Data: {new Date(pedido.dataPedido).toLocaleString('pt-BR')}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Telefone: {pedido.telefone}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Modalidade: {pedido.modalidadeEntrega === 'entrega' ? '🚚 Entrega' : '🏪 Retirada'}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(pedido.status)}`}>
-                      {pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)}
-                    </span>
-                    <p className="text-lg font-bold mt-2">
-                      R$ {pedido.total.toFixed(2).replace(".", ",")}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Produtos */}
-                <div className="mb-4">
-                  <h4 className="font-medium mb-2">Produtos:</h4>
-                  <div className="space-y-1">
-                    {pedido.produtos.map((produto, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{produto.nome} x{produto.quantidade}</span>
-                        <span>R$ {(produto.valor * produto.quantidade).toFixed(2).replace(".", ",")}</span>
+              <div key={pedido._id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                {/* Cabeçalho do Pedido */}
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 flex-wrap mb-2">
+                        <h3 className="text-lg font-semibold">Pedido #{pedido._id.slice(-6)}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(pedido.status)}`}>
+                          {pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)}
+                        </span>
+                        {pedido.modalidadeEntrega === 'entrega' && (
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">🚚 Entrega</span>
+                        )}
+                        {pedido.modalidadeEntrega === 'retirada' && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">🏪 Retirada</span>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Endereço - apenas para entrega */}
-                {pedido.modalidadeEntrega === 'entrega' && pedido.endereco && (
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-1">Endereço de Entrega:</h4>
-                    <p className="text-sm text-gray-600">
-                      {pedido.endereco.rua}, {pedido.endereco.numero} - {pedido.endereco.bairro}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {pedido.endereco.cidade} - CEP: {pedido.endereco.cep}
-                    </p>
-                    {pedido.endereco.complemento && (
-                      <p className="text-sm text-gray-600">
-                        {pedido.endereco.complemento}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Informação de Retirada */}
-                {pedido.modalidadeEntrega === 'retirada' && (
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                    <h4 className="font-medium mb-1 text-blue-900">Retirada no Local:</h4>
-                    <p className="text-sm text-blue-800">
-                      Cliente deve retirar na panificadora
-                    </p>
-                    {pedido.dataRetirada && pedido.horaRetirada && (
-                      <p className="text-sm text-blue-800 mt-1">
-                        <strong>Data e Hora:</strong> {new Date(pedido.dataRetirada + 'T' + pedido.horaRetirada).toLocaleString('pt-BR')}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Observações */}
-                {pedido.observacoes && (
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-1">Observações:</h4>
-                    <p className="text-sm text-gray-600">{pedido.observacoes}</p>
-                  </div>
-                )}
-
-                {/* Controles de Status */}
-                <div className="flex gap-2 flex-wrap items-center">
-                  <select
-                    value={pedido.status}
-                    onChange={(e) => updateStatus(pedido._id, e.target.value)}
-                    disabled={updatingStatus === pedido._id}
-                    className="px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <option value="pendente">Pendente</option>
-                    <option value="confirmado">Confirmado</option>
-                    <option value="preparando">Preparando</option>
-                    <option value="pronto">Pronto</option>
-                    <option value="entregue">Entregue</option>
-                    <option value="cancelado">Cancelado</option>
-                  </select>
-                  
-                  {updatingStatus === pedido._id && (
-                    <div className="flex items-center text-sm text-gray-500">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500 mr-2"></div>
-                      Atualizando...
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm text-gray-600">
+                        <p>👤 <strong>Cliente:</strong> {pedido.userId}</p>
+                        <p>📅 {new Date(pedido.dataPedido).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
+                        <p>📞 {pedido.telefone}</p>
+                        <p>📦 {pedido.produtos.length} {pedido.produtos.length === 1 ? 'item' : 'itens'}</p>
+                      </div>
                     </div>
-                  )}
+                    <div className="text-right ml-4">
+                      <p className="text-2xl font-bold text-amber-600">
+                        R$ {pedido.total.toFixed(2).replace(".", ",")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Botões de Ação Rápida */}
+                  <div className="flex gap-2 flex-wrap">
+                    {pedido.status === 'pendente' && (
+                      <>
+                        <button
+                          onClick={() => updateStatus(pedido._id, 'confirmado')}
+                          disabled={updatingStatus === pedido._id}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          ✅ Confirmar
+                        </button>
+                        <button
+                          onClick={() => updateStatus(pedido._id, 'cancelado')}
+                          disabled={updatingStatus === pedido._id}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          ❌ Cancelar
+                        </button>
+                      </>
+                    )}
+                    {pedido.status === 'confirmado' && (
+                      <button
+                        onClick={() => updateStatus(pedido._id, 'preparando')}
+                        disabled={updatingStatus === pedido._id}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        👨‍🍳 Iniciar Preparo
+                      </button>
+                    )}
+                    {pedido.status === 'preparando' && (
+                      <button
+                        onClick={() => updateStatus(pedido._id, 'pronto')}
+                        disabled={updatingStatus === pedido._id}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        🍞 Marcar como Pronto
+                      </button>
+                    )}
+                    {pedido.status === 'pronto' && (
+                      <button
+                        onClick={() => updateStatus(pedido._id, 'entregue')}
+                        disabled={updatingStatus === pedido._id}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        ✨ Marcar como Entregue
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setPedidoExpandido(pedidoExpandido === pedido._id ? null : pedido._id)}
+                      className="ml-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+                    >
+                      {pedidoExpandido === pedido._id ? '▲ Recolher Detalhes' : '▼ Ver Detalhes'}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Detalhes Expandidos */}
+                {pedidoExpandido === pedido._id && (
+                  <div className="p-6 space-y-4 bg-gray-50">
+                    {/* Timeline */}
+                    <PedidoTimeline 
+                      statusAtual={pedido.status}
+                      modalidade={pedido.modalidadeEntrega}
+                      historico={pedido.historico}
+                    />
+
+                    {/* Produtos */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <h4 className="font-medium mb-3 text-gray-800 flex items-center gap-2">
+                        <span>🛍️</span>
+                        Produtos do Pedido
+                      </h4>
+                      <div className="space-y-2">
+                        {pedido.produtos.map((produto, index) => (
+                          <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                            <div className="flex-1">
+                              <span className="font-medium text-gray-800">{produto.nome}</span>
+                              <span className="text-sm text-gray-500 ml-2">x{produto.quantidade}</span>
+                            </div>
+                            <span className="font-semibold text-gray-800">
+                              R$ {(produto.valor * produto.quantidade).toFixed(2).replace(".", ",")}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="pt-2 mt-2 border-t-2 border-gray-300 flex justify-between items-center">
+                          <span className="font-bold text-gray-800">Total:</span>
+                          <span className="font-bold text-xl text-amber-600">
+                            R$ {pedido.total.toFixed(2).replace(".", ",")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Endereço - apenas para entrega */}
+                    {pedido.modalidadeEntrega === 'entrega' && pedido.endereco && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 className="font-medium mb-2 text-green-900 flex items-center gap-2">
+                          <span>🚚</span>
+                          Endereço de Entrega
+                        </h4>
+                        <div className="text-sm text-green-800 space-y-1">
+                          <p><strong>Rua:</strong> {pedido.endereco.rua}, {pedido.endereco.numero}</p>
+                          <p><strong>Bairro:</strong> {pedido.endereco.bairro}</p>
+                          <p><strong>Cidade:</strong> {pedido.endereco.cidade}</p>
+                          <p><strong>CEP:</strong> {pedido.endereco.cep}</p>
+                          {pedido.endereco.complemento && (
+                            <p><strong>Complemento:</strong> {pedido.endereco.complemento}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Informação de Retirada */}
+                    {pedido.modalidadeEntrega === 'retirada' && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-medium mb-2 text-blue-900 flex items-center gap-2">
+                          <span>🏪</span>
+                          Retirada no Local
+                        </h4>
+                        <div className="text-sm text-blue-800 space-y-1">
+                          <p>Cliente deve retirar na panificadora</p>
+                          {pedido.dataRetirada && pedido.horaRetirada && (
+                            <p className="font-medium mt-2">
+                              <strong>📅 Data e Hora:</strong> {new Date(pedido.dataRetirada + 'T' + pedido.horaRetirada).toLocaleString('pt-BR')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Observações */}
+                    {pedido.observacoes && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 className="font-medium mb-2 text-yellow-900 flex items-center gap-2">
+                          <span>📝</span>
+                          Observações do Cliente
+                        </h4>
+                        <p className="text-sm text-yellow-800">{pedido.observacoes}</p>
+                      </div>
+                    )}
+
+                    {/* Controle Manual de Status */}
+                    <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
+                      <h4 className="font-medium mb-2 text-gray-800 flex items-center gap-2">
+                        <span>⚙️</span>
+                        Controle Manual de Status
+                      </h4>
+                      <div className="flex gap-2 flex-wrap items-center">
+                        <select
+                          value={pedido.status}
+                          onChange={(e) => updateStatus(pedido._id, e.target.value)}
+                          disabled={updatingStatus === pedido._id}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="pendente">⏳ Pendente</option>
+                          <option value="confirmado">✅ Confirmado</option>
+                          <option value="preparando">👨‍🍳 Preparando</option>
+                          <option value="pronto">🍞 Pronto</option>
+                          <option value="entregue">✨ Entregue</option>
+                          <option value="cancelado">❌ Cancelado</option>
+                        </select>
+                        
+                        {updatingStatus === pedido._id && (
+                          <div className="flex items-center text-sm text-gray-500">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500 mr-2"></div>
+                            Atualizando...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )}

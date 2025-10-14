@@ -2,10 +2,12 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import PedidoTimeline from "@/components/PedidoTimeline";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Pedido {
   _id: string;
@@ -33,6 +35,10 @@ interface Pedido {
   observacoes?: string;
   dataPedido: string;
   ultimaAtualizacao: string;
+  historico?: Array<{
+    status: string;
+    data: string;
+  }>;
 }
 
 export default function MeusPedidosPage() {
@@ -41,6 +47,9 @@ export default function MeusPedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [filtroModalidade, setFiltroModalidade] = useState<string>("todos");
+  const [buscaTexto, setBuscaTexto] = useState<string>("");
+  const [pedidoExpandido, setPedidoExpandido] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -97,9 +106,23 @@ export default function MeusPedidosPage() {
     return modalidade === 'entrega' ? '🚚 Entrega' : '🏪 Retirada';
   };
 
-  const filteredPedidos = pedidos.filter(pedido => 
-    filtroStatus === "todos" || pedido.status === filtroStatus
-  );
+  const filteredPedidos = pedidos.filter(pedido => {
+    // Filtro de status
+    const matchStatus = filtroStatus === "todos" || pedido.status === filtroStatus;
+    
+    // Filtro de modalidade
+    const matchModalidade = filtroModalidade === "todos" || pedido.modalidadeEntrega === filtroModalidade;
+    
+    // Filtro de busca (ID, produto ou endereço)
+    const matchBusca = !buscaTexto || 
+      pedido._id.includes(buscaTexto) ||
+      pedido.produtos.some(p => p.nome.toLowerCase().includes(buscaTexto.toLowerCase())) ||
+      (pedido.endereco && 
+        `${pedido.endereco.rua} ${pedido.endereco.numero} ${pedido.endereco.bairro} ${pedido.endereco.cidade}`.toLowerCase().includes(buscaTexto.toLowerCase())
+      );
+    
+    return matchStatus && matchModalidade && matchBusca;
+  });
 
   if (loading || loadingPedidos) {
     return (
@@ -145,24 +168,79 @@ export default function MeusPedidosPage() {
           </Link>
         </div>
 
-        {/* Filtros */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Filtrar por Status:
-          </label>
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-          >
-            <option value="todos">Todos os Pedidos</option>
-            <option value="pendente">Pendentes</option>
-            <option value="confirmado">Confirmados</option>
-            <option value="preparando">Preparando</option>
-            <option value="pronto">Prontos</option>
-            <option value="entregue">Entregues</option>
-            <option value="cancelado">Cancelados</option>
-          </select>
+        {/* Filtros e Busca */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <span>🔍</span>
+            Filtros e Busca
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Busca */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Buscar:
+              </label>
+              <input
+                type="text"
+                placeholder="ID, produto ou endereço..."
+                value={buscaTexto}
+                onChange={(e) => setBuscaTexto(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Status:
+              </label>
+              <select
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="todos">Todos</option>
+                <option value="pendente">⏳ Pendentes</option>
+                <option value="confirmado">✅ Confirmados</option>
+                <option value="preparando">👨‍🍳 Preparando</option>
+                <option value="pronto">🍞 Prontos</option>
+                <option value="entregue">✨ Entregues</option>
+                <option value="cancelado">❌ Cancelados</option>
+              </select>
+            </div>
+
+            {/* Modalidade */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Modalidade:
+              </label>
+              <select
+                value={filtroModalidade}
+                onChange={(e) => setFiltroModalidade(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+              >
+                <option value="todos">Todas</option>
+                <option value="entrega">🚚 Entrega</option>
+                <option value="retirada">🏪 Retirada</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Contador de resultados */}
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-sm text-gray-600">
+              <strong>{filteredPedidos.length}</strong> {filteredPedidos.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
+              {buscaTexto && (
+                <button
+                  onClick={() => setBuscaTexto("")}
+                  className="ml-2 text-amber-600 hover:text-amber-700 font-medium text-xs"
+                >
+                  Limpar busca
+                </button>
+              )}
+            </p>
+          </div>
         </div>
 
         {/* Lista de Pedidos */}
@@ -186,90 +264,150 @@ export default function MeusPedidosPage() {
             </div>
           ) : (
             filteredPedidos.map((pedido) => (
-              <div key={pedido._id} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Pedido #{pedido._id.slice(-6)}</h3>
-                    <p className="text-sm text-gray-600">
-                      Data: {new Date(pedido.dataPedido).toLocaleString('pt-BR')}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Modalidade: {getModalidadeText(pedido.modalidadeEntrega)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(pedido.status)}`}>
-                      {getStatusText(pedido.status)}
-                    </span>
-                    <p className="text-lg font-bold mt-2">
-                      R$ {pedido.total.toFixed(2).replace(".", ",")}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Produtos */}
-                <div className="mb-4">
-                  <h4 className="font-medium mb-2">Produtos:</h4>
-                  <div className="space-y-1">
-                    {pedido.produtos.map((produto, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{produto.nome} x{produto.quantidade}</span>
-                        <span>R$ {(produto.valor * produto.quantidade).toFixed(2).replace(".", ",")}</span>
+              <div key={pedido._id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                {/* Cabeçalho do Pedido */}
+                <div 
+                  className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => setPedidoExpandido(pedidoExpandido === pedido._id ? null : pedido._id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold">Pedido #{pedido._id.slice(-6)}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(pedido.status)}`}>
+                          {getStatusText(pedido.status)}
+                        </span>
                       </div>
-                    ))}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
+                        <p>📅 {new Date(pedido.dataPedido).toLocaleString('pt-BR')}</p>
+                        <p>{getModalidadeText(pedido.modalidadeEntrega)}</p>
+                        <p>📦 {pedido.produtos.length} {pedido.produtos.length === 1 ? 'item' : 'itens'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right ml-4">
+                      <p className="text-2xl font-bold text-amber-600">
+                        R$ {pedido.total.toFixed(2).replace(".", ",")}
+                      </p>
+                      <button className="mt-2 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                        {pedidoExpandido === pedido._id ? '▲ Recolher' : '▼ Ver detalhes'}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Endereço - apenas para entrega */}
-                {pedido.modalidadeEntrega === 'entrega' && pedido.endereco && (
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-1">Endereço de Entrega:</h4>
-                    <p className="text-sm text-gray-600">
-                      {pedido.endereco.rua}, {pedido.endereco.numero} - {pedido.endereco.bairro}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {pedido.endereco.cidade} - CEP: {pedido.endereco.cep}
-                    </p>
-                    {pedido.endereco.complemento && (
-                      <p className="text-sm text-gray-600">
-                        {pedido.endereco.complemento}
-                      </p>
+                {/* Detalhes Expandidos */}
+                {pedidoExpandido === pedido._id && (
+                  <div className="px-6 pb-6 border-t border-gray-200 pt-4 space-y-4">
+                    {/* Timeline de Status */}
+                    <PedidoTimeline 
+                      statusAtual={pedido.status}
+                      modalidade={pedido.modalidadeEntrega}
+                      historico={pedido.historico}
+                    />
+
+                    {/* Produtos */}
+                    <div className="bg-white rounded-lg border border-gray-200 p-4">
+                      <h4 className="font-medium mb-3 text-gray-800 flex items-center gap-2">
+                        <span>🛍️</span>
+                        Produtos do Pedido
+                      </h4>
+                      <div className="space-y-2">
+                        {pedido.produtos.map((produto, index) => (
+                          <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                            <div className="flex-1">
+                              <span className="font-medium text-gray-800">{produto.nome}</span>
+                              <span className="text-sm text-gray-500 ml-2">x{produto.quantidade}</span>
+                            </div>
+                            <span className="font-semibold text-gray-800">
+                              R$ {(produto.valor * produto.quantidade).toFixed(2).replace(".", ",")}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="pt-2 mt-2 border-t-2 border-gray-300 flex justify-between items-center">
+                          <span className="font-bold text-gray-800">Total:</span>
+                          <span className="font-bold text-xl text-amber-600">
+                            R$ {pedido.total.toFixed(2).replace(".", ",")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Endereço - apenas para entrega */}
+                    {pedido.modalidadeEntrega === 'entrega' && pedido.endereco && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h4 className="font-medium mb-2 text-green-900 flex items-center gap-2">
+                          <span>🚚</span>
+                          Endereço de Entrega
+                        </h4>
+                        <div className="text-sm text-green-800 space-y-1">
+                          <p><strong>Rua:</strong> {pedido.endereco.rua}, {pedido.endereco.numero}</p>
+                          <p><strong>Bairro:</strong> {pedido.endereco.bairro}</p>
+                          <p><strong>Cidade:</strong> {pedido.endereco.cidade}</p>
+                          <p><strong>CEP:</strong> {pedido.endereco.cep}</p>
+                          {pedido.endereco.complemento && (
+                            <p><strong>Complemento:</strong> {pedido.endereco.complemento}</p>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                )}
 
-                {/* Informação de Retirada */}
-                {pedido.modalidadeEntrega === 'retirada' && (
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded">
-                    <h4 className="font-medium mb-1 text-blue-900">Retirada no Local:</h4>
-                    <p className="text-sm text-blue-800">
-                      Retire seu pedido na panificadora
-                    </p>
-                    {pedido.dataRetirada && pedido.horaRetirada && (
-                      <p className="text-sm text-blue-800 mt-1">
-                        <strong>Data e Hora:</strong> {new Date(pedido.dataRetirada + 'T' + pedido.horaRetirada).toLocaleString('pt-BR')}
-                      </p>
+                    {/* Informação de Retirada */}
+                    {pedido.modalidadeEntrega === 'retirada' && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-medium mb-2 text-blue-900 flex items-center gap-2">
+                          <span>🏪</span>
+                          Retirada no Local
+                        </h4>
+                        <div className="text-sm text-blue-800 space-y-1">
+                          <p>Retire seu pedido na panificadora</p>
+                          {pedido.dataRetirada && pedido.horaRetirada && (
+                            <p className="font-medium mt-2">
+                              <strong>📅 Data e Hora:</strong> {new Date(pedido.dataRetirada + 'T' + pedido.horaRetirada).toLocaleString('pt-BR')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     )}
+
+                    {/* Observações */}
+                    {pedido.observacoes && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <h4 className="font-medium mb-2 text-yellow-900 flex items-center gap-2">
+                          <span>📝</span>
+                          Observações
+                        </h4>
+                        <p className="text-sm text-yellow-800">{pedido.observacoes}</p>
+                      </div>
+                    )}
+
+                    {/* Informações de Contato */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-medium mb-2 text-gray-800">Informações de Contato</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                        <p>📞 <strong>Telefone:</strong> {pedido.telefone}</p>
+                        <p>🕐 <strong>Última atualização:</strong> {new Date(pedido.ultimaAtualizacao).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</p>
+                      </div>
+                    </div>
+
+                    {/* Ações Rápidas */}
+                    <div className="flex gap-2 pt-2">
+                      <a
+                        href={`https://api.whatsapp.com/send?phone=551636151947&text=Olá! Gostaria de saber sobre o pedido #${pedido._id.slice(-6)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-center text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        💬 Falar pelo WhatsApp
+                      </a>
+                      <Link
+                        href="/chat"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-center text-sm transition-colors flex items-center justify-center gap-2"
+                      >
+                        💬 Chat Online
+                      </Link>
+                    </div>
                   </div>
                 )}
-
-                {/* Observações */}
-                {pedido.observacoes && (
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-1">Observações:</h4>
-                    <p className="text-sm text-gray-600">{pedido.observacoes}</p>
-                  </div>
-                )}
-
-                {/* Informações de Contato */}
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    <strong>Telefone:</strong> {pedido.telefone}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <strong>Última atualização:</strong> {new Date(pedido.ultimaAtualizacao).toLocaleString('pt-BR')}
-                  </p>
-                </div>
               </div>
             ))
           )}

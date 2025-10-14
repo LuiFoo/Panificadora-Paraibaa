@@ -114,7 +114,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Criar pedido
-      const novoPedido: Pedido = {
+      const dataAtual = new Date();
+      const novoPedido = {
         userId,
         produtos,
         total,
@@ -125,8 +126,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         horaRetirada: modalidadeEntrega === 'retirada' ? horaRetirada : undefined,
         telefone,
         observacoes,
-        dataPedido: new Date(),
-        ultimaAtualizacao: new Date()
+        dataPedido: dataAtual,
+        ultimaAtualizacao: dataAtual,
+        historico: [
+          {
+            status: 'pendente',
+            data: dataAtual
+          }
+        ]
       };
 
       // Salvar no banco

@@ -31,13 +31,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Status inválido" });
       }
 
+      const dataAtual = new Date();
+      
       const result = await db.collection("pedidos").updateOne(
         { _id: new ObjectId(id) },
         { 
           $set: { 
             status,
-            ultimaAtualizacao: new Date()
-          } 
+            ultimaAtualizacao: dataAtual
+          },
+          $push: {
+            historico: {
+              status,
+              data: dataAtual
+            }
+          }
         }
       );
 
