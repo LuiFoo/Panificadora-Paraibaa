@@ -70,9 +70,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       entregue: 0
     };
 
-    pedidosPorStatus.forEach((item: { _id: string; total: number }) => {
-      if (item._id in statusMap) {
-        statusMap[item._id as keyof typeof statusMap] = item.total;
+    pedidosPorStatus.forEach((item) => {
+      const statusId = item._id as string;
+      const total = item.total as number;
+      if (statusId in statusMap) {
+        statusMap[statusId as keyof typeof statusMap] = total;
       }
     });
 
