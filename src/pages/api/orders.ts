@@ -9,28 +9,6 @@ interface ProdutoPedido {
   img?: string;
 }
 
-interface Pedido {
-  userId: string;
-  produtos: ProdutoPedido[];
-  total: number;
-  status: 'pendente' | 'confirmado' | 'preparando' | 'pronto' | 'entregue' | 'cancelado';
-  modalidadeEntrega: 'entrega' | 'retirada';
-  endereco?: {
-    rua: string;
-    numero: string;
-    bairro: string;
-    cidade: string;
-    cep: string;
-    complemento?: string;
-  };
-  dataRetirada?: string;
-  horaRetirada?: string;
-  telefone?: string;
-  observacoes?: string;
-  dataPedido: Date;
-  ultimaAtualizacao: Date;
-}
-
 // Configurações de limite
 const MAX_ORDER_VALUE = 500; // Máximo R$ 500 por pedido
 

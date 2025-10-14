@@ -49,6 +49,31 @@ export default function ProdutoDetalhePage() {
   const { user } = useUser();
   const { showToast } = useToast();
 
+  const buscarAvaliacoes = async (produtoId: string) => {
+    try {
+      // Buscar média de avaliações
+      const responseMedia = await fetch(`/api/avaliacoes?produtoId=${produtoId}`);
+      const dataMedia = await responseMedia.json();
+      
+      if (dataMedia.success) {
+        setMediaAvaliacao(dataMedia.media);
+        setTotalAvaliacoes(dataMedia.total);
+      }
+
+      // Se usuário logado, buscar sua avaliação
+      if (user?.login) {
+        const responseMinhaAv = await fetch(`/api/minha-avaliacao?produtoId=${produtoId}&userId=${user.login}`);
+        const dataMinhaAv = await responseMinhaAv.json();
+        
+        if (dataMinhaAv.success && dataMinhaAv.avaliacao) {
+          setMinhaAvaliacao(dataMinhaAv.avaliacao.nota);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar avaliações:", error);
+    }
+  };
+
   const buscarProduto = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
@@ -95,6 +120,7 @@ export default function ProdutoDetalhePage() {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Função de busca do produto
@@ -103,31 +129,6 @@ export default function ProdutoDetalhePage() {
       buscarProduto(params.id as string);
     }
   }, [params?.id, buscarProduto]);
-
-  const buscarAvaliacoes = async (produtoId: string) => {
-    try {
-      // Buscar média de avaliações
-      const responseMedia = await fetch(`/api/avaliacoes?produtoId=${produtoId}`);
-      const dataMedia = await responseMedia.json();
-      
-      if (dataMedia.success) {
-        setMediaAvaliacao(dataMedia.media);
-        setTotalAvaliacoes(dataMedia.total);
-      }
-
-      // Se usuário logado, buscar sua avaliação
-      if (user?.login) {
-        const responseMinhaAv = await fetch(`/api/minha-avaliacao?produtoId=${produtoId}&userId=${user.login}`);
-        const dataMinhaAv = await responseMinhaAv.json();
-        
-        if (dataMinhaAv.success && dataMinhaAv.avaliacao) {
-          setMinhaAvaliacao(dataMinhaAv.avaliacao.nota);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao buscar avaliações:", error);
-    }
-  };
 
   const enviarAvaliacao = async (nota: number) => {
     if (!user?.login) {
