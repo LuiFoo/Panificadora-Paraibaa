@@ -271,18 +271,48 @@ export default function MensagensAdminPage() {
       return;
     }
 
-    // Criar primeira mensagem do admin para o cliente
-    setConversaSelecionada(usuario.login);
-    setMostrarNovaConversa(false);
-    setBuscaUsuario("");
-    setUsuariosEncontrados([]);
-    
-    setModalState({
-      isOpen: true,
-      type: "success",
-      title: "✅ Nova Conversa",
-      message: `Conversa iniciada com ${usuario.name}. Envie a primeira mensagem!`
-    });
+    try {
+      // Criar conversa no banco de dados enviando uma mensagem inicial
+      const response = await fetch("/api/mensagens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: usuario.login,
+          mensagem: "Olá! Como posso ajudá-lo hoje?",
+          remetente: "admin"
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Selecionar a nova conversa
+        setConversaSelecionada(usuario.login);
+        setMostrarNovaConversa(false);
+        setBuscaUsuario("");
+        setUsuariosEncontrados([]);
+        
+        // Atualizar lista de conversas
+        await fetchConversas();
+        
+        setModalState({
+          isOpen: true,
+          type: "success",
+          title: "✅ Nova Conversa",
+          message: `Conversa iniciada com ${usuario.name}. Mensagem de boas-vindas enviada!`
+        });
+      } else {
+        throw new Error(data.error || "Erro ao criar conversa");
+      }
+    } catch (error) {
+      console.error("Erro ao iniciar conversa:", error);
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "Erro",
+        message: "Erro ao iniciar conversa. Tente novamente."
+      });
+    }
   };
 
   const totalNaoLidas = conversas.reduce((sum, c) => sum + c.naoLidas, 0);
