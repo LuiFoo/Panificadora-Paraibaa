@@ -69,7 +69,7 @@ export default function MensagensAdminPage() {
     if (conversaAtual && conversaAtual.mensagens.length > 0) {
       scrollToBottom();
     }
-  }, [conversaAtual?.mensagens]);
+  }, [conversaAtual]);
 
   const marcarComoLida = async (userId: string) => {
     try {

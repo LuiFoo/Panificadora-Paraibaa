@@ -100,7 +100,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (dataEntrega && horaEntrega) {
       const limites = getHorarioLimites(dataEntrega);
-      if (horaEntrega < limites.min || horaEntrega > limites.max) {
+      if (limites && (horaEntrega < limites.min || horaEntrega > limites.max)) {
+        setHoraEntrega("");
+      } else if (!limites) {
+        // Se limites for null (domingo), limpar a hora
         setHoraEntrega("");
       }
     }
