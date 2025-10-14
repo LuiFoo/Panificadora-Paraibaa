@@ -6,20 +6,15 @@ import jwt from "jsonwebtoken"; // Biblioteca para gerar tokens JWT
 const JWT_SECRET = process.env.JWT_SECRET || "secretkey"; // Chave secreta para JWT
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log("Register API chamada");
-
   if (req.method !== "POST") {
-    console.log("Método não permitido:", req.method);
     return res.status(405).json({ msg: "Método não permitido" });
   }
 
   try {
     const { login, password, name } = req.body;
-    console.log("Recebido registro:", login, name);
 
     // Validação dos dados de entrada
     if (!login || !password || !name) {
-      console.log("Dados incompletos para registro");
       return res.status(400).json({ ok: false, msg: "Todos os campos são obrigatórios" });
     }
 
@@ -35,7 +30,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verificar se o login já existe
     const existe = await users.findOne({ login });
     if (existe) {
-      console.log("Usuário já existe:", login);
       return res.status(200).json({ ok: false, msg: "Já existe um usuário com esse login" });
     }
 
@@ -46,7 +40,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const novoUser = { login, password: hashedPassword, name, permissao: "usuario" };
 
     const result = await users.insertOne(novoUser);
-    console.log("Usuário registrado com sucesso:", login);
 
     // Gerar o token JWT para o usuário
     const token = jwt.sign(

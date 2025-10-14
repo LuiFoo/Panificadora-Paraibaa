@@ -29,16 +29,14 @@ export default function ProtectedRoute({
 
       // Se não há usuário logado
       if (!user) {
-        console.log("Usuário não logado, redirecionando para página inicial");
         router.replace("/");
         return;
       }
 
       // Verifica a permissão
       if (requiredPermission === "administrador" && user.permissao !== "administrador") {
-        console.log("Acesso negado - usuário não é administrador:", user.permissao);
         alert("Acesso negado! Você precisa ser um administrador para acessar esta página.");
-        router.replace("/"); // Redireciona para a página inicial
+        router.replace("/");
         return;
       }
 

@@ -23,23 +23,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Debug logs removidos para produção
+
   // Recupera o usuário armazenado no localStorage e valida se ainda é válido no servidor
   useEffect(() => {
     const savedUser = localStorage.getItem("usuario");
 
     if (!savedUser) {
-      console.log("Nenhum usuário salvo no localStorage");
       setLoading(false);
       return;
     }
 
     const parsedUser = JSON.parse(savedUser) as User;
-    console.log("Usuário encontrado no localStorage:", parsedUser.login);
 
     // Função para verificar o usuário no servidor
     const validateUser = async () => {
       try {
-        console.log("Validando usuário no servidor...");
         const res = await fetch("/api/verificar-admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -47,7 +46,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         });
 
         const data = await res.json();
-        console.log("Resposta da validação:", data);
 
         if (data.ok && data.user) {
           // Usuário válido no servidor
@@ -59,22 +57,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             password: parsedUser.password, // Mantém a senha para futuras validações
           };
 
-          console.log("Usuário validado com sucesso:", validUser.name);
           setUser(validUser);
-          localStorage.setItem("usuario", JSON.stringify(validUser)); // Salva no localStorage
+          localStorage.setItem("usuario", JSON.stringify(validUser));
         } else {
           // Usuário não válido, limpando localStorage
-          console.log("Usuário inválido, limpando localStorage");
           localStorage.removeItem("usuario");
           setUser(null);
         }
       } catch (error) {
         console.error("Erro ao verificar usuário:", error);
         // Se erro ocorrer, mantém o usuário no localStorage temporariamente
-        console.log("Mantendo usuário do localStorage devido ao erro");
-        setUser(parsedUser); // Mantém o usuário do localStorage
+        setUser(parsedUser);
       } finally {
-        setLoading(false); // Finaliza o carregamento
+        setLoading(false);
       }
     };
 
@@ -82,7 +77,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []); // Executa uma única vez ao montar o componente
 
   // Verifica se o usuário tem permissão de administrador usando useMemo para performance
-  const isAdmin = useMemo(() => user?.permissao === "administrador", [user]);
+  const isAdmin = useMemo(() => {
+    return user?.permissao === "administrador";
+  }, [user]);
 
   return (
     <UserContext.Provider value={{ user, setUser, isAdmin, loading }}>

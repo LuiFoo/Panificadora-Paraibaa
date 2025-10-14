@@ -51,8 +51,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     console.log("Usuário validado com sucesso");
-    // Retorna o usuário válido (não precisa ser admin para login normal)
-    return res.status(200).json({ 
+    console.log("Permissão do usuário:", user.permissao);
+    
+    const responseData = { 
       ok: true, 
       user: {
         _id: user._id,
@@ -60,7 +61,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: user.name,
         permissao: user.permissao
       }
-    });
+    };
+    
+    console.log("Dados a serem retornados pela API:", responseData);
+    
+    // Retorna o usuário válido (não precisa ser admin para login normal)
+    return res.status(200).json(responseData);
   } catch (err) {
     console.error("Erro na API verificar-admin:", err);
     return res.status(500).json({ ok: false, msg: "Erro no servidor: " + err.message });

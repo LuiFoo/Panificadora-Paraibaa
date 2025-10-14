@@ -43,15 +43,23 @@ export default function LoginPage() {
           permissao: data.user.permissao, // ADMIN ou outro valor do MongoDB
         };
 
+        console.log("=== Login Debug ===");
+        console.log("Dados recebidos da API:", data);
+        console.log("Usuário a ser salvo:", userWithInfo);
+        console.log("Permissão:", userWithInfo.permissao);
+
         localStorage.setItem("usuario", JSON.stringify(userWithInfo));
         setUser(userWithInfo);
+        console.log("Usuário salvo no localStorage após login:", JSON.stringify(userWithInfo));
 
         setMsg(`Bem-vindo(a), ${data.user.name}!`);
 
         setTimeout(() => {
+          console.log("Redirecionando para página inicial após login");
           router.push("/");
         }, 2000);
       } else {
+        console.log("Login falhou:", data);
         setMsg(data.msg || "Login inválido");
         setUser(null);
         localStorage.removeItem("usuario");

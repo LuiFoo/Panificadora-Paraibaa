@@ -6,11 +6,8 @@ import jwt from "jsonwebtoken"; // Biblioteca para gerar tokens JWT
 const JWT_SECRET = process.env.JWT_SECRET || "secretkey"; // Chave secreta para JWT
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log("Login API chamada");
-
   // Verifica se o método da requisição é POST
   if (req.method !== "POST") {
-    console.log("Método não permitido:", req.method);
     return res.status(405).json({ msg: "Método não permitido" });
   }
 
@@ -19,7 +16,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Verifica se login e senha foram fornecidos
     if (!login || !password) {
-      console.log("Login ou senha não fornecidos");
       return res.status(400).json({ ok: false, msg: "Login e senha são obrigatórios" });
     }
 
@@ -30,18 +26,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = await users.findOne({ login });
 
     if (!user) {
-      console.log("Usuário não encontrado");
       return res.status(200).json({ ok: false, msg: "Login ou senha inválidos" });
     }
 
     // Verifica se a senha é válida usando bcrypt
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.log("Senha inválida");
       return res.status(200).json({ ok: false, msg: "Login ou senha inválidos" });
     }
-
-    console.log("Usuário encontrado:", user);
 
     // Gera o token JWT
     const token = jwt.sign(

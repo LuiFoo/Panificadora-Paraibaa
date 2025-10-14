@@ -37,15 +37,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      console.log(`Buscando carrinho do MongoDB para o usuário: ${login}`);
-
       try {
-        console.log("Buscando carrinho do MongoDB...");
         const res = await fetch(`/api/cart?userId=${login}`);
         if (!res.ok) throw new Error("Erro ao buscar carrinho");
         const data = await res.json();
-        setCartItems(data.produtos || []);
-        console.log("Carrinho carregado do MongoDB:", data.produtos);
+        
+        // Mapeia os dados do MongoDB para a estrutura esperada pelo frontend
+        const mappedItems = (data.produtos || []).map((item: any) => ({
+          id: item.produtoId, // Mapeia produtoId para id
+          nome: item.nome,
+          valor: item.valor,
+          quantidade: item.quantidade,
+          img: item.img || "/images/default-product.png"
+        }));
+        
+        setCartItems(mappedItems);
       } catch (err) {
         console.error("Erro ao carregar carrinho do MongoDB:", err);
         setCartItems([]);
@@ -60,9 +66,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Função para remover um item
   const removeItem = async (id: string) => {
-    console.log(`Removendo item com ID: ${id} do carrinho.`);
-    console.log("ID do item:", id, "Tipo:", typeof id);
-    
     if (!id) {
       console.error("ID do produto é undefined ou vazio!");
       return;
@@ -71,23 +74,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const updatedCart = cartItems.filter(item => item.id !== id);
 
     try {
-      const requestBody = { produtoId: id };
-      console.log("Enviando para API:", requestBody);
-      
       const res = await fetch(`/api/cart?userId=${login}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ produtoId: id }),
       });
-
-      console.log("Resposta da API:", res.status, res.statusText);
 
       if (res.ok) {
         setCartItems(updatedCart);
-        console.log("Produto removido com sucesso do MongoDB.");
       } else {
-        const errorData = await res.json();
-        console.error("Erro ao remover produto no MongoDB:", errorData);
+        console.error("Erro ao remover produto no MongoDB");
       }
     } catch (err) {
       console.error("Erro ao remover produto:", err);
@@ -96,49 +92,33 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Função para adicionar um item ao carrinho
   const addItem = async (item: CartItem) => {
-    console.log(`Adicionando item ao carrinho: ${item.id}`);
-    console.log("Item completo:", item);
-    console.log("Carrinho atual:", cartItems);
-
     const existingItemIndex = cartItems.findIndex((i) => i.id === item.id);
     let updatedItems: CartItem[];
 
     if (existingItemIndex !== -1) {
       updatedItems = [...cartItems];
       updatedItems[existingItemIndex].quantidade += item.quantidade;
-      console.log(`Item já existente, quantidade atualizada de ${cartItems[existingItemIndex].quantidade} para ${updatedItems[existingItemIndex].quantidade}`);
     } else {
       updatedItems = [...cartItems, item];
-      console.log("Novo item adicionado ao carrinho.");
     }
 
-    console.log("Items atualizados antes da API:", updatedItems);
-
     try {
-      const requestBody = {
-        produtoId: item.id,
-        nome: item.nome,
-        valor: item.valor,
-        quantidade: item.quantidade,
-        img: item.img,
-      };
-      
-      console.log("Enviando para API:", requestBody);
-      
       const res = await fetch(`/api/cart?userId=${login}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          produtoId: item.id,
+          nome: item.nome,
+          valor: item.valor,
+          quantidade: item.quantidade,
+          img: item.img,
+        }),
       });
 
-      console.log("Resposta da API:", res.status, res.statusText);
-
       if (res.ok) {
-        console.log("Produto adicionado ou atualizado com sucesso no MongoDB.");
         setCartItems(updatedItems);
       } else {
-        const errorData = await res.json();
-        console.error("Erro ao adicionar produto no MongoDB:", errorData);
+        console.error("Erro ao adicionar produto no MongoDB");
       }
     } catch (err) {
       console.error("Erro ao adicionar produto:", err);
@@ -147,9 +127,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Função para atualizar a quantidade de um item
   const updateItemQuantity = async (id: string, quantidade: number) => {
-    console.log(`Atualizando a quantidade do item ${id} para ${quantidade}`);
-    console.log("ID recebido:", id, "Tipo:", typeof id);
-    
     if (!id) {
       console.error("ID do produto é undefined ou vazio!");
       return;
@@ -164,22 +141,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
 
     try {
-      const requestBody = { produtoId: id, quantidade };
-      console.log("Enviando para API:", requestBody);
-      
       const res = await fetch(`/api/cart?userId=${login}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ produtoId: id, quantidade }),
       });
 
       if (res.ok) {
-        console.log("Quantidade do produto atualizada com sucesso no MongoDB.");
         setCartItems(updatedCart);
       } else {
         console.error("Erro ao atualizar produto no MongoDB");
-        const errorData = await res.json();
-        console.error("Detalhes do erro:", errorData);
       }
     } catch (err) {
       console.error("Erro ao atualizar produto:", err);
@@ -188,7 +159,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Função para limpar o carrinho
   const clearCart = async () => {
-    console.log("Limpar carrinho...");
     setCartItems([]);
 
     try {
@@ -199,12 +169,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (res.ok) {
-        console.log("Carrinho limpo com sucesso no MongoDB.");
         setCartItems([]);
       } else {
         console.error("Erro ao limpar o carrinho no MongoDB");
-        const errorData = await res.json();
-        console.error("Detalhes do erro:", errorData);
       }
     } catch (err) {
       console.error("Erro ao limpar carrinho:", err);

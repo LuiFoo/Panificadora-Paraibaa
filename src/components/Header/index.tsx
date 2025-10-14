@@ -12,6 +12,8 @@ export default function Header() {
   const { user, setUser, isAdmin } = useUser(); // agora pega isAdmin
   const { totalItems } = useCart();
 
+  // Debug logs removidos para produção
+
   const handleLogout = () => {
     localStorage.removeItem("usuario");
     setUser(null);
