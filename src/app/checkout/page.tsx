@@ -46,6 +46,14 @@ export default function CheckoutPage() {
   const [salvarDados, setSalvarDados] = useState(false);
   const [dadosCarregados, setDadosCarregados] = useState(false);
 
+  // Calcular data máxima (1 mês a partir de hoje)
+  const getDataMaxima = () => {
+    const hoje = new Date();
+    const umMesDepois = new Date(hoje);
+    umMesDepois.setMonth(umMesDepois.getMonth() + 1);
+    return umMesDepois.toISOString().split('T')[0];
+  };
+
   // Carregar dados salvos do usuário
   useEffect(() => {
     const carregarDadosSalvos = async () => {
@@ -74,15 +82,15 @@ export default function CheckoutPage() {
 
   // Função para obter limites de horário baseado no dia da semana
   const getHorarioLimites = (data: string) => {
-    if (!data) return { min: "06:00", max: "19:00" };
+    if (!data) return { min: "07:00", max: "18:30" };
     
     const dataSelecionada = new Date(data + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
     const diaSemana = dataSelecionada.getDay(); // 0 = Domingo, 6 = Sábado
     
-    if (diaSemana === 0) { // Domingo
-      return { min: "06:00", max: "12:00" };
+    if (diaSemana === 0) { // Domingo - NÃO PERMITIDO
+      return null; // Domingo não é permitido
     } else { // Segunda a Sábado
-      return { min: "06:00", max: "19:00" };
+      return { min: "07:00", max: "18:30" };
     }
   };
 
@@ -151,6 +159,16 @@ export default function CheckoutPage() {
         return;
       }
 
+      // Validar se a data não ultrapassa 1 mês
+      const umMesDepois = new Date(agora);
+      umMesDepois.setMonth(umMesDepois.getMonth() + 1);
+      const dataSelecionadaObj = new Date(dataEntrega + 'T12:00:00');
+      if (dataSelecionadaObj > umMesDepois) {
+        setError(`Pedidos só podem ser feitos para até 1 mês no futuro. Data máxima: ${umMesDepois.toLocaleDateString('pt-BR')}`);
+        setLoading(false);
+        return;
+      }
+
       // Validar horário de funcionamento baseado no dia da semana
       const dataSelecionada = new Date(dataEntrega + 'T12:00:00');
       const diaSemana = dataSelecionada.getDay(); // 0 = Domingo
@@ -158,15 +176,13 @@ export default function CheckoutPage() {
       const minuto = parseInt(horaEntrega.split(':')[1]);
       const horarioEmMinutos = hora * 60 + minuto;
       
-      if (diaSemana === 0) { // Domingo: 6h às 12h
-        if (horarioEmMinutos < 6 * 60 || horarioEmMinutos > 12 * 60) {
-          setError(`Aos domingos, o horário ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} deve ser entre 6h e 12h`);
-          setLoading(false);
-          return;
-        }
-      } else { // Segunda a Sábado: 6h às 19h
-        if (horarioEmMinutos < 6 * 60 || horarioEmMinutos > 19 * 60) {
-          setError(`De segunda a sábado, o horário ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} deve ser entre 6h e 19h`);
+      if (diaSemana === 0) { // Domingo - NÃO PERMITIDO
+        setError(`Não é possível fazer pedidos aos domingos. Por favor, escolha outra data.`);
+        setLoading(false);
+        return;
+      } else { // Segunda a Sábado: 7h às 18:30h
+        if (horarioEmMinutos < 7 * 60 || horarioEmMinutos > (18 * 60 + 30)) {
+          setError(`De segunda a sábado, o horário ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} deve ser entre 7h e 18:30h`);
           setLoading(false);
           return;
         }
@@ -519,8 +535,9 @@ export default function CheckoutPage() {
                     <h3 className="text-lg font-medium text-green-900 mb-2">📅 Data e Hora da Entrega</h3>
                     <div className="text-sm text-green-800 space-y-1 mb-4">
                       <p><strong>Horário de Funcionamento:</strong></p>
-                      <p>Segunda a Sábado: 6h às 19h</p>
-                      <p>Domingo: 6h às 12h</p>
+                      <p>✅ Segunda a Sábado: 07h às 18:30h</p>
+                      <p>❌ Domingo: NÃO fazemos pedidos</p>
+                      <p className="mt-2 text-blue-800">📅 <strong>Prazo:</strong> Pedidos até 1 mês no futuro</p>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -533,6 +550,7 @@ export default function CheckoutPage() {
                           value={dataEntrega}
                           onChange={(e) => setDataEntrega(e.target.value)}
                           min={new Date().toISOString().split('T')[0]}
+                          max={getDataMaxima()}
                           className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
                           required
                         />
@@ -545,16 +563,17 @@ export default function CheckoutPage() {
                           type="time"
                           value={horaEntrega}
                           onChange={(e) => setHoraEntrega(e.target.value)}
-                          min={horarioLimites.min}
-                          max={horarioLimites.max}
-                          className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                          min={horarioLimites?.min || "07:00"}
+                          max={horarioLimites?.max || "18:30"}
+                          disabled={!horarioLimites}
+                          className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           required
                         />
                         {dataEntrega && (
-                          <p className="text-xs text-green-700 mt-1">
+                          <p className={`text-xs mt-1 font-medium ${new Date(dataEntrega + 'T12:00:00').getDay() === 0 ? 'text-red-600' : 'text-green-700'}`}>
                             {new Date(dataEntrega + 'T12:00:00').getDay() === 0 
-                              ? "⏰ Domingo: 6h às 12h" 
-                              : "⏰ Seg-Sáb: 6h às 19h"}
+                              ? "❌ Domingo: NÃO é possível fazer pedidos" 
+                              : "⏰ Seg-Sáb: 07h às 18:30h"}
                           </p>
                         )}
                       </div>
@@ -596,8 +615,9 @@ export default function CheckoutPage() {
                     <p>Rua das Flores, 123 - Centro</p>
                     <p>João Pessoa - PB, 58000-000</p>
                     <p className="mt-2"><strong>Horário de Funcionamento:</strong></p>
-                    <p>Segunda a Sábado: 6h às 19h</p>
-                    <p>Domingo: 6h às 12h</p>
+                    <p>✅ Segunda a Sábado: 07h às 18:30h</p>
+                    <p>❌ Domingo: NÃO fazemos pedidos</p>
+                    <p className="mt-2 text-green-800">📅 <strong>Prazo:</strong> Pedidos até 1 mês no futuro</p>
                     <p className="mt-2"><strong>Telefone:</strong> (83) 99999-9999</p>
                   </div>
                   
@@ -612,6 +632,7 @@ export default function CheckoutPage() {
                         value={dataEntrega}
                         onChange={(e) => setDataEntrega(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
+                        max={getDataMaxima()}
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
                       />
@@ -624,16 +645,17 @@ export default function CheckoutPage() {
                         type="time"
                         value={horaEntrega}
                         onChange={(e) => setHoraEntrega(e.target.value)}
-                        min={horarioLimites.min}
-                        max={horarioLimites.max}
-                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min={horarioLimites?.min || "07:00"}
+                        max={horarioLimites?.max || "18:30"}
+                        disabled={!horarioLimites}
+                        className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         required
                       />
                       {dataEntrega && (
-                        <p className="text-xs text-blue-700 mt-1">
+                        <p className={`text-xs mt-1 font-medium ${new Date(dataEntrega + 'T12:00:00').getDay() === 0 ? 'text-red-600' : 'text-blue-700'}`}>
                           {new Date(dataEntrega + 'T12:00:00').getDay() === 0 
-                            ? "⏰ Domingo: 6h às 12h" 
-                            : "⏰ Seg-Sáb: 6h às 19h"}
+                            ? "❌ Domingo: NÃO é possível fazer pedidos" 
+                            : "⏰ Seg-Sáb: 07h às 18:30h"}
                         </p>
                       )}
                     </div>
