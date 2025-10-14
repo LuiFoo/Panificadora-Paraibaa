@@ -87,23 +87,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "ID inválido" });
       }
 
-      let result;
-
       if (colecaoOrigem === "produtos") {
         // Excluir da nova coleção unificada
-        result = await db.collection("produtos").deleteOne({ _id: new ObjectId(id) });
+        const deleteResult = await db.collection("produtos").deleteOne({ _id: new ObjectId(id) });
+        
+        if (deleteResult.deletedCount === 0) {
+          return res.status(404).json({ error: "Produto não encontrado" });
+        }
       } else if (MAPEAMENTO_COLECOES[colecaoOrigem as keyof typeof MAPEAMENTO_COLECOES]) {
         // Marcar como deletado na coleção antiga (soft delete)
-        result = await db.collection(colecaoOrigem).updateOne(
+        const updateResult = await db.collection(colecaoOrigem).updateOne(
           { _id: new ObjectId(id) },
           { $set: { deleted: true, dataAtualizacao: new Date() } }
         );
+        
+        if (updateResult.matchedCount === 0) {
+          return res.status(404).json({ error: "Produto não encontrado" });
+        }
       } else {
         return res.status(400).json({ error: "Coleção de origem inválida" });
-      }
-
-      if (result.matchedCount === 0) {
-        return res.status(404).json({ error: "Produto não encontrado" });
       }
 
       return res.status(200).json({ 
