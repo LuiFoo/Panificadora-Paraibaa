@@ -1,7 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import Toast from "@/components/Toast";
+import React, { createContext, useContext, ReactNode } from "react";
 
 interface ToastContextType {
   showToast: (message: string, type: "success" | "error" | "warning" | "info") => void;
@@ -17,11 +16,6 @@ export function useToast() {
   return context;
 }
 
-interface ToastData {
-  id: number;
-  message: string;
-  type: "success" | "error" | "warning" | "info";
-}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   // Toasts desabilitados - mensagens agora aparecem inline no frontend
