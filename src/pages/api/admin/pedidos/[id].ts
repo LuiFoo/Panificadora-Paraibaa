@@ -33,22 +33,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const dataAtual = new Date();
       
-      const updateDoc = {
-        $set: { 
-          status,
-          ultimaAtualizacao: dataAtual
-        },
-        $push: {
-          historico: {
-            status,
-            data: dataAtual
-          }
-        }
-      };
-      
       const result = await db.collection("pedidos").updateOne(
         { _id: new ObjectId(id) },
-        updateDoc
+        {
+          $set: { 
+            status,
+            ultimaAtualizacao: dataAtual
+          },
+          $push: {
+            historico: {
+              status,
+              data: dataAtual
+            }
+          }
+        } as Record<string, unknown>
       );
 
       if (result.matchedCount === 0) {
