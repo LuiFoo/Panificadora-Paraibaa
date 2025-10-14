@@ -69,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(responseData);
   } catch (err) {
     console.error("Erro na API verificar-admin:", err);
-    return res.status(500).json({ ok: false, msg: "Erro no servidor: " + err.message });
+    const errorMessage = err instanceof Error ? err.message : "Erro desconhecido";
+    return res.status(500).json({ ok: false, msg: "Erro no servidor: " + errorMessage });
   }
 }
