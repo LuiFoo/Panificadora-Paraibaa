@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import Modal from "@/components/Modal";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface Mensagem {
   _id: string;
@@ -19,7 +19,6 @@ interface Mensagem {
 
 export default function ChatPage() {
   const { user } = useUser();
-  const router = useRouter();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [novaMensagem, setNovaMensagem] = useState("");
   const [loading, setLoading] = useState(true);
