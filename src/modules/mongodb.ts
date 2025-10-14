@@ -1,10 +1,9 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
 
-if (!process.env.MONGODB_URI) {
-  throw new Error("MONGODB Connection string not defined");
-}
+// Use default MongoDB URI if not provided
+const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/paraiba";
 
-const uri = process.env.MONGODB_URI;
+console.log("MongoDB URI:", uri);
 const options = {
   serverApi: {
     version: ServerApiVersion.v1,

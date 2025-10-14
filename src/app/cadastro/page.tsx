@@ -42,15 +42,19 @@ export default function CadastroPage() {
           permissao: data.user.permissao || "usuario", // padrão "usuario"
         };
 
+        console.log("Usuário cadastrado com sucesso:", novoUsuario);
         localStorage.setItem("usuario", JSON.stringify(novoUsuario));
         setUser(novoUsuario);
 
         setMsg(data.msg || `Bem-vindo(a), ${data.user.name}!`);
 
+        // Redireciona imediatamente após o cadastro bem-sucedido
         setTimeout(() => {
+          console.log("Redirecionando para página inicial...");
           window.location.href = "/";
-        }, 2500);
+        }, 1500);
       } else {
+        console.log("Erro no cadastro:", data.msg);
         setMsg(data.msg || "Erro ao cadastrar usuário");
       }
     } catch (err) {

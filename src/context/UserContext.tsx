@@ -28,15 +28,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const savedUser = localStorage.getItem("usuario");
 
     if (!savedUser) {
+      console.log("Nenhum usuário salvo no localStorage");
       setLoading(false);
       return;
     }
 
     const parsedUser = JSON.parse(savedUser) as User;
+    console.log("Usuário encontrado no localStorage:", parsedUser.login);
 
     // Função para verificar o usuário no servidor
     const validateUser = async () => {
       try {
+        console.log("Validando usuário no servidor...");
         const res = await fetch("/api/verificar-admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -44,6 +47,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         });
 
         const data = await res.json();
+        console.log("Resposta da validação:", data);
 
         if (data.ok && data.user) {
           // Usuário válido no servidor
@@ -52,19 +56,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             login: data.user.login,
             name: data.user.name,
             permissao: data.user.permissao,
-            password: parsedUser.password, // Não devemos retornar ou salvar a senha
+            password: parsedUser.password, // Mantém a senha para futuras validações
           };
 
+          console.log("Usuário validado com sucesso:", validUser.name);
           setUser(validUser);
           localStorage.setItem("usuario", JSON.stringify(validUser)); // Salva no localStorage
         } else {
           // Usuário não válido, limpando localStorage
+          console.log("Usuário inválido, limpando localStorage");
           localStorage.removeItem("usuario");
           setUser(null);
         }
       } catch (error) {
         console.error("Erro ao verificar usuário:", error);
-        // Se erro ocorrer, mantém o usuário no localStorage, mas pode ser uma falha de verificação
+        // Se erro ocorrer, mantém o usuário no localStorage temporariamente
+        console.log("Mantendo usuário do localStorage devido ao erro");
         setUser(parsedUser); // Mantém o usuário do localStorage
       } finally {
         setLoading(false); // Finaliza o carregamento

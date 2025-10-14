@@ -22,49 +22,10 @@ export default function CarrinhoPage() {
   const { cartItems, removeItem, updateItemQuantity, clearCart } = useCart();
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Função para carregar os produtos do MongoDB e sincronizar com o localStorage
+  // Simplesmente define o loading como false, pois o carrinho já é carregado pelo CartContext
   useEffect(() => {
-    const fetchProducts = async () => {
-      console.log("Buscando produtos do MongoDB...");
-      try {
-        const res = await fetch("/api/bolos-doces-especiais");
-        if (!res.ok) {
-          throw new Error("Erro ao buscar produtos");
-        }
-
-        const data: { bolosDocesEspeciais: Product[] } = await res.json();
-        const products = data.bolosDocesEspeciais;
-
-        console.log("Produtos carregados:", products);
-
-        // Atualiza os itens do carrinho com os produtos do MongoDB
-        const updatedItems = cartItems.map((item) => {
-          const product = products.find((p) => p._id === item.id);
-          if (!product) {
-            console.log(`Produto não encontrado: ${item.id}`);
-            return item; // Retorna item original caso o produto não seja encontrado
-          }
-          console.log(`Produto encontrado: ${item.id}`);
-          return {
-            ...item,
-            nome: product.nome,
-            valor: product.valor,
-            img: product.img || "/images/default-product.png",
-          };
-        });
-
-        // Atualiza o carrinho no localStorage e no estado
-        localStorage.setItem("carrinho", JSON.stringify(updatedItems));
-        setLoading(false);
-        console.log("Carrinho atualizado com sucesso.");
-      } catch (err) {
-        console.error("Erro ao buscar produtos:", err);
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
-  }, [cartItems]);
+    setLoading(false);
+  }, []);
 
   // Calcula o total do carrinho
   const total = cartItems.reduce(
@@ -104,7 +65,9 @@ export default function CarrinhoPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {cartItems.map((item) => (
+              {cartItems.map((item) => {
+                console.log("Item do carrinho:", item);
+                return (
                 <div
                   key={item.id}
                   className="flex items-center bg-white shadow rounded-lg p-4 gap-4"
@@ -154,7 +117,8 @@ export default function CarrinhoPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
