@@ -33,21 +33,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const dataAtual = new Date();
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateDoc = {
+        $set: { 
+          status,
+          ultimaAtualizacao: dataAtual
+        },
+        $push: {
+          historico: {
+            status,
+            data: dataAtual
+          }
+        }
+      };
+      
+      // @ts-ignore - MongoDB $push operator type conflict
       const result = await db.collection("pedidos").updateOne(
         { _id: new ObjectId(id) },
-        { 
-          $set: { 
-            status,
-            ultimaAtualizacao: dataAtual
-          },
-          $push: {
-            historico: {
-              status,
-              data: dataAtual
-            }
-          }
-        } as any
+        updateDoc
       );
 
       if (result.matchedCount === 0) {
