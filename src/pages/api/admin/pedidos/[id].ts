@@ -46,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               data: dataAtual
             }
           }
-        }
+        } as any
       );
 
       if (result.matchedCount === 0) {
