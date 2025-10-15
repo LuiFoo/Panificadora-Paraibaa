@@ -82,8 +82,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (method === "PUT") {
-      const { produtoId, quantidade } = req.body;
-      console.log("Atualizando quantidade - produtoId:", produtoId, "quantidade:", quantidade);
+      const { produtoId, quantidade, produtos } = req.body;
+      console.log("Atualizando carrinho - produtoId:", produtoId, "quantidade:", quantidade, "produtos:", produtos);
+
+      // Se produtos foi enviado, atualizar todo o carrinho (para remoção de produtos pausados)
+      if (produtos && Array.isArray(produtos)) {
+        console.log("Atualizando carrinho completo com produtos:", produtos);
+        await db.collection("users").updateOne(
+          { login },
+          { 
+            $set: { 
+              "carrinho.produtos": produtos,
+              "carrinho.updatedAt": new Date().toISOString()
+            } 
+          }
+        );
+        return res.status(200).json({ 
+          msg: "Carrinho atualizado com sucesso",
+          produtos: produtos 
+        });
+      }
 
       if (!produtoId || quantidade <= 0) {
         console.log("Dados inválidos para atualização:", { produtoId, quantidade });

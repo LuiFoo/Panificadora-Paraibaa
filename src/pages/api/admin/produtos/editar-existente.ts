@@ -138,9 +138,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Produto não encontrado" });
       }
 
+      // Se o produto foi pausado, remover de todos os carrinhos
+      if (status === "pause") {
+        try {
+          // Remover o produto de todos os carrinhos dos usuários
+          await db.collection("users").updateMany(
+            { "carrinho.produtos.produtoId": id },
+            { 
+              $pull: { 
+                "carrinho.produtos": { produtoId: id }
+              },
+              $set: {
+                "carrinho.updatedAt": new Date().toISOString()
+              }
+            }
+          );
+          
+          console.log(`Produto ${id} removido de todos os carrinhos após ser pausado`);
+        } catch (error) {
+          console.error("Erro ao remover produto dos carrinhos:", error);
+          // Não falhar a operação principal se houver erro na remoção dos carrinhos
+        }
+      }
+
       return res.status(200).json({ 
-        success: true,
-        message: `Produto ${status === "pause" ? "pausado" : "ativado"} com sucesso`
+        success: true, 
+        message: `Produto ${status === "pause" ? "pausado" : "ativado"} com sucesso` 
       });
     }
 

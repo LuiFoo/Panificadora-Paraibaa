@@ -43,6 +43,77 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // Função para verificar e remover produtos pausados
+  const verificarProdutosPausados = async (items: CartItem[]) => {
+    const produtosValidos: CartItem[] = [];
+    const produtosPausados: string[] = [];
+
+    for (const item of items) {
+      try {
+        // Verificar se o produto ainda está ativo em todas as coleções
+        const colecoes = [
+          'produtos', 'bolos-doces-especiais', 'paes-doces', 'paes-salgados-especiais',
+          'roscas-paes-especiais', 'salgados-assados-lanches', 'sobremesas-tortas', 'doces-individuais'
+        ];
+        
+        let produtoEncontrado = false;
+        for (const colecao of colecoes) {
+          const response = await fetch(`/api/${colecao}`);
+          if (response.ok) {
+            const data = await response.json();
+            const produtos = data[colecao] || data.bolosDocesEspeciais || data.paesDoces || 
+                           data.paesSalgadosEspeciais || data.roscasPaesEspeciais || 
+                           data.salgadosAssadosLanches || data.sobremesasTortas || data.docesIndividuais || [];
+            
+            const produto = produtos.find((p: any) => p._id === item.id);
+            if (produto && !produto.status) {
+              produtoEncontrado = true;
+              break;
+            }
+          }
+        }
+        
+        if (produtoEncontrado) {
+          produtosValidos.push(item);
+        } else {
+          produtosPausados.push(item.nome);
+        }
+      } catch (error) {
+        console.error(`Erro ao verificar produto ${item.nome}:`, error);
+        // Em caso de erro, manter o produto no carrinho
+        produtosValidos.push(item);
+      }
+    }
+
+    // Se há produtos pausados, atualizar o carrinho
+    if (produtosPausados.length > 0) {
+      setCartItems(produtosValidos);
+      showToast(`Produtos pausados removidos do carrinho: ${produtosPausados.join(', ')}`, "warning");
+      
+      // Atualizar o carrinho no backend
+      try {
+        await fetch("/api/cart", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: login,
+            produtos: produtosValidos.map(item => ({
+              produtoId: item.id,
+              nome: item.nome,
+              valor: item.valor,
+              quantidade: item.quantidade,
+              img: item.img
+            }))
+          })
+        });
+      } catch (error) {
+        console.error("Erro ao atualizar carrinho após remoção de produtos pausados:", error);
+      }
+    }
+
+    return produtosValidos;
+  };
+
   // Carregar o carrinho do MongoDB quando o login mudar
   useEffect(() => {
     const fetchCart = async () => {
@@ -68,7 +139,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           })
         );
 
-        setCartItems(mappedItems);
+        // Verificar produtos pausados após carregar o carrinho
+        const produtosValidos = await verificarProdutosPausados(mappedItems);
+        setCartItems(produtosValidos);
       } catch (err) {
         console.error("Erro ao carregar carrinho do MongoDB:", err);
         setCartItems([]);

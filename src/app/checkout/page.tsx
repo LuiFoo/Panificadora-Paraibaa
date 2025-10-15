@@ -161,6 +161,46 @@ export default function CheckoutPage() {
     setError("");
 
     try {
+      // Verificar se algum produto no carrinho foi pausado
+      const produtosPausados = [];
+      for (const item of cartItems) {
+        try {
+          // Verificar se o produto ainda está ativo em todas as coleções
+          const colecoes = [
+            'produtos', 'bolos-doces-especiais', 'paes-doces', 'paes-salgados-especiais',
+            'roscas-paes-especiais', 'salgados-assados-lanches', 'sobremesas-tortas', 'doces-individuais'
+          ];
+          
+          let produtoEncontrado = false;
+          for (const colecao of colecoes) {
+            const response = await fetch(`/api/${colecao}`);
+            if (response.ok) {
+              const data = await response.json();
+              const produtos = data[colecao] || data.bolosDocesEspeciais || data.paesDoces || 
+                             data.paesSalgadosEspeciais || data.roscasPaesEspeciais || 
+                             data.salgadosAssadosLanches || data.sobremesasTortas || data.docesIndividuais || [];
+              
+              const produto = produtos.find((p: any) => p._id === item.id);
+              if (produto && !produto.status) {
+                produtoEncontrado = true;
+                break;
+              }
+            }
+          }
+          
+          if (!produtoEncontrado) {
+            produtosPausados.push(item.nome);
+          }
+        } catch (error) {
+          console.error(`Erro ao verificar produto ${item.nome}:`, error);
+        }
+      }
+
+      if (produtosPausados.length > 0) {
+        setError(`Os seguintes produtos foram pausados e foram removidos do seu carrinho: ${produtosPausados.join(', ')}. Por favor, atualize seu carrinho.`);
+        setLoading(false);
+        return;
+      }
       // Validações do frontend
       if (modalidadeEntrega === 'entrega') {
         if (!endereco.rua || !endereco.numero || !endereco.bairro || !endereco.cidade) {
@@ -795,20 +835,20 @@ export default function CheckoutPage() {
                 <textarea
                   value={observacoes}
                   onChange={(e) => {
-                    if (e.target.value.length <= 500) {
+                    if (e.target.value.length <= 250) {
                       setObservacoes(e.target.value);
                     }
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                   rows={3}
                   placeholder="Instruções especiais para entrega..."
-                  maxLength={500}
+                  maxLength={250}
                 />
                 <div className="flex justify-between items-center mt-1">
-                  <span className={`text-xs ${observacoes.length > 450 ? 'text-red-500' : 'text-gray-500'}`}>
-                    {observacoes.length}/500 caracteres
+                  <span className={`text-xs ${observacoes.length > 200 ? 'text-red-500' : 'text-gray-500'}`}>
+                    {observacoes.length}/250 caracteres
                   </span>
-                  {observacoes.length > 450 && (
+                  {observacoes.length > 200 && (
                     <span className="text-xs text-red-500">
                       Limite de caracteres próximo
                     </span>
