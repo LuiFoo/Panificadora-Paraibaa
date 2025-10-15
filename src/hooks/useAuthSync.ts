@@ -90,7 +90,7 @@ export const useAuthSync = () => {
               email: data.user.email,
               permissao: data.user.permissao || "usuario",
               googleId: data.user.googleId,
-              picture: data.user.picture,
+              picture: data.user.picture || undefined,
             };
 
             localStorage.setItem("usuario", JSON.stringify(userData));
@@ -109,7 +109,7 @@ export const useAuthSync = () => {
               email: session.user.email || '',
               permissao: (session.user as GoogleUser).permissao || "usuario",
               googleId: (session.user as GoogleUser).id,
-              picture: session.user.image,
+              picture: session.user.image || undefined,
             };
 
             localStorage.setItem("usuario", JSON.stringify(userData));
@@ -130,7 +130,7 @@ export const useAuthSync = () => {
             email: session.user.email || '',
             permissao: (session.user as GoogleUser).permissao || "usuario",
             googleId: (session.user as GoogleUser).id,
-            picture: session.user.image,
+            picture: session.user.image || undefined,
           };
 
           localStorage.setItem("usuario", JSON.stringify(userData));
