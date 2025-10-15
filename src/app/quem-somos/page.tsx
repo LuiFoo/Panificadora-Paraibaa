@@ -7,8 +7,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 function PaginaQuemSomos() {
-    const [isVisible, setIsVisible] = useState({});
-    const sectionsRef = useRef({});
+    const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
+    const sectionsRef = useRef<Record<string, HTMLElement | null>>({});
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -78,7 +78,7 @@ function PaginaQuemSomos() {
                 {/* Hero Section */}
                 <section 
                     id="hero"
-                    ref={(el) => (sectionsRef.current['hero'] = el)}
+                    ref={(el) => { sectionsRef.current['hero'] = el; }}
                     className={`relative pt-20 md:pt-24 lg:pt-32 pb-12 md:pb-16 lg:pb-20 overflow-hidden transition-all duration-1000 ${
                         isVisible['hero'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -103,7 +103,7 @@ function PaginaQuemSomos() {
                 {/* História Principal */}
                 <section 
                     id="historia"
-                    ref={(el) => (sectionsRef.current['historia'] = el)}
+                    ref={(el) => { sectionsRef.current['historia'] = el; }}
                     className={`py-12 md:py-16 lg:py-20 transition-all duration-1000 delay-200 ${
                         isVisible['historia'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -154,7 +154,7 @@ function PaginaQuemSomos() {
                 {/* Estatísticas */}
                 <section 
                     id="stats"
-                    ref={(el) => (sectionsRef.current['stats'] = el)}
+                    ref={(el) => { sectionsRef.current['stats'] = el; }}
                     className={`py-12 md:py-14 lg:py-16 px-4 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] transition-all duration-1000 delay-300 ${
                         isVisible['stats'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -177,7 +177,7 @@ function PaginaQuemSomos() {
                 {/* Timeline */}
                 <section 
                     id="timeline"
-                    ref={(el) => (sectionsRef.current['timeline'] = el)}
+                    ref={(el) => { sectionsRef.current['timeline'] = el; }}
                     className={`py-12 md:py-16 lg:py-20 transition-all duration-1000 delay-400 ${
                         isVisible['timeline'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -221,7 +221,7 @@ function PaginaQuemSomos() {
                 {/* Valores */}
                 <section 
                     id="valores"
-                    ref={(el) => (sectionsRef.current['valores'] = el)}
+                    ref={(el) => { sectionsRef.current['valores'] = el; }}
                     className={`py-12 md:py-16 lg:py-20 bg-gray-50 transition-all duration-1000 delay-500 ${
                         isVisible['valores'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -256,7 +256,7 @@ function PaginaQuemSomos() {
                 {/* Missão */}
                 <section 
                     id="missao"
-                    ref={(el) => (sectionsRef.current['missao'] = el)}
+                    ref={(el) => { sectionsRef.current['missao'] = el; }}
                     className={`py-12 md:py-16 lg:py-20 transition-all duration-1000 delay-600 ${
                         isVisible['missao'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -309,7 +309,7 @@ function PaginaQuemSomos() {
                 {/* CTA Final */}
                 <section 
                     id="cta"
-                    ref={(el) => (sectionsRef.current['cta'] = el)}
+                    ref={(el) => { sectionsRef.current['cta'] = el; }}
                     className={`py-12 md:py-16 lg:py-20 px-4 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] transition-all duration-1000 delay-700 ${
                         isVisible['cta'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
