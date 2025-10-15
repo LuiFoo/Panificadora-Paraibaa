@@ -20,13 +20,15 @@ interface Endereco {
 type ModalidadeEntrega = 'entrega' | 'retirada';
 
 export default function CheckoutPage() {
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, forcarAtualizacao } = useCart();
   const { user } = useUser();
   const router = useRouter();
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [validandoCarrinho, setValidandoCarrinho] = useState(false);
+  const [tempoRedirecionamento, setTempoRedirecionamento] = useState(2);
   
   const [modalidadeEntrega, setModalidadeEntrega] = useState<ModalidadeEntrega>('entrega');
   
@@ -153,6 +155,27 @@ export default function CheckoutPage() {
     }
   }, [cartItems, loading, router]);
 
+  // Validar carrinho antes do checkout
+  useEffect(() => {
+    const validarCarrinho = async () => {
+      if (cartItems.length === 0) return;
+      
+      setValidandoCarrinho(true);
+      try {
+        console.log("🔄 Validando carrinho antes do checkout...");
+        await forcarAtualizacao();
+        console.log("✅ Carrinho validado com sucesso");
+      } catch (error) {
+        console.error("❌ Erro ao validar carrinho:", error);
+        setError("Erro ao validar carrinho. Recarregue a página e tente novamente.");
+      } finally {
+        setValidandoCarrinho(false);
+      }
+    };
+
+    validarCarrinho();
+  }, [cartItems, forcarAtualizacao]);
+
   const total = cartItems.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,44 +184,17 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      // Verificar se algum produto no carrinho foi pausado
-      const produtosPausados = [];
-      for (const item of cartItems) {
-        try {
-          // Verificar se o produto ainda está ativo em todas as coleções
-          const colecoes = [
-            'produtos', 'bolos-doces-especiais', 'paes-doces', 'paes-salgados-especiais',
-            'roscas-paes-especiais', 'salgados-assados-lanches', 'sobremesas-tortas', 'doces-individuais'
-          ];
-          
-          let produtoEncontrado = false;
-          for (const colecao of colecoes) {
-            const response = await fetch(`/api/${colecao}`);
-            if (response.ok) {
-              const data = await response.json();
-              const produtos = data[colecao] || data.bolosDocesEspeciais || data.paesDoces || 
-                             data.paesSalgadosEspeciais || data.roscasPaesEspeciais || 
-                             data.salgadosAssadosLanches || data.sobremesasTortas || data.docesIndividuais || [];
-              
-              const produto = produtos.find((p: { _id: string; status?: string }) => p._id === item.id);
-              if (produto && !produto.status) {
-                produtoEncontrado = true;
-                break;
-              }
-            }
-          }
-          
-          if (!produtoEncontrado) {
-            produtosPausados.push(item.nome);
-          }
-        } catch (error) {
-          console.error(`Erro ao verificar produto ${item.nome}:`, error);
-        }
-      }
-
-      if (produtosPausados.length > 0) {
-        setError(`Os seguintes produtos foram pausados e foram removidos do seu carrinho: ${produtosPausados.join(', ')}. Por favor, atualize seu carrinho.`);
+      // Validar e atualizar carrinho antes do checkout
+      console.log("🔄 Validando carrinho antes de finalizar pedido...");
+      await forcarAtualizacao();
+      
+      // Verificar se ainda há itens no carrinho após validação
+      if (cartItems.length === 0) {
+        setError("Seu carrinho foi atualizado e não contém mais produtos válidos. Redirecionando para o carrinho...");
         setLoading(false);
+        setTimeout(() => {
+          router.push("/carrinho");
+        }, 2000);
         return;
       }
       // Validações do frontend
@@ -318,6 +314,18 @@ export default function CheckoutPage() {
         
         setSuccess(true);
         clearCart();
+        
+        // Contador para redirecionamento
+        const interval = setInterval(() => {
+          setTempoRedirecionamento((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              router.push("/meus-pedidos");
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       } else {
         setError(data.error || "Erro ao processar pedido");
       }
@@ -353,6 +361,22 @@ export default function CheckoutPage() {
     );
   }
 
+  if (validandoCarrinho) {
+    return (
+      <>
+        <Header />
+        <main className="max-w-6xl mx-auto px-4 py-10 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-avocado-600)]"></div>
+            <p className="text-gray-600 text-lg">Validando carrinho...</p>
+            <p className="text-gray-500 text-sm">Verificando preços e disponibilidade dos produtos</p>
+          </div>
+        </main>
+        <Footer showMap={false} />
+      </>
+    );
+  }
+
   if (success) {
     return (
       <>
@@ -375,9 +399,24 @@ export default function CheckoutPage() {
             <p className="text-lg text-gray-600 mb-2">
               Seu pedido foi enviado e será processado em breve.
             </p>
-            <p className="text-gray-500 mb-8">
+            <p className="text-gray-500 mb-4">
               Você receberá uma confirmação assim que seu pedido for aprovado.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-500 rounded-full p-2">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-blue-900 font-semibold">Redirecionamento automático</p>
+                  <p className="text-blue-700 text-sm">
+                    Você será redirecionado para "Meus Pedidos" em {tempoRedirecionamento} segundo{tempoRedirecionamento !== 1 ? 's' : ''}...
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Cards informativos */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-left">

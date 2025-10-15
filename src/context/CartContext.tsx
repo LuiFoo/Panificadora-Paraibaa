@@ -30,6 +30,7 @@ interface CartContextType {
   updateItemQuantity: (id: string, quantidade: number) => void;
   clearCart: () => void;
   addItem: (item: CartItem) => Promise<{ success: boolean; message: string }>;
+  forcarAtualizacao: () => Promise<void>;
 }
 
 // --------------- Contexto ---------------
@@ -170,6 +171,78 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     void fetchCart();
   }, [login, verificarProdutosPausados]);
+
+  // Atualização automática de preços e verificação de produtos pausados
+  useEffect(() => {
+    if (cartItems.length === 0) return;
+
+    // Verificação mais frequente para detectar mudanças rapidamente
+    const interval = setInterval(async () => {
+      try {
+        const produtosValidos = await verificarProdutosPausados(cartItems);
+        
+        // Verificar se houve mudanças
+        const mudancas = produtosValidos.length !== cartItems.length || 
+          produtosValidos.some((novo, index) => {
+            const antigo = cartItems[index];
+            return antigo && (novo.valor !== antigo.valor || novo.nome !== antigo.nome);
+          });
+
+        if (mudancas) {
+          setCartItems(produtosValidos);
+          console.log("🔄 Carrinho atualizado automaticamente");
+        }
+      } catch (error) {
+        console.error("Erro na atualização automática de preços:", error);
+      }
+    }, 5000); // 5 segundos para verificação ainda mais rápida
+
+    return () => clearInterval(interval);
+  }, [cartItems, verificarProdutosPausados]);
+
+  // Verificação adicional quando a página ganha foco (usuário volta à aba)
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (cartItems.length === 0) return;
+      
+      try {
+        const produtosValidos = await verificarProdutosPausados(cartItems);
+        setCartItems(produtosValidos);
+        console.log("🔄 Carrinho verificado ao retornar à página");
+      } catch (error) {
+        console.error("Erro na verificação ao retornar:", error);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [cartItems, verificarProdutosPausados]);
+
+  // Listener para eventos de atualização de produtos (quando admin edita)
+  useEffect(() => {
+    const handleProdutoEditado = async () => {
+      if (cartItems.length === 0) return;
+      
+      try {
+        console.log("🔄 Produto editado detectado - verificando carrinho...");
+        const produtosValidos = await verificarProdutosPausados(cartItems);
+        setCartItems(produtosValidos);
+      } catch (error) {
+        console.error("Erro na verificação após edição:", error);
+      }
+    };
+
+    // Escutar eventos customizados de atualização de produtos
+    window.addEventListener('produtoEditado', handleProdutoEditado);
+    window.addEventListener('produtoPausado', handleProdutoEditado);
+    window.addEventListener('produtoAtivado', handleProdutoEditado);
+    
+    return () => {
+      window.removeEventListener('produtoEditado', handleProdutoEditado);
+      window.removeEventListener('produtoPausado', handleProdutoEditado);
+      window.removeEventListener('produtoAtivado', handleProdutoEditado);
+    };
+  }, [cartItems, verificarProdutosPausados]);
 
   // Total de itens no carrinho
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantidade, 0);
@@ -349,9 +422,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Forçar atualização do carrinho (verificar produtos pausados e preços)
+  const forcarAtualizacao = async () => {
+    if (cartItems.length === 0) return;
+    
+    try {
+      console.log("🔄 Forçando atualização do carrinho...");
+      const produtosValidos = await verificarProdutosPausados(cartItems);
+      setCartItems(produtosValidos);
+      showToast("Carrinho atualizado com sucesso!", "success");
+    } catch (error) {
+      console.error("Erro ao forçar atualização:", error);
+      showToast("Erro ao atualizar carrinho", "error");
+    }
+  };
+
   return (
     <CartContext.Provider
-      value={{ cartItems, totalItems, removeItem, updateItemQuantity, clearCart, addItem }}
+      value={{ cartItems, totalItems, removeItem, updateItemQuantity, clearCart, addItem, forcarAtualizacao }}
     >
       {children}
     </CartContext.Provider>

@@ -9,6 +9,8 @@ interface User {
   permissao: string; // "administrador" ou outro
   password: string;
   googleId?: string;
+  email?: string;
+  picture?: string;
 }
 
 interface UserContextType {
