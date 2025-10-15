@@ -65,13 +65,13 @@ export default function UnifiedAuthForm({
             // Se usuário existe mas tem senha 'google-auth', precisa completar cadastro
             if (data.user.password === 'google-auth') {
               console.log("⚠️ Usuário precisa completar cadastro");
-              setMode('complete-registration');
-              setGoogleUser(data.user);
-              setFormData(prev => ({
-                ...prev,
-                name: data.user.name || session.user.name || '',
-                email: data.user.email || session.user.email || ''
-              }));
+            setMode('complete-registration');
+            setGoogleUser(data.user);
+            setFormData(prev => ({
+              ...prev,
+              name: '', // Campo vazio para o usuário escolher
+              email: data.user.email || session.user.email || ''
+            }));
             } else {
               console.log("✅ Usuário já tem cadastro completo, fazendo login automático");
               // Usuário já tem cadastro completo, fazer login automático
@@ -106,7 +106,7 @@ export default function UnifiedAuthForm({
             });
             setFormData(prev => ({
               ...prev,
-              name: session.user.name || '',
+              name: '', // Campo vazio para o usuário escolher
               email: session.user.email || ''
             }));
           }
@@ -193,6 +193,11 @@ export default function UnifiedAuthForm({
   const handleCompleteRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.name.trim()) {
+      showToast("Por favor, insira um nome para o sistema", "error");
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       showToast("As senhas não coincidem", "error");
       return;
@@ -262,7 +267,7 @@ export default function UnifiedAuthForm({
     switch (mode) {
       case 'login': return 'Entre com Google ou use seu email e senha';
       case 'register': return 'Faça login com Google para criar sua conta';
-      case 'complete-registration': return 'Defina uma senha para sua conta';
+      case 'complete-registration': return 'Escolha como quer ser chamado na plataforma e defina uma senha';
       default: return '';
     }
   };
@@ -289,15 +294,25 @@ export default function UnifiedAuthForm({
         <div className="w-full max-w-md mx-auto">
           <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
             
-            {/* Cabeçalho */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                {getTitle()}
-              </h1>
-              <p className="text-gray-600 text-sm">
-                {getSubtitle()}
-              </p>
-            </div>
+              {/* Cabeçalho */}
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                  {getTitle()}
+                </h1>
+                <p className="text-gray-600 text-sm">
+                  {getSubtitle()}
+                </p>
+                {mode === 'complete-registration' && formData.email && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <span className="font-medium">Conta Google:</span> {formData.email}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Agora escolha como quer ser chamado na plataforma
+                    </p>
+                  </div>
+                )}
+              </div>
 
             {/* Formulário de Login com Email/Senha */}
             {(mode === 'login') && (
@@ -352,7 +367,7 @@ export default function UnifiedAuthForm({
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                      Nome
+                     e s Nome
                     </label>
                     <input
                       type="text"
@@ -360,9 +375,13 @@ export default function UnifiedAuthForm({
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
+                      required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="Seu nome completo"
+                      placeholder="Como você quer ser chamado na plataforma"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Este será o nome que aparecerá em seus pedidos e mensagens
+                    </p>
                   </div>
                   
                   <div>
