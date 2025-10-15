@@ -279,17 +279,9 @@ export default function UnifiedAuthForm({
                   </div>
                   
                   <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                        Senha
-                      </label>
-                      <Link 
-                        href="/esqueci-senha" 
-                        className="text-sm text-amber-600 hover:text-amber-700 hover:underline"
-                      >
-                        Esqueci minha senha
-                      </Link>
-                    </div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                      Senha
+                    </label>
                     <input
                       type="password"
                       id="password"
