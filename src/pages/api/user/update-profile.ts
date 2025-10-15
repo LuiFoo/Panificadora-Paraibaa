@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
-import bcrypt from "bcryptjs";
 
 interface ProfileData {
   name: string;
@@ -59,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Preparar dados para atualização
-    const updateData: any = {
+    const updateData: Record<string, string | null> = {
       name,
       phone: phone || null,
       address: address || null,

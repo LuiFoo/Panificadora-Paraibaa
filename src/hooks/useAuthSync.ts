@@ -153,7 +153,7 @@ export const useAuthSync = () => {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [session, status, setUser]); // Removido 'user' das dependências para evitar loop
+  }, [session, status, setUser, user]);
 
   return { session, status };
 };

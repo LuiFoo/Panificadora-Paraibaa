@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useToast } from "@/context/ToastContext";
 import { useUser } from "@/context/UserContext";
@@ -27,8 +27,7 @@ export default function UnifiedAuthForm({
   });
   
   const { showToast } = useToast();
-  const { setUser, user } = useUser();
-  const { data: session } = useSession();
+  const { setUser } = useUser();
   const router = useRouter();
 
 

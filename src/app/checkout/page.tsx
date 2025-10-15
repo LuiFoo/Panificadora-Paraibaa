@@ -412,7 +412,7 @@ export default function CheckoutPage() {
                 <div>
                   <p className="text-blue-900 font-semibold">Redirecionamento automático</p>
                   <p className="text-blue-700 text-sm">
-                    Você será redirecionado para "Meus Pedidos" em {tempoRedirecionamento} segundo{tempoRedirecionamento !== 1 ? 's' : ''}...
+                    Você será redirecionado para &quot;Meus Pedidos&quot; em {tempoRedirecionamento} segundo{tempoRedirecionamento !== 1 ? 's' : ''}...
                   </p>
                 </div>
               </div>
