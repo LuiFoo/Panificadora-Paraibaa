@@ -3,30 +3,38 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import UnifiedAuthForm from "@/components/UnifiedAuthForm";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const { user } = useUser();
   const router = useRouter();
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   // Redirecionar se já estiver logado
   useEffect(() => {
-    if (user) {
+    if (user && !hasRedirected) {
       console.log("Usuário já está logado, verificando permissões...");
       console.log("Permissão do usuário:", user.permissao);
       
-      // Se for administrador, redirecionar para o painel
-      if (user.permissao === "administrador") {
-        console.log("Administrador detectado, redirecionando para painel...");
-        router.push("/painel");
-      } else {
-        console.log("Usuário comum, redirecionando para página inicial...");
-        router.push("/");
-      }
+      setHasRedirected(true);
+      
+      // Adicionar um pequeno delay para evitar conflitos
+      const timeoutId = setTimeout(() => {
+        // Se for administrador, redirecionar para o painel
+        if (user.permissao === "administrador") {
+          console.log("Administrador detectado, redirecionando para painel...");
+          router.replace("/painel");
+        } else {
+          console.log("Usuário comum, redirecionando para página inicial...");
+          router.replace("/");
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [user, router]);
+  }, [user, router, hasRedirected]);
 
   // Mostrar loading enquanto verifica autenticação
   if (user) {

@@ -89,14 +89,16 @@ export default function UnifiedAuthForm({
         setUser(userData);
         showToast("Login realizado com sucesso!", "success");
         
-        // Redirecionar baseado na permissão
-        if (data.user.permissao === "administrador") {
-          console.log("Administrador logado, redirecionando para painel");
-          router.push('/painel');
-        } else {
-          console.log("Usuário comum logado, redirecionando para página inicial");
-          router.push('/');
-        }
+        // Redirecionar baseado na permissão com delay para evitar conflitos
+        setTimeout(() => {
+          if (data.user.permissao === "administrador") {
+            console.log("Administrador logado, redirecionando para painel");
+            router.replace('/painel');
+          } else {
+            console.log("Usuário comum logado, redirecionando para página inicial");
+            router.replace('/');
+          }
+        }, 200);
       } else {
         showToast(data.msg || "Erro ao fazer login", "error");
       }

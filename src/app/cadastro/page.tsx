@@ -17,14 +17,19 @@ export default function CadastroPage() {
       console.log("Usuário já está logado, verificando permissões...");
       console.log("Permissão do usuário:", user.permissao);
       
-      // Se for administrador, redirecionar para o painel
-      if (user.permissao === "administrador") {
-        console.log("Administrador detectado, redirecionando para painel...");
-        router.push("/painel");
-      } else {
-        console.log("Usuário comum, redirecionando para página inicial...");
-        router.push("/");
-      }
+      // Adicionar um pequeno delay para evitar conflitos
+      const timeoutId = setTimeout(() => {
+        // Se for administrador, redirecionar para o painel
+        if (user.permissao === "administrador") {
+          console.log("Administrador detectado, redirecionando para painel...");
+          router.replace("/painel");
+        } else {
+          console.log("Usuário comum, redirecionando para página inicial...");
+          router.replace("/");
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
   }, [user, router]);
 
