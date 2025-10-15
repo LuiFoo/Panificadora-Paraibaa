@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
-import bcrypt from "bcryptjs";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -8,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { googleId, email, name, picture } = req.body;
+    const { googleId, email, name } = req.body;
 
     // Verifica se todos os campos obrigatórios foram fornecidos
     if (!googleId || !email || !name) {
