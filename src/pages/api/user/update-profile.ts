@@ -18,6 +18,23 @@ interface ProfileData {
   };
 }
 
+interface UpdateData {
+  name: string;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  birthDate: string | null;
+  gender: string | null;
+  preferences: {
+    notifications: boolean;
+    newsletter: boolean;
+    promotions: boolean;
+  };
+  ultimaAtualizacao: Date;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "PUT") {
     return res.status(405).json({ msg: "Método não permitido" });
@@ -58,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Preparar dados para atualização
-    const updateData: Record<string, any> = {
+    const updateData: UpdateData = {
       name,
       phone: phone || null,
       address: address || null,
