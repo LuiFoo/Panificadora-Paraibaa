@@ -42,52 +42,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Gerar login baseado no email
-    const login = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    // Verificar se o login já existe (caso raro)
-    let finalLogin = login;
-    let counter = 1;
-    while (await users.findOne({ login: finalLogin })) {
-      finalLogin = `${login}${counter}`;
-      counter++;
-    }
-
-    // Criar novo usuário
-    const novoUser = {
-      googleId,
-      email,
-      name,
-      login: finalLogin,
-      password: await bcrypt.hash('google-auth', 10), // Senha fictícia criptografada
-      permissao: "usuario",
-      dataCriacao: new Date(),
-      authProvider: "google",
-      picture: picture || null,
-      ultimoAcesso: new Date()
-    };
-
-    console.log("Criando novo usuário no MongoDB:", { googleId, email, name, login: finalLogin });
-    
-    const result = await users.insertOne(novoUser);
-    const userCreated = await users.findOne({ _id: result.insertedId });
-    
-    if (userCreated) {
-      console.log("Usuário criado com sucesso:", userCreated.email);
-    }
-
-    return res.status(200).json({
-      ok: true,
-      msg: "Usuário criado com sucesso",
-      user: userCreated ? {
-        _id: userCreated._id,
-        login: userCreated.login,
-        name: userCreated.name,
-        email: userCreated.email,
-        permissao: userCreated.permissao,
-        googleId: userCreated.googleId,
-        picture: userCreated.picture
-      } : null,
+    // Usuário não existe - não criar automaticamente
+    // Deixar para o UnifiedAuthForm completar o cadastro
+    console.log("Usuário novo detectado - aguardando completar cadastro:", email);
+    return res.status(404).json({ 
+      ok: false, 
+      msg: "Usuário não encontrado - precisa completar cadastro" 
     });
   } catch (err) {
     console.error("ERRO GOOGLE USER REGISTER:", err);

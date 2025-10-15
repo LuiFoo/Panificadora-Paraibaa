@@ -61,6 +61,7 @@ export default function UnifiedAuthForm({
           console.log("📋 Resposta da verificação:", data);
           
           if (data.ok && data.user) {
+            console.log("✅ Usuário encontrado no banco:", data.user.email);
             // Se usuário existe mas tem senha 'google-auth', precisa completar cadastro
             if (data.user.password === 'google-auth') {
               console.log("⚠️ Usuário precisa completar cadastro");
@@ -90,6 +91,8 @@ export default function UnifiedAuthForm({
             }
           } else {
             console.log("🆕 Usuário novo - precisa completar cadastro");
+            console.log("📧 Email do usuário novo:", session.user.email);
+            console.log("👤 Nome do usuário novo:", session.user.name);
             // Usuário não existe, precisa completar cadastro
             setMode('complete-registration');
             setGoogleUser({
