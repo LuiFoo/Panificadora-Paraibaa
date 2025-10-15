@@ -10,7 +10,7 @@ interface ProdutoPedido {
 }
 
 // Configurações de limite
-const MAX_ORDER_VALUE = 500; // Máximo R$ 500 por pedido
+// Limite de valor removido
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -42,19 +42,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Carrinho vazio" });
       }
 
-      // 3. Validar quantidade total de itens
-      const totalItens = produtos.reduce((sum: number, item: ProdutoPedido) => sum + (item.quantidade || 0), 0);
-      if (totalItens > 50) {
-        return res.status(400).json({ error: "Máximo de 50 itens por pedido" });
-      }
+      // 3. Limite total de itens por pedido removido
 
-      // 4. Calcular total e validar valor
+      // 4. Calcular total (limite de valor removido)
       const total = produtos.reduce((sum: number, item: ProdutoPedido) => sum + (item.valor * item.quantidade), 0);
-      if (total > MAX_ORDER_VALUE) {
-        return res.status(400).json({ 
-          error: `Valor máximo do pedido é R$ ${MAX_ORDER_VALUE}. Para pedidos maiores, entre em contato conosco.` 
-        });
-      }
 
       // 5. Validar modalidade de entrega
       if (!modalidadeEntrega || !['entrega', 'retirada'].includes(modalidadeEntrega)) {

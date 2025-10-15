@@ -35,7 +35,6 @@ export default function ChatPage() {
     title: "",
     message: ""
   });
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const fetchMensagens = useCallback(async () => {
@@ -82,15 +81,7 @@ export default function ChatPage() {
     }
   }, [user, fetchMensagens]);
 
-  const [ultimoTamanhoMensagens, setUltimoTamanhoMensagens] = useState<number>(0);
-
-  useEffect(() => {
-    // Só faz scroll se o número de mensagens aumentou (nova mensagem)
-    if (mensagens.length > ultimoTamanhoMensagens) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-    setUltimoTamanhoMensagens(mensagens.length);
-  }, [mensagens.length]);
+  // Scroll automático removido - usuário controla manualmente
 
   const handleEnviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,7 +293,6 @@ export default function ChatPage() {
                     </div>
                   </div>
                 ))}
-                <div ref={messagesEndRef} />
               </div>
             )}
           </div>

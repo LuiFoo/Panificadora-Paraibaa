@@ -794,11 +794,26 @@ export default function CheckoutPage() {
                 </label>
                 <textarea
                   value={observacoes}
-                  onChange={(e) => setObservacoes(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 500) {
+                      setObservacoes(e.target.value);
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
                   rows={3}
                   placeholder="Instruções especiais para entrega..."
+                  maxLength={500}
                 />
+                <div className="flex justify-between items-center mt-1">
+                  <span className={`text-xs ${observacoes.length > 450 ? 'text-red-500' : 'text-gray-500'}`}>
+                    {observacoes.length}/500 caracteres
+                  </span>
+                  {observacoes.length > 450 && (
+                    <span className="text-xs text-red-500">
+                      Limite de caracteres próximo
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Checkbox para salvar dados */}
