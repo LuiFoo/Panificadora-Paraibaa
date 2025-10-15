@@ -33,6 +33,7 @@ interface Usuario {
 
 export default function MensagensAdminPage() {
   const [conversas, setConversas] = useState<Conversa[]>([]);
+  const [conversaTemporaria, setConversaTemporaria] = useState<Conversa | null>(null);
   const [conversaSelecionada, setConversaSelecionada] = useState<string | null>(null);
   const [novaMensagem, setNovaMensagem] = useState("");
   const [loading, setLoading] = useState(true);
@@ -57,20 +58,27 @@ export default function MensagensAdminPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Definir conversaAtual antes dos useEffects
-  const conversaAtual = conversas.find(c => c.userId === conversaSelecionada);
+  const conversaAtual = conversaTemporaria || conversas.find(c => c.userId === conversaSelecionada);
   const [ultimoTamanhoMensagens, setUltimoTamanhoMensagens] = useState<number>(0);
 
   // Debug: verificar se conversaAtual está sendo encontrada
   console.log("Conversas:", conversas);
   console.log("Conversa selecionada:", conversaSelecionada);
   console.log("Conversa atual:", conversaAtual);
+  console.log("Conversas length:", conversas.length);
+  console.log("Conversas userIds:", conversas.map(c => c.userId));
 
   useEffect(() => {
     fetchConversas();
-    // Atualizar a cada 5 segundos
-    const interval = setInterval(fetchConversas, 5000);
+    // Atualizar a cada 5 segundos, mas só se não houver conversa temporária
+    const interval = setInterval(() => {
+      // Só fazer fetch se não há conversa selecionada ou se a conversa já existe no banco
+      if (!conversaSelecionada || conversas.some(c => c.userId === conversaSelecionada && c.mensagens.length > 0)) {
+        fetchConversas();
+      }
+    }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [conversaSelecionada, conversas]);
 
   useEffect(() => {
     // Marcar mensagens do cliente como lidas quando admin abre a conversa
@@ -151,7 +159,8 @@ export default function MensagensAdminPage() {
     setEnviando(true);
     
     try {
-      const conversa = conversas.find(c => c.userId === conversaSelecionada);
+      // Usar conversa temporária se existir, senão buscar nas conversas normais
+      const conversa = conversaTemporaria || conversas.find(c => c.userId === conversaSelecionada);
       if (!conversa) return;
 
       const response = await fetch("/api/mensagens", {
@@ -169,6 +178,12 @@ export default function MensagensAdminPage() {
       
       if (data.success) {
         setNovaMensagem("");
+        
+        // Limpar conversa temporária se existir
+        if (conversaTemporaria) {
+          setConversaTemporaria(null);
+        }
+        
         await fetchConversas();
         
         // Atualizar contador no header
@@ -190,13 +205,14 @@ export default function MensagensAdminPage() {
   const handleDeletarConversa = () => {
     if (!conversaSelecionada) return;
 
-    const conversa = conversas.find(c => c.userId === conversaSelecionada);
+    // Usar conversa temporária se existir, senão buscar nas conversas normais
+    const conversa = conversaTemporaria || conversas.find(c => c.userId === conversaSelecionada);
     
     setModalState({
       isOpen: true,
       type: "warning",
-      title: "⚠️ Confirmar Exclusão",
-      message: `Tem certeza que deseja deletar toda a conversa com ${conversa?.userName}? Esta ação não pode ser desfeita.`,
+      title: "Confirmar Exclusão",
+      message: `Tem certeza que deseja deletar toda a conversa com ${conversa?.userName || "este cliente"}? Esta ação não pode ser desfeita.`,
       onConfirm: confirmarDeletarConversa
     });
   };
@@ -205,6 +221,21 @@ export default function MensagensAdminPage() {
     if (!conversaSelecionada) return;
 
     try {
+      // Se for conversa temporária, apenas limpar sem chamar API
+      if (conversaTemporaria) {
+        setConversaTemporaria(null);
+        setConversaSelecionada(null);
+        
+        setModalState({
+          isOpen: true,
+          type: "success",
+          title: "Sucesso",
+          message: "Conversa temporária removida."
+        });
+        return;
+      }
+
+      // Para conversas reais, chamar API
       const response = await fetch(`/api/mensagens?userId=${conversaSelecionada}`, {
         method: "DELETE"
       });
@@ -215,7 +246,7 @@ export default function MensagensAdminPage() {
         setModalState({
           isOpen: true,
           type: "success",
-          title: "✅ Sucesso",
+          title: "Sucesso",
           message: data.message
         });
 
@@ -267,17 +298,17 @@ export default function MensagensAdminPage() {
       setMostrarNovaConversa(false);
       setBuscaUsuario("");
       setUsuariosEncontrados([]);
-      setModalState({
-        isOpen: true,
-        type: "info",
-        title: "ℹ️ Conversa Existente",
-        message: `Conversa com ${usuario.name} já existe. Selecionando...`
-      });
+        setModalState({
+          isOpen: true,
+          type: "info",
+          title: "Conversa Existente",
+          message: `Conversa com ${usuario.name} já existe. Selecionando...`
+        });
       return;
     }
 
     // Criar uma conversa temporária com os dados do usuário
-    const conversaTemporaria = {
+    const novaConversaTemporaria = {
       userId: usuario.login,
       userName: usuario.name,
       mensagens: [],
@@ -285,8 +316,8 @@ export default function MensagensAdminPage() {
       naoLidas: 0
     };
     
-    // Adicionar conversa temporária à lista
-    setConversas(prev => [conversaTemporaria, ...prev]);
+    // Definir conversa temporária
+    setConversaTemporaria(novaConversaTemporaria);
     
     // Selecionar a nova conversa
     setConversaSelecionada(usuario.login);
@@ -294,12 +325,10 @@ export default function MensagensAdminPage() {
     setBuscaUsuario("");
     setUsuariosEncontrados([]);
     
-    // Não fazer fetchConversas() aqui para não sobrescrever a conversa temporária
-    
     setModalState({
       isOpen: true,
       type: "success",
-      title: "✅ Nova Conversa",
+      title: "Nova Conversa",
       message: `Conversa iniciada com ${usuario.name}. Agora você pode enviar a primeira mensagem!`
     });
   };
@@ -321,7 +350,7 @@ export default function MensagensAdminPage() {
                 ← Voltar ao Painel
               </Link>
               <h1 className="text-3xl font-bold flex items-center gap-2 mt-2">
-                💬 Mensagens dos Clientes
+                Mensagens dos Clientes
               </h1>
               <p className="text-blue-100 mt-1">
                 {totalNaoLidas > 0 && (
@@ -413,7 +442,7 @@ export default function MensagensAdminPage() {
                     </div>
                   ) : conversas.length === 0 ? (
                     <div className="text-center py-10 px-4">
-                      <div className="text-4xl mb-2">💬</div>
+                      <div className="text-4xl mb-2">📭</div>
                       <p className="text-gray-500 text-sm">Nenhuma mensagem ainda</p>
                     </div>
                   ) : (
@@ -461,7 +490,7 @@ export default function MensagensAdminPage() {
                 {!conversaSelecionada ? (
                   <div className="flex items-center justify-center h-full bg-gray-50">
                     <div className="text-center">
-                      <div className="text-6xl mb-4">💬</div>
+                      <div className="text-6xl mb-4">📋</div>
                       <h3 className="text-xl font-semibold text-gray-700 mb-2">
                         Selecione uma conversa
                       </h3>
@@ -517,7 +546,7 @@ export default function MensagensAdminPage() {
                               >
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-xs font-semibold">
-                                    {msg.remetente === "admin" ? "🍞 Você (Padaria)" : "👤 Cliente"}
+                                    {msg.remetente === "admin" ? "Você (Padaria)" : "Cliente"}
                                   </span>
                                 </div>
                                 <p className="text-sm break-words">{msg.mensagem}</p>
@@ -541,7 +570,7 @@ export default function MensagensAdminPage() {
                         ) : (
                           <div className="flex items-center justify-center h-full min-h-[200px]">
                             <div className="text-center">
-                              <div className="text-4xl mb-4">💬</div>
+                              <div className="text-4xl mb-4">✉️</div>
                               <h3 className="text-lg font-semibold text-gray-700 mb-2">
                                 Nova Conversa
                               </h3>
@@ -550,7 +579,7 @@ export default function MensagensAdminPage() {
                               </p>
                               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                 <p className="text-sm text-blue-800">
-                                  💡 Digite sua mensagem no campo abaixo para iniciar a conversa
+                                  Digite sua mensagem no campo abaixo para iniciar a conversa
                                 </p>
                               </div>
                             </div>
