@@ -56,6 +56,7 @@ export default function MensagensAdminPage() {
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Definir conversaAtual antes dos useEffects
   const conversaAtual = conversaTemporaria || conversas.find(c => c.userId === conversaSelecionada);
@@ -188,6 +189,11 @@ export default function MensagensAdminPage() {
         
         // Atualizar contador no header
         window.dispatchEvent(new Event('refreshMensagensCount'));
+        
+        // Manter foco no campo de input após enviar
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
       }
     } catch (error) {
       console.error("Erro ao enviar resposta:", error);
@@ -594,6 +600,7 @@ export default function MensagensAdminPage() {
                       <div className="flex gap-2">
                         <div className="flex-1">
                           <input
+                            ref={inputRef}
                             type="text"
                             value={novaMensagem}
                             onChange={(e) => {

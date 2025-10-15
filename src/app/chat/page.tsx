@@ -36,6 +36,7 @@ export default function ChatPage() {
     message: ""
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const fetchMensagens = useCallback(async () => {
     if (!user) return;
@@ -118,6 +119,11 @@ export default function ChatPage() {
         
         // Disparar evento para atualizar contador no header
         window.dispatchEvent(new Event('refreshMensagensCount'));
+        
+        // Manter foco no campo de input após enviar
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
       }
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
@@ -306,6 +312,7 @@ export default function ChatPage() {
             <div className="flex gap-2">
               <div className="flex-1">
                 <input
+                  ref={inputRef}
                   type="text"
                   value={novaMensagem}
                   onChange={(e) => {
