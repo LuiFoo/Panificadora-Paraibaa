@@ -6,7 +6,7 @@ interface CacheOptions {
 }
 
 interface CacheEntry<T> {
-  data: T;
+  data: T | null;
   timestamp: number;
   promise?: Promise<T>;
 }
@@ -76,7 +76,7 @@ export function useFetchCache<T>(
     // Criar nova requisição
     const promise = fetcher();
     cacheRef.current.set(key, { 
-      data: cache?.data || null as T | null, 
+      data: cache?.data || null, 
       timestamp: now,
       promise 
     });
