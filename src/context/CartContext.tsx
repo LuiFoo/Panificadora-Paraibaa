@@ -43,10 +43,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Função para verificar e remover produtos pausados
+  // Função para verificar e remover produtos pausados e atualizar preços
   const verificarProdutosPausados = useCallback(async (items: CartItem[]) => {
     const produtosValidos: CartItem[] = [];
     const produtosPausados: string[] = [];
+    const produtosComPrecoAtualizado: string[] = [];
 
     for (const item of items) {
       try {
@@ -57,6 +58,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         ];
         
         let produtoEncontrado = false;
+        let novoValor = item.valor;
+        
         for (const colecao of colecoes) {
           const response = await fetch(`/api/${colecao}`);
           if (response.ok) {
@@ -65,16 +68,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                            data.paesSalgadosEspeciais || data.roscasPaesEspeciais || 
                            data.salgadosAssadosLanches || data.sobremesasTortas || data.docesIndividuais || [];
             
-            const produto = produtos.find((p: { _id: string; status?: string }) => p._id === item.id);
+            const produto = produtos.find((p: { _id: string; status?: string; valor?: number }) => p._id === item.id);
             if (produto && !produto.status) {
               produtoEncontrado = true;
+              // Verificar se o preço mudou
+              if (produto.valor !== undefined && produto.valor !== item.valor) {
+                novoValor = produto.valor;
+                produtosComPrecoAtualizado.push(`${item.nome} (R$ ${item.valor.toFixed(2)} → R$ ${novoValor.toFixed(2)})`);
+              }
               break;
             }
           }
         }
         
         if (produtoEncontrado) {
-          produtosValidos.push(item);
+          produtosValidos.push({
+            ...item,
+            valor: novoValor
+          });
         } else {
           produtosPausados.push(item.nome);
         }
@@ -85,10 +96,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // Se há produtos pausados, atualizar o carrinho
-    if (produtosPausados.length > 0) {
+    // Se há produtos pausados ou com preço atualizado, atualizar o carrinho
+    if (produtosPausados.length > 0 || produtosComPrecoAtualizado.length > 0) {
       setCartItems(produtosValidos);
-      showToast(`Produtos pausados removidos do carrinho: ${produtosPausados.join(', ')}`, "warning");
+      
+      // Notificar sobre produtos pausados
+      if (produtosPausados.length > 0) {
+        showToast(`Produtos pausados removidos do carrinho: ${produtosPausados.join(', ')}`, "warning");
+      }
+      
+      // Notificar sobre preços atualizados
+      if (produtosComPrecoAtualizado.length > 0) {
+        showToast(`Preços atualizados: ${produtosComPrecoAtualizado.join(', ')}`, "info");
+      }
       
       // Atualizar o carrinho no backend
       try {
@@ -107,7 +127,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           })
         });
       } catch (error) {
-        console.error("Erro ao atualizar carrinho após remoção de produtos pausados:", error);
+        console.error("Erro ao atualizar carrinho:", error);
       }
     }
 
