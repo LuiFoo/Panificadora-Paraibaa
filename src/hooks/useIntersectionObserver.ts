@@ -86,7 +86,7 @@ export function useIntersectionObserver(
 export function useLazyLoad(
   options: UseIntersectionObserverOptions = {}
 ): {
-  ref: RefObject<HTMLDivElement>;
+  ref: RefObject<HTMLDivElement | null>;
   shouldLoad: boolean;
 } {
   const { ref, hasIntersected } = useIntersectionObserver({
