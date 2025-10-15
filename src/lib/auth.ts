@@ -30,7 +30,7 @@ export const authOptions: NextAuthOptions = {
       // Adiciona informações extras do usuário na sessão
       if (token) {
         session.user.id = token.sub;
-        session.user.permissao = (token as any).permissao || "usuario";
+        session.user.permissao = (token as { permissao?: string }).permissao || "usuario";
         console.log("✅ Sessão configurada para:", session.user.email);
       }
       return session;

@@ -8,11 +8,11 @@ import { useToast } from "@/context/ToastContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 
 export default function CadastroPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { user, setUser } = useUser();
+  const { user } = useUser();
   const { showToast } = useToast();
   const router = useRouter();
 

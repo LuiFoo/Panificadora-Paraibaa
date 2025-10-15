@@ -66,7 +66,7 @@ export const useAuthSync = () => {
               password: 'google-auth',
               name: session.user.name || 'Usuário',
               email: session.user.email || '',
-              permissao: (session.user as any).permissao || "usuario",
+              permissao: (session.user as { permissao?: string }).permissao || "usuario",
               googleId: session.user.id,
               picture: session.user.image,
             };
@@ -84,7 +84,7 @@ export const useAuthSync = () => {
             password: 'google-auth',
             name: session.user.name || 'Usuário',
             email: session.user.email || '',
-            permissao: (session.user as any).permissao || "usuario",
+              permissao: (session.user as { permissao?: string }).permissao || "usuario",
             googleId: session.user.id,
             picture: session.user.image,
           };
