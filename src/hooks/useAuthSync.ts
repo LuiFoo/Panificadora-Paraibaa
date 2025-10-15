@@ -19,7 +19,7 @@ interface UserData {
   email: string;
   permissao: string;
   googleId: string;
-  picture?: string | null;
+  picture?: string;
 }
 
 export const useAuthSync = () => {
