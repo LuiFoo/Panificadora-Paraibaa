@@ -76,7 +76,7 @@ export function useFetchCache<T>(
     // Criar nova requisição
     const promise = fetcher();
     cacheRef.current.set(key, { 
-      data: cache?.data || null, 
+      data: cache?.data || null as T | null, 
       timestamp: now,
       promise 
     });
