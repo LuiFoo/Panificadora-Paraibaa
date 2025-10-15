@@ -2,6 +2,26 @@ import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useUser } from "@/context/UserContext";
 
+// Interfaces para tipagem
+interface GoogleUser {
+  id: string;
+  email?: string | null;
+  name?: string | null;
+  image?: string | null;
+  permissao?: string;
+}
+
+interface UserData {
+  _id: string;
+  login: string;
+  password: string;
+  name: string;
+  email: string;
+  permissao: string;
+  googleId: string;
+  picture?: string | null;
+}
+
 export const useAuthSync = () => {
   const { data: session, status } = useSession();
   const { setUser } = useUser();
@@ -17,7 +37,7 @@ export const useAuthSync = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              googleId: (session.user as any).id
+              googleId: (session.user as GoogleUser).id
             }),
           });
 
@@ -31,7 +51,7 @@ export const useAuthSync = () => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                googleId: (session.user as any).id,
+                googleId: (session.user as GoogleUser).id,
                 email: session.user.email,
                 name: session.user.name,
                 picture: session.user.image
@@ -44,7 +64,7 @@ export const useAuthSync = () => {
           
           if (data.ok && data.user) {
             // Usa dados do MongoDB
-            const userData = {
+            const userData: UserData = {
               _id: data.user._id,
               login: data.user.login,
               password: 'google-auth',
@@ -60,14 +80,14 @@ export const useAuthSync = () => {
             console.log("✅ Usuário sincronizado com dados do MongoDB");
           } else {
             // Fallback para dados do NextAuth
-            const userData = {
-              _id: (session.user as any).id,
+            const userData: UserData = {
+              _id: (session.user as GoogleUser).id,
               login: session.user.email?.split('@')[0] || session.user.name?.toLowerCase().replace(/\s+/g, '') || 'user',
               password: 'google-auth',
               name: session.user.name || 'Usuário',
               email: session.user.email || '',
-              permissao: (session.user as { permissao?: string }).permissao || "usuario",
-              googleId: (session.user as any).id,
+              permissao: (session.user as GoogleUser).permissao || "usuario",
+              googleId: (session.user as GoogleUser).id,
               picture: session.user.image,
             };
 
@@ -78,14 +98,14 @@ export const useAuthSync = () => {
           console.error("Erro ao sincronizar dados do usuário:", error);
           
           // Fallback para dados do NextAuth em caso de erro
-          const userData = {
-            _id: (session.user as any).id,
+          const userData: UserData = {
+            _id: (session.user as GoogleUser).id,
             login: session.user.email?.split('@')[0] || session.user.name?.toLowerCase().replace(/\s+/g, '') || 'user',
             password: 'google-auth',
             name: session.user.name || 'Usuário',
             email: session.user.email || '',
-              permissao: (session.user as { permissao?: string }).permissao || "usuario",
-            googleId: session.user.id,
+            permissao: (session.user as GoogleUser).permissao || "usuario",
+            googleId: (session.user as GoogleUser).id,
             picture: session.user.image,
           };
 

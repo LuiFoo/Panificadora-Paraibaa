@@ -72,12 +72,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await users.insertOne(novoUser);
     const userCreated = await users.findOne({ _id: result.insertedId });
     
-    console.log("Usuário criado com sucesso:", userCreated.email);
+    if (userCreated) {
+      console.log("Usuário criado com sucesso:", userCreated.email);
+    }
 
     return res.status(200).json({
       ok: true,
       msg: "Usuário criado com sucesso",
-      user: {
+      user: userCreated ? {
         _id: userCreated._id,
         login: userCreated.login,
         name: userCreated.name,
@@ -85,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         permissao: userCreated.permissao,
         googleId: userCreated.googleId,
         picture: userCreated.picture
-      },
+      } : null,
     });
   } catch (err) {
     console.error("ERRO GOOGLE USER REGISTER:", err);

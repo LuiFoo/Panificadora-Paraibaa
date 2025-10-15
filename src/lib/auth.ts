@@ -1,6 +1,19 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
+// Estender tipos do NextAuth
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email?: string | null;
+      name?: string | null;
+      image?: string | null;
+      permissao?: string;
+    };
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -28,7 +41,7 @@ export const authOptions: NextAuthOptions = {
       console.log("Token:", token);
       
       // Adiciona informações extras do usuário na sessão
-      if (token) {
+      if (token && session.user && token.sub) {
         session.user.id = token.sub;
         session.user.permissao = (token as { permissao?: string }).permissao || "usuario";
         console.log("✅ Sessão configurada para:", session.user.email);
