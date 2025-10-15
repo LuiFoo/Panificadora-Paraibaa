@@ -38,7 +38,7 @@ export default function UnifiedAuthForm({
   } | null>(null);
   
   const { showToast } = useToast();
-  const { setUser } = useUser();
+  const { setUser, user } = useUser();
   const { data: session } = useSession();
   const router = useRouter();
 
