@@ -45,6 +45,8 @@ export default function OptimizedProductsPage() {
     nome: string;
     valor: number;
     img: string;
+    ingredientes?: string;
+    categoria?: string;
   }
   
   const filteredProducts = produtos?.filter((produto: Produto) =>
