@@ -40,13 +40,20 @@ export default function OptimizedProductsPage() {
   );
 
   // Filtrar produtos
-  const filteredProducts = produtos?.filter((produto: any) =>
+  interface Produto {
+    _id: string;
+    nome: string;
+    valor: number;
+    img: string;
+  }
+  
+  const filteredProducts = produtos?.filter((produto: Produto) =>
     produto.nome.toLowerCase().includes(debouncedSearch.toLowerCase())
   ) || [];
 
   // Adicionar ao carrinho
   const handleAddToCart = async (id: string) => {
-    const produto = produtos?.find((p: any) => p._id === id);
+    const produto = produtos?.find((p: Produto) => p._id === id);
     if (!produto) return;
 
     const result = await addItem({
@@ -135,7 +142,7 @@ export default function OptimizedProductsPage() {
 
         {debouncedSearch && (
           <div className="mt-2 text-sm text-gray-600">
-            {filteredProducts.length} produto(s) encontrado(s) para "{debouncedSearch}"
+            {filteredProducts.length} produto(s) encontrado(s) para &quot;{debouncedSearch}&quot;
           </div>
         )}
       </div>
@@ -153,7 +160,7 @@ export default function OptimizedProductsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((produto: any) => (
+          {filteredProducts.map((produto: Produto) => (
             <ProductCard
               key={produto._id}
               id={produto._id}

@@ -1,11 +1,5 @@
 import { useEffect, useRef } from 'react';
 
-interface PerformanceMetrics {
-  renderTime: number;
-  componentName: string;
-  timestamp: number;
-}
-
 /**
  * Hook para monitorar performance de componentes
  * Útil para identificar componentes lentos
@@ -120,6 +114,7 @@ export function useMemoryMonitor(enabled: boolean = false) {
     if (!enabled || typeof performance.memory === 'undefined') return;
 
     const interval = setInterval(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const memory = (performance as any).memory;
       const usedMB = (memory.usedJSHeapSize / 1048576).toFixed(2);
       const totalMB = (memory.totalJSHeapSize / 1048576).toFixed(2);

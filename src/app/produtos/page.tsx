@@ -3,13 +3,11 @@
 import Header from "@/components/Header";
 import MenuCategoria from "@/components/MenuCategoria";
 import StarRating from "@/components/StarRating";
-import { useEffect, useState, useCallback } from "react";
-import Image from "next/image";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import Loading, { LoadingSkeleton } from "@/components/Loading";
 import OptimizedImage from "@/components/OptimizedImage";
-import { useFetchCache } from "@/hooks/useFetchCache";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface ItemCardapio {
