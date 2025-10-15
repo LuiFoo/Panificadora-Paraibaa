@@ -48,7 +48,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Atualizar usuário com nova senha e nome (se fornecido)
-    const updateData: any = {
+    const updateData: {
+      password: string;
+      ultimoAcesso: Date;
+      name?: string;
+    } = {
       password: await bcrypt.hash(password, 10),
       ultimoAcesso: new Date()
     };

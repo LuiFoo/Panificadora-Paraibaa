@@ -27,7 +27,15 @@ export default function UnifiedAuthForm({
     name: '',
     confirmPassword: ''
   });
-  const [googleUser, setGoogleUser] = useState<any>(null);
+  const [googleUser, setGoogleUser] = useState<{
+    _id: string;
+    login: string;
+    name: string;
+    email: string;
+    permissao: string;
+    googleId: string;
+    picture?: string | null;
+  } | null>(null);
   
   const { showToast } = useToast();
   const { setUser } = useUser();
