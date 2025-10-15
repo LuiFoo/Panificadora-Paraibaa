@@ -142,16 +142,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (status === "pause") {
         try {
           // Remover o produto de todos os carrinhos dos usuários
+          const updateOperation = {
+            $pull: { 
+              "carrinho.produtos": { produtoId: id }
+            },
+            $set: {
+              "carrinho.updatedAt": new Date().toISOString()
+            }
+          };
+          
           await db.collection("users").updateMany(
             { "carrinho.produtos.produtoId": id },
-            { 
-              $pull: { 
-                "carrinho.produtos": { produtoId: id }
-              } as Record<string, { produtoId: string }>,
-              $set: {
-                "carrinho.updatedAt": new Date().toISOString()
-              }
-            }
+            updateOperation as any
           );
           
           console.log(`Produto ${id} removido de todos os carrinhos após ser pausado`);
