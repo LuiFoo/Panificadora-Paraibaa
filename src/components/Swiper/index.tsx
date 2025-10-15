@@ -2,7 +2,8 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
-import Image from 'next/image';
+import OptimizedImage from '@/components/OptimizedImage';
+import Link from 'next/link';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
@@ -49,20 +50,23 @@ export default function CategoriasSwiper() {
       >
         {cakeItems.map((item, index) => (
           <SwiperSlide key={index}>
-            <div className="rounded-2xl overflow-hidden shadow bg-white mb-5">
-              <div className="relative w-full h-64">
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                />
+            <Link href="/produtos">
+              <div className="rounded-2xl overflow-hidden shadow-lg bg-white mb-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer">
+                <div className="relative w-full h-64">
+                  <OptimizedImage
+                    src={item.image}
+                    alt={item.name}
+                    width={300}
+                    height={300}
+                    className="object-cover"
+                    quality={80}
+                  />
+                </div>
+                <div className="p-4 text-center font-semibold text-lg text-gray-800">
+                  {item.name}
+                </div>
               </div>
-              <div className="p-4 text-center font-semibold text-lg">
-                {item.name}
-              </div>
-            </div>
+            </Link>
           </SwiperSlide>
         ))}
       </Swiper>

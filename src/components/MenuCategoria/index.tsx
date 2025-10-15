@@ -34,44 +34,64 @@ function MenuCategoria({
   };
 
   return (
-    <nav 
-      className={`mt-8 ${isOverflowing ? 'overflow-x-auto' : 'flex justify-center'}`}
-      ref={setContainerRef}
-    >
-      <ul className="flex gap-3 whitespace-nowrap px-4">
-        {categories.map((category, index) => {
-          const isActive = activeCategory === category;
-          const commonClasses = `
-            block px-4 py-3 text-sm font-semibold rounded-lg shadow transition
-            ${isActive
-              ? 'bg-[var(--color-alavaco-100)] text-white'
-              : 'bg-[var(--color-avocado-600)] text-amber-900 hover:bg-[var(--color-avocado-500)]'
-            }
-            focus:outline-none focus:ring-2 focus:ring-[var(--color-alavaco-100)]
-          `;
+    <div className="relative">
+      {/* Scrollbar styling para webkit browsers */}
+      <style jsx>{`
+        nav::-webkit-scrollbar {
+          height: 8px;
+        }
+        nav::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        nav::-webkit-scrollbar-thumb {
+          background: var(--color-avocado-600);
+          border-radius: 10px;
+        }
+        nav::-webkit-scrollbar-thumb:hover {
+          background: var(--color-avocado-700);
+        }
+      `}</style>
+      
+      <nav 
+        className={`flex ${isOverflowing ? 'overflow-x-auto scrollbar-hide' : 'justify-center'} scroll-smooth`}
+        ref={setContainerRef}
+      >
+        <ul className="flex gap-3 md:gap-4 whitespace-nowrap px-4 py-2">
+          {categories.map((category, index) => {
+            const isActive = activeCategory === category;
+            const commonClasses = `
+              block px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105
+              ${isActive
+                ? 'bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] text-white shadow-lg scale-105'
+                : 'bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]'
+              }
+              focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:ring-offset-2
+            `;
 
-          return (
-            <li key={index} className="flex-shrink-0">
-              {variant === "button" ? (
-                <button
-                  onClick={() => handleItemClick(category)}
-                  className={commonClasses}
-                >
-                  {category}
-                </button>
-              ) : (
-                <Link
-                  href={`/produtos?categoria=${encodeURIComponent(category)}`}
-                  className={commonClasses}
-                >
-                  {category}
-                </Link>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
+            return (
+              <li key={index} className="flex-shrink-0">
+                {variant === "button" ? (
+                  <button
+                    onClick={() => handleItemClick(category)}
+                    className={commonClasses}
+                  >
+                    {category}
+                  </button>
+                ) : (
+                  <Link
+                    href={`/produtos?categoria=${encodeURIComponent(category)}`}
+                    className={commonClasses}
+                  >
+                    {category}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </div>
   );
 }
 

@@ -3,13 +3,15 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import StarRating from "@/components/StarRating";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
+import Loading from "@/components/Loading";
+import OptimizedImage from "@/components/OptimizedImage";
 
 interface ItemCardapio {
   _id: string;
@@ -18,6 +20,8 @@ interface ItemCardapio {
   img: string;
   subc: string;
   vtipo: string;
+  ingredientes?: string;
+  categoria?: string;
 }
 
 const categoriasMenu: string[] = [
@@ -45,9 +49,36 @@ export default function ProdutoDetalhePage() {
   const [minhaAvaliacao, setMinhaAvaliacao] = useState<number | null>(null);
   const [avaliandoProduto, setAvaliandoProduto] = useState<boolean>(false);
 
+  // Estados para animações
+  const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
+  const sectionsRef = useRef<Record<string, HTMLElement | null>>({});
+
   const { addItem } = useCart();
   const { user } = useUser();
   const { showToast } = useToast();
+
+  // Observer para animações
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible((prev) => ({
+              ...prev,
+              [entry.target.id]: true,
+            }));
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    Object.values(sectionsRef.current).forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, [produto]);
 
   const buscarAvaliacoes = async (produtoId: string) => {
     try {
@@ -206,9 +237,7 @@ export default function ProdutoDetalhePage() {
       <>
         <Header />
         <div className="mx-auto py-8">
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500" aria-label="Carregando..."></div>
-          </div>
+          <Loading size="lg" text="Carregando produto..." />
         </div>
       </>
     );
@@ -235,42 +264,91 @@ export default function ProdutoDetalhePage() {
   return (
     <>
       <Header />
-      <div className="mx-auto py-8 px-4 max-w-6xl">
-        <div className="mb-6">
-          <Link href="/produtos" className="inline-flex items-center text-amber-600 hover:text-amber-500 font-semibold">
-            ← Voltar ao Cardápio
-          </Link>
-        </div>
+      <main className="bg-gradient-to-b from-white to-gray-50">
+        {/* Breadcrumb */}
+        <section className="py-4 md:py-6 px-4 bg-white">
+          <div className="max-w-7xl mx-auto">
+            <Link href="/produtos" className="inline-flex items-center text-[var(--color-avocado-600)] hover:text-[var(--color-avocado-700)] font-semibold transition-colors group">
+              <svg className="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Voltar ao Cardápio
+            </Link>
+          </div>
+        </section>
 
-        <section className="flex flex-col md:flex-row gap-8">
-          <div className="flex-1">
-            <Image src={produto.img} alt={produto.nome} width={600} height={600} className="w-full h-auto rounded-lg shadow-lg object-cover" />
+        {/* Detalhes do Produto */}
+        <section className="py-8 md:py-12 px-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+              {/* Imagem do Produto */}
+              <div 
+                id="imagem"
+                ref={(el) => { sectionsRef.current['imagem'] = el; }}
+                className={`transition-all duration-1000 ${
+                  isVisible['imagem'] ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'
+                }`}
+              >
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] rounded-3xl blur-2xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                  <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+            <OptimizedImage 
+              src={produto.img} 
+              alt={produto.nome} 
+              width={600} 
+              height={600} 
+                      className="w-full h-auto object-cover"
+              quality={90}
+            />
+                  </div>
+                </div>
           </div>
 
-          <div className="flex-1 bg-white rounded-lg shadow-lg p-8">
-            <div className="mb-4">
-              <span className="inline-block bg-amber-100 text-amber-800 text-sm font-semibold px-3 py-1 rounded-full">
+              {/* Informações do Produto */}
+              <div 
+                id="info"
+                ref={(el) => { sectionsRef.current['info'] = el; }}
+                className={`transition-all duration-1000 delay-200 ${
+                  isVisible['info'] ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'
+                }`}
+              >
+                <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 h-full">
+                  {/* Badges */}
+            <div className="mb-4 flex gap-2 flex-wrap">
+                    <span className="inline-block bg-gradient-to-r from-[var(--color-avocado-100)] to-[var(--color-avocado-200)] text-[var(--color-avocado-800)] text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-md">
                 {produto.subc}
               </span>
-            </div>
-            <h1 className="text-3xl font-bold mb-4">{produto.nome}</h1>
-            <div className="mb-6">
-              <p className="text-2xl font-bold text-[var(--color-avocado-600)]">
-                R${produto.valor.toFixed(2).replace(".", ",")} {produto.vtipo}
-              </p>
+              {produto.categoria && (
+                      <span className="inline-block bg-gradient-to-r from-green-100 to-green-200 text-green-800 text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-md">
+                  {produto.categoria}
+                </span>
+              )}
             </div>
 
-            <div className="space-y-6">
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-2">Informações do Produto</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  Este é um produto da categoria <strong>{produto.subc}</strong>. Entre em contato conosco para mais informações sobre disponibilidade, tamanhos e opções de personalização.
-                </p>
-              </div>
+                  {/* Título */}
+                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[var(--color-fonte-100)] mb-4" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                    {produto.nome}
+                  </h1>
 
-              {/* Avaliações do produto */}
-              <div className="border-t pt-4">
-                <h3 className="text-lg font-semibold mb-3">Avaliação dos Clientes</h3>
+                  {/* Preço */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-[var(--color-avocado-50)] to-green-50 rounded-2xl">
+                    <p className="text-3xl md:text-4xl font-bold text-[var(--color-avocado-600)]">
+                      R$ {produto.valor.toFixed(2).replace(".", ",")}
+                    </p>
+                    <p className="text-sm md:text-base text-gray-600 font-medium mt-1">
+                      {produto.vtipo}
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Avaliações */}
+                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-2xl p-4 md:p-6">
+                      <h3 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2 text-amber-800">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                  Avaliação dos Clientes
+                </h3>
                 
                 {/* Média de avaliações */}
                 <div className="mb-4">
@@ -284,8 +362,8 @@ export default function ProdutoDetalhePage() {
 
                 {/* Avaliar produto */}
                 {user?.login && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p className="text-sm font-semibold mb-2">
+                        <div className="bg-white rounded-xl p-4 border-2 border-amber-300">
+                          <p className="text-sm md:text-base font-semibold mb-2 text-gray-700">
                       {minhaAvaliacao ? "Sua avaliação:" : "Avalie este produto:"}
                     </p>
                     <StarRating 
@@ -299,15 +377,15 @@ export default function ProdutoDetalhePage() {
                       <p className="text-xs text-gray-500 mt-2">Enviando avaliação...</p>
                     )}
                     {minhaAvaliacao && (
-                      <p className="text-xs text-green-600 mt-2">✓ Você avaliou com {minhaAvaliacao} estrela{minhaAvaliacao > 1 ? 's' : ''}</p>
+                            <p className="text-xs text-green-600 mt-2 font-semibold">✓ Você avaliou com {minhaAvaliacao} estrela{minhaAvaliacao > 1 ? 's' : ''}</p>
                     )}
                   </div>
                 )}
 
                 {!user?.login && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">
-                      <Link href="/login" className="text-amber-600 hover:underline font-semibold">
+                        <div className="bg-white rounded-xl p-4 border-2 border-gray-300">
+                          <p className="text-sm md:text-base text-gray-600">
+                            <Link href="/login" className="text-[var(--color-avocado-600)] hover:underline font-semibold">
                         Faça login
                       </Link>
                       {' '}para avaliar este produto
@@ -316,85 +394,170 @@ export default function ProdutoDetalhePage() {
                 )}
               </div>
 
+                    {/* Ingredientes */}
+                    {produto.ingredientes && (
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-4 md:p-6">
+                        <h3 className="text-lg md:text-xl font-bold mb-3 flex items-center gap-2 text-blue-800">
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                          </svg>
+                          Ingredientes
+                        </h3>
+                        <div className="bg-white rounded-xl p-4">
+                          <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+                            {produto.ingredientes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quantidade e Botões */}
+                    <div className="space-y-4">
               {/* Input de quantidade */}
-              <div className="flex items-center gap-4">
-                <label className="font-semibold">Quantidade:</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={quantidade}
-                  onChange={(e) => setQuantidade(parseInt(e.target.value))}
-                  className="w-20 border border-gray-300 rounded px-2 py-1"
-                  aria-label="Quantidade"
-                />
+                      <div className="bg-gray-50 rounded-2xl p-4">
+                        <label className="font-bold text-gray-700 flex items-center gap-2 mb-3 text-sm md:text-base">
+                          <svg className="w-5 h-5 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  Quantidade:
+                </label>
+                        <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
+                            className="w-10 h-10 rounded-full bg-white border-2 border-gray-300 hover:border-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-50)] flex items-center justify-center font-bold text-lg transition-all transform hover:scale-110"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={quantidade}
+                    onChange={(e) => setQuantidade(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                            className="w-20 border-2 border-gray-300 rounded-xl px-3 py-2 text-center font-bold text-lg focus:border-[var(--color-avocado-600)] focus:outline-none"
+                    aria-label="Quantidade"
+                  />
+                  <button
+                    onClick={() => setQuantidade(Math.min(20, quantidade + 1))}
+                            className="w-10 h-10 rounded-full bg-white border-2 border-gray-300 hover:border-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-50)] flex items-center justify-center font-bold text-lg transition-all transform hover:scale-110"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                      {/* Botões */}
+                      <div className="flex flex-col gap-3">
                 <button
                   onClick={handleAddToCart}
-                  className="flex-1 bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] text-white text-center px-6 py-3 rounded-lg font-semibold transition-colors"
+                          className="w-full bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white text-center px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl text-base md:text-lg"
                 >
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
                   Adicionar ao Carrinho
                 </button>
 
                 <Link
                   href="/produtos"
-                  className="flex-1 border border-[var(--color-avocado-600)] text-[var(--color-avocado-600)] hover:bg-amber-50 text-center px-6 py-3 rounded-lg font-semibold transition-colors"
+                          className="w-full border-2 border-[var(--color-avocado-600)] text-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-50)] text-center px-6 py-4 rounded-xl font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-base md:text-lg"
                 >
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
                   Ver Mais Produtos
                 </Link>
               </div>
 
               {/* Mensagem de feedback */}
               {mensagem && (
-                <p className={`mt-2 font-semibold ${
+                        <div className={`p-4 rounded-xl font-semibold text-center ${
                   mensagem.includes("sucesso") || mensagem.includes("adicionado") 
-                    ? "text-green-600" 
+                            ? "bg-green-50 text-green-700 border-2 border-green-200" 
                     : mensagem.includes("Limite") || mensagem.includes("máximo") || mensagem.includes("Erro")
-                    ? "text-red-600"
-                    : "text-amber-600"
+                            ? "bg-red-50 text-red-700 border-2 border-red-200"
+                            : "bg-amber-50 text-amber-700 border-2 border-amber-200"
                 }`}>
                   {mensagem}
-                </p>
+                        </div>
               )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="px-4 md:px-20 py-10 mt-10 shadow-lg">
-          <div className="mb-6">
-            <h5 className="inline-block px-5 py-2 text-md font-bold text-gray-800 border-2 border-gray-300 rounded-md bg-white shadow-sm">
-              Descrição
-            </h5>
+        {/* Produtos Relacionados */}
+        {produtosRelacionados.length > 0 && (
+          <section 
+            id="relacionados"
+            ref={(el) => { sectionsRef.current['relacionados'] = el; }}
+            className={`py-12 md:py-16 lg:py-20 px-4 transition-all duration-1000 delay-400 ${
+              isVisible['relacionados'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+            }`}
+          >
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-8 md:mb-12">
+                <p className="text-[var(--color-alavaco-100)] uppercase font-bold text-xs md:text-sm tracking-wider mb-2 md:mb-4">
+                  Mais Produtos
+                </p>
+                <h2 
+                  className="text-3xl md:text-4xl lg:text-5xl font-bold text-[var(--color-fonte-100)]"
+                  style={{ fontFamily: "var(--fonte-secundaria)" }}
+                >
+                  Produtos Relacionados
+                </h2>
+                <div className="w-24 h-1 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] mx-auto mt-4 rounded-full"></div>
           </div>
 
-          <p className="text-gray-600 leading-relaxed mb-6">
-            Este é um produto da categoria <strong>{produto.subc}</strong>. Entre em contato conosco para mais informações sobre disponibilidade, tamanhos e opções de personalização.
-          </p>
-
-          {produtosRelacionados.length > 0 && (
-            <div>
-              <div className="border-t w-60 max-w-4xl mx-auto"></div>
-              <p className="mt-4 text-center text-xl font-semibold">Produtos Relacionados</p>
-
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {produtosRelacionados.map((item) => (
-                  <div key={item._id} className="bg-white rounded-lg shadow p-4 hover:shadow-md transition flex flex-col">
-                    <Image src={item.img} alt={item.nome} width={200} height={200} className="w-full h-40 object-cover rounded" />
-                    <h3 className="mt-2 text-center font-medium">{item.nome}</h3>
-                    <Link
-                      href={`/produtos/${item._id}`}
-                      className="mt-4 bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] text-white text-center px-4 py-2 rounded-lg font-semibold transition-colors"
-                    >
-                      Ver Opção
+                  <Link
+                    key={item._id}
+                    href={`/produtos/${item._id}`}
+                    className="group"
+                  >
+                    <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 h-full flex flex-col">
+                      <div className="relative overflow-hidden">
+                    <OptimizedImage 
+                      src={item.img} 
+                      alt={item.nome} 
+                          width={300} 
+                          height={300} 
+                          className="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-300" 
+                      quality={80}
+                    />
+                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+                          <span className="text-xs font-bold text-[var(--color-avocado-600)]">
+                            {item.subc}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-5 flex-1 flex flex-col">
+                        <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[3rem]">
+                          {item.nome}
+                        </h3>
+                        <div className="mt-auto">
+                          <p className="text-2xl font-bold text-[var(--color-avocado-600)] mb-3">
+                      R$ {item.valor.toFixed(2).replace(".", ",")}
+                    </p>
+                          <div className="w-full bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white text-center px-4 py-3 rounded-xl font-bold transition-all transform group-hover:scale-105 shadow-md hover:shadow-lg">
+                      Ver Detalhes
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     </Link>
-                  </div>
                 ))}
               </div>
             </div>
+          </section>
           )}
-        </section>
-      </div>
+      </main>
+
       <Footer />
     </>
   );

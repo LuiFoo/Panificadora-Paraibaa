@@ -10,11 +10,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const avaliacoesCollection = db.collection("avaliacoes");
 
     if (method === "GET") {
-      // Buscar média de avaliações de um produto
-      const { produtoId } = req.query;
+      const { produtoId, produtoIds } = req.query;
 
+      // Se produtoIds for fornecido, buscar avaliações de múltiplos produtos
+      if (produtoIds) {
+        const ids = (produtoIds as string).split(',');
+        const avaliacoes = await avaliacoesCollection
+          .find({ produtoId: { $in: ids } })
+          .toArray();
+
+        // Agrupar por produtoId
+        const avaliacoesPorProduto: Record<string, { media: number; total: number }> = {};
+        
+        ids.forEach(id => {
+          const avaliacoesDoProduto = avaliacoes.filter(av => av.produtoId === id);
+          
+          if (avaliacoesDoProduto.length > 0) {
+            const soma = avaliacoesDoProduto.reduce((acc, av) => acc + av.nota, 0);
+            const media = soma / avaliacoesDoProduto.length;
+            
+            avaliacoesPorProduto[id] = {
+              media: Number(media.toFixed(1)),
+              total: avaliacoesDoProduto.length
+            };
+          } else {
+            avaliacoesPorProduto[id] = {
+              media: 0,
+              total: 0
+            };
+          }
+        });
+
+        return res.status(200).json({
+          success: true,
+          avaliacoes: avaliacoesPorProduto
+        });
+      }
+
+      // Buscar média de avaliações de um produto (comportamento original)
       if (!produtoId) {
-        return res.status(400).json({ error: "produtoId é obrigatório" });
+        return res.status(400).json({ error: "produtoId ou produtoIds é obrigatório" });
       }
 
       const avaliacoes = await avaliacoesCollection
