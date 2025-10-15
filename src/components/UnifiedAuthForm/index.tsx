@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useToast } from "@/context/ToastContext";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
