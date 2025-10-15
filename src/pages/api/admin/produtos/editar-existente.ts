@@ -151,9 +151,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           };
           
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await db.collection("users").updateMany(
             { "carrinho.produtos.produtoId": id },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             updateOperation as any
           );
           
