@@ -9,8 +9,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 function MainPrincipal() {
-    const [isVisible, setIsVisible] = useState({});
-    const sectionsRef = useRef({});
+    const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
+    const sectionsRef = useRef<Record<string, HTMLElement | null>>({});
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -74,7 +74,7 @@ function MainPrincipal() {
           {/* Hero Section */}
           <section 
             id="hero"
-            ref={(el) => (sectionsRef.current['hero'] = el)}
+            ref={(el) => { sectionsRef.current['hero'] = el; }}
             className="relative w-full h-120 max-[400px]:h-36 max-[500px]:h-45 max-[700px]:h-55 max-[1000px]:h-70 max-[1500px]:h-90"
           > 
             <Image 
@@ -91,7 +91,7 @@ function MainPrincipal() {
           {/* Features Section */}
           <section 
             id="features"
-            ref={(el) => (sectionsRef.current['features'] = el)}
+            ref={(el) => { sectionsRef.current['features'] = el; }}
             className={`py-12 md:py-16 lg:py-20 px-4 transition-all duration-1000 delay-200 ${
                 isVisible['features'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}
@@ -126,7 +126,7 @@ function MainPrincipal() {
           {/* Menu de Categorias e Swiper */}
           <section 
             id="produtos"
-            ref={(el) => (sectionsRef.current['produtos'] = el)}
+            ref={(el) => { sectionsRef.current['produtos'] = el; }}
             className={`py-12 md:py-16 lg:py-20 bg-white transition-all duration-1000 delay-300 ${
                 isVisible['produtos'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}
@@ -156,7 +156,7 @@ function MainPrincipal() {
           {/* Estatísticas */}
           <section 
             id="stats"
-            ref={(el) => (sectionsRef.current['stats'] = el)}
+            ref={(el) => { sectionsRef.current['stats'] = el; }}
             className={`py-12 md:py-14 lg:py-16 px-4 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] transition-all duration-1000 delay-400 ${
                 isVisible['stats'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}
@@ -182,7 +182,7 @@ function MainPrincipal() {
           {/* CTA Final */}
           <section 
             id="cta"
-            ref={(el) => (sectionsRef.current['cta'] = el)}
+            ref={(el) => { sectionsRef.current['cta'] = el; }}
             className={`py-12 md:py-16 lg:py-20 px-4 bg-gradient-to-b from-gray-50 to-white transition-all duration-1000 delay-500 ${
                 isVisible['cta'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}
