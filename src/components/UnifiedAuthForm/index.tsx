@@ -45,8 +45,10 @@ export default function UnifiedAuthForm({
   // Verificar se usuário Google precisa completar cadastro
   useEffect(() => {
     const checkGoogleUserStatus = async () => {
-      if (session?.user) {
+      if (session?.user && !user) { // Só verificar se não há usuário logado
         try {
+          console.log("🔍 Verificando status do usuário Google:", session.user.email);
+          
           const response = await fetch('/api/auth/get-user-data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -56,10 +58,12 @@ export default function UnifiedAuthForm({
           });
 
           const data = await response.json();
+          console.log("📋 Resposta da verificação:", data);
           
           if (data.ok && data.user) {
             // Se usuário existe mas tem senha 'google-auth', precisa completar cadastro
             if (data.user.password === 'google-auth') {
+              console.log("⚠️ Usuário precisa completar cadastro");
               setMode('complete-registration');
               setGoogleUser(data.user);
               setFormData(prev => ({
@@ -68,6 +72,7 @@ export default function UnifiedAuthForm({
                 email: data.user.email || session.user.email || ''
               }));
             } else {
+              console.log("✅ Usuário já tem cadastro completo, fazendo login automático");
               // Usuário já tem cadastro completo, fazer login automático
               const userData = {
                 _id: data.user._id,
@@ -83,15 +88,35 @@ export default function UnifiedAuthForm({
               setUser(userData);
               router.push('/');
             }
+          } else {
+            console.log("🆕 Usuário novo - precisa completar cadastro");
+            // Usuário não existe, precisa completar cadastro
+            setMode('complete-registration');
+            setGoogleUser({
+              _id: '',
+              login: '',
+              name: session.user.name || '',
+              email: session.user.email || '',
+              permissao: 'usuario',
+              googleId: session.user.id,
+              picture: session.user.image,
+            });
+            setFormData(prev => ({
+              ...prev,
+              name: session.user.name || '',
+              email: session.user.email || ''
+            }));
           }
         } catch (error) {
-          console.error("Erro ao verificar status do usuário:", error);
+          console.error("❌ Erro ao verificar status do usuário:", error);
+          // Em caso de erro, também forçar completar cadastro
+          setMode('complete-registration');
         }
       }
     };
 
     checkGoogleUserStatus();
-  }, [session, setUser, router]);
+  }, [session, setUser, router, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({

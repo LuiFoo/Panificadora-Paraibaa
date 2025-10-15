@@ -33,9 +33,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const user = await users.findOne({ googleId });
     
     if (!user) {
-      return res.status(404).json({ 
-        ok: false, 
-        msg: "Usuário não encontrado" 
+      // Se usuário não existe, criar novo usuário
+      console.log("Criando novo usuário para Google ID:", googleId);
+      
+      // Gerar login baseado no email (se disponível) ou nome
+      const login = name ? name.toLowerCase().replace(/[^a-z0-9]/g, '') : `user${Date.now()}`;
+      
+      // Verificar se o login já existe
+      let finalLogin = login;
+      let counter = 1;
+      while (await users.findOne({ login: finalLogin })) {
+        finalLogin = `${login}${counter}`;
+        counter++;
+      }
+
+      const newUser = {
+        googleId,
+        email: '', // Será preenchido quando o usuário fizer login novamente
+        name: name || '',
+        login: finalLogin,
+        password: await bcrypt.hash(password, 10),
+        permissao: "usuario",
+        dataCriacao: new Date(),
+        authProvider: "google",
+        picture: null,
+        ultimoAcesso: new Date()
+      };
+
+      const result = await users.insertOne(newUser);
+      const createdUser = await users.findOne({ _id: result.insertedId });
+
+      return res.status(200).json({
+        ok: true,
+        msg: "Usuário criado com sucesso",
+        user: createdUser ? {
+          _id: createdUser._id,
+          login: createdUser.login,
+          name: createdUser.name,
+          email: createdUser.email,
+          permissao: createdUser.permissao,
+          googleId: createdUser.googleId,
+          picture: createdUser.picture
+        } : null,
       });
     }
 
