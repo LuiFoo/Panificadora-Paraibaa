@@ -17,7 +17,7 @@ export const useAuthSync = () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              googleId: session.user.id
+              googleId: (session.user as any).id
             }),
           });
 
@@ -31,7 +31,7 @@ export const useAuthSync = () => {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                googleId: session.user.id,
+                googleId: (session.user as any).id,
                 email: session.user.email,
                 name: session.user.name,
                 picture: session.user.image
@@ -61,13 +61,13 @@ export const useAuthSync = () => {
           } else {
             // Fallback para dados do NextAuth
             const userData = {
-              _id: session.user.id,
+              _id: (session.user as any).id,
               login: session.user.email?.split('@')[0] || session.user.name?.toLowerCase().replace(/\s+/g, '') || 'user',
               password: 'google-auth',
               name: session.user.name || 'Usuário',
               email: session.user.email || '',
               permissao: (session.user as { permissao?: string }).permissao || "usuario",
-              googleId: session.user.id,
+              googleId: (session.user as any).id,
               picture: session.user.image,
             };
 
@@ -79,7 +79,7 @@ export const useAuthSync = () => {
           
           // Fallback para dados do NextAuth em caso de erro
           const userData = {
-            _id: session.user.id,
+            _id: (session.user as any).id,
             login: session.user.email?.split('@')[0] || session.user.name?.toLowerCase().replace(/\s+/g, '') || 'user',
             password: 'google-auth',
             name: session.user.name || 'Usuário',
