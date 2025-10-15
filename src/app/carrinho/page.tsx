@@ -6,6 +6,8 @@ import { useCart } from "@/context/CartContext";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Loading from "@/components/Loading";
+import OptimizedImage from "@/components/OptimizedImage";
 
 import imagem_mais from "../../../public/images/car_mais.svg";
 import imagem_menos from "../../../public/images/car_menos.svg";
@@ -30,8 +32,8 @@ export default function CarrinhoPage() {
     return (
       <>
         <Header />
-        <main className="max-w-6xl mx-auto px-4 py-10 text-center">
-          <p className="text-gray-600 text-lg">Atualizando carrinho...</p>
+        <main className="max-w-6xl mx-auto px-4 py-10">
+          <Loading size="lg" text="Carregando carrinho..." />
         </main>
         <Footer showMap={false} />
       </>
@@ -139,11 +141,13 @@ export default function CarrinhoPage() {
                     className="flex items-center bg-white shadow rounded-lg p-4 gap-4"
                   >
                     <div className="w-24 h-24 relative">
-                      <Image
+                      <OptimizedImage
                         src={item.img || "/images/default-product.png"}
                         alt={item.nome}
-                        fill
+                        width={96}
+                        height={96}
                         className="object-cover rounded"
+                        quality={75}
                       />
                     </div>
 
