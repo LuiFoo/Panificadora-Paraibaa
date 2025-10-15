@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Preparar dados para atualização
-    const updateData: Record<string, string | null> = {
+    const updateData: Record<string, any> = {
       name,
       phone: phone || null,
       address: address || null,
