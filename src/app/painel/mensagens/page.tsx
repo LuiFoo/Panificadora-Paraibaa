@@ -60,6 +60,11 @@ export default function MensagensAdminPage() {
   const conversaAtual = conversas.find(c => c.userId === conversaSelecionada);
   const [ultimoTamanhoMensagens, setUltimoTamanhoMensagens] = useState<number>(0);
 
+  // Debug: verificar se conversaAtual está sendo encontrada
+  console.log("Conversas:", conversas);
+  console.log("Conversa selecionada:", conversaSelecionada);
+  console.log("Conversa atual:", conversaAtual);
+
   useEffect(() => {
     fetchConversas();
     // Atualizar a cada 5 segundos
@@ -289,6 +294,8 @@ export default function MensagensAdminPage() {
     setBuscaUsuario("");
     setUsuariosEncontrados([]);
     
+    // Não fazer fetchConversas() aqui para não sobrescrever a conversa temporária
+    
     setModalState({
       isOpen: true,
       type: "success",
@@ -469,9 +476,14 @@ export default function MensagensAdminPage() {
                     <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between flex-shrink-0">
                       <div>
                         <h3 className="font-semibold text-gray-800">
-                          {conversaAtual?.userName || "Carregando..."}
+                          {conversaAtual?.userName || "Nome não encontrado"}
                         </h3>
                         <p className="text-xs text-gray-500">@{conversaAtual?.userId || "usuario"}</p>
+                        {!conversaAtual && (
+                          <p className="text-xs text-red-500 mt-1">
+                            ⚠️ Conversa não encontrada
+                          </p>
+                        )}
                       </div>
                       <button
                         onClick={handleDeletarConversa}
