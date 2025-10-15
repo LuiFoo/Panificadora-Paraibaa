@@ -9,8 +9,8 @@ import telFale from "../../assets/images/teleFale.svg";
 import { useEffect, useRef, useState } from "react";
 
 function FaleConosco() {
-    const [isVisible, setIsVisible] = useState({});
-    const sectionsRef = useRef({});
+    const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});
+    const sectionsRef = useRef<Record<string, HTMLElement | null>>({});
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -42,7 +42,7 @@ function FaleConosco() {
                 {/* Hero Section */}
                 <section 
                     id="hero"
-                    ref={(el) => (sectionsRef.current['hero'] = el)}
+                    ref={(el) => { sectionsRef.current['hero'] = el; }}
                     className={`py-16 md:py-20 lg:py-24 px-4 transition-all duration-1000 ${
                         isVisible['hero'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -178,7 +178,7 @@ function FaleConosco() {
                 {/* Seção de Localização */}
                 <section 
                     id="localizacao"
-                    ref={(el) => (sectionsRef.current['localizacao'] = el)}
+                    ref={(el) => { sectionsRef.current['localizacao'] = el; }}
                     className={`transition-all duration-1000 delay-300 ${
                         isVisible['localizacao'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
@@ -236,7 +236,7 @@ function FaleConosco() {
                 {/* Seção de Encomendas */}
                 <section 
                     id="encomendas"
-                    ref={(el) => (sectionsRef.current['encomendas'] = el)}
+                    ref={(el) => { sectionsRef.current['encomendas'] = el; }}
                     className={`py-12 md:py-16 lg:py-20 px-4 bg-gradient-to-b from-white to-gray-50 transition-all duration-1000 delay-500 ${
                         isVisible['encomendas'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                     }`}
