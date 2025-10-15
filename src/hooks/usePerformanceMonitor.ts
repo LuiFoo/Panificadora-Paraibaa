@@ -111,7 +111,8 @@ export function useDataLoadingMonitor(
  */
 export function useMemoryMonitor(enabled: boolean = false) {
   useEffect(() => {
-    if (!enabled || typeof performance.memory === 'undefined') return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!enabled || typeof (performance as any).memory === 'undefined') return;
 
     const interval = setInterval(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
