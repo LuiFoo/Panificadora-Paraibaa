@@ -6,6 +6,7 @@ import Link from "next/link";
 import logo from "../../assets/images/logo.svg";
 import { useUser } from "@/context/UserContext";
 import { useCart } from "@/context/CartContext";
+import { signOut } from "next-auth/react";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,6 +14,7 @@ export default function Header() {
   const { totalItems } = useCart();
   const [pedidosPendentes, setPedidosPendentes] = useState(0);
   const [mensagensNaoLidas, setMensagensNaoLidas] = useState(0);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Buscar quantidade de pedidos pendentes (apenas para admins)
   useEffect(() => {
@@ -96,9 +98,40 @@ export default function Header() {
     };
   }, [user, isAdmin]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("usuario");
-    setUser(null);
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Previne múltiplos cliques
+    
+    setIsLoggingOut(true);
+    
+    try {
+      // 1. Marcar logout manual IMEDIATAMENTE para evitar relogin automático
+      localStorage.setItem("manual_logout", "true");
+      localStorage.setItem("logout_timestamp", Date.now().toString());
+      
+      // 2. Limpar localStorage e estado do usuário
+      localStorage.removeItem("usuario");
+      setUser(null);
+      
+      // 3. Fazer logout do NextAuth (Google OAuth)
+      await signOut({ 
+        callbackUrl: "/",
+        redirect: false // Não redirecionar automaticamente
+      });
+      
+      console.log("✅ Logout completo realizado");
+    } catch (error) {
+      console.error("❌ Erro no logout:", error);
+      // Mesmo com erro, limpar o estado local
+      localStorage.setItem("manual_logout", "true");
+      localStorage.setItem("logout_timestamp", Date.now().toString());
+      localStorage.removeItem("usuario");
+      setUser(null);
+    } finally {
+      // Reset do estado de loading após um pequeno delay
+      setTimeout(() => {
+        setIsLoggingOut(false);
+      }, 1000);
+    }
   };
 
   return (
@@ -194,9 +227,14 @@ export default function Header() {
         {user ? (
           <button
             onClick={handleLogout}
-            className="py-[0.6rem] px-5 rounded-lg font-bold bg-red-500 hover:bg-red-600 hidden md:block"
+            disabled={isLoggingOut}
+            className={`py-[0.6rem] px-5 rounded-lg font-bold hidden md:block ${
+              isLoggingOut 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-red-500 hover:bg-red-600'
+            }`}
           >
-            Sair
+            {isLoggingOut ? 'Saindo...' : 'Sair'}
           </button>
         ) : (
           <Link
@@ -254,9 +292,12 @@ export default function Header() {
               </Link>
               <button
                 onClick={() => { handleLogout(); setMenuOpen(false); }}
-                className="font-bold text-red-500"
+                disabled={isLoggingOut}
+                className={`font-bold ${
+                  isLoggingOut ? 'text-gray-400 cursor-not-allowed' : 'text-red-500'
+                }`}
               >
-                SAIR
+                {isLoggingOut ? 'SAINDO...' : 'SAIR'}
               </button>
             </>
           ) : (

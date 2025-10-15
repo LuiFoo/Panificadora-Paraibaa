@@ -28,6 +28,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   // Recupera o usuário armazenado no localStorage e valida se ainda é válido no servidor
   useEffect(() => {
     const savedUser = localStorage.getItem("usuario");
+    const manualLogout = localStorage.getItem("manual_logout");
+    const logoutTimestamp = localStorage.getItem("logout_timestamp");
+
+    // Se foi logout manual, não carregar usuário
+    if (manualLogout === "true") {
+      const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp) : 0;
+      console.log("🚫 Logout manual detectado - não carregando usuário");
+      
+      // Se já passou mais de 10 segundos, pode limpar a flag
+      if (timeSinceLogout > 10000) {
+        localStorage.removeItem("manual_logout");
+        localStorage.removeItem("logout_timestamp");
+      }
+      
+      setLoading(false);
+      return;
+    }
 
     if (!savedUser) {
       setLoading(false);
