@@ -14,8 +14,17 @@ export default function LoginPage() {
   // Redirecionar se já estiver logado
   useEffect(() => {
     if (user) {
-      console.log("Usuário já está logado, redirecionando para página inicial...");
-      router.push("/");
+      console.log("Usuário já está logado, verificando permissões...");
+      console.log("Permissão do usuário:", user.permissao);
+      
+      // Se for administrador, redirecionar para o painel
+      if (user.permissao === "administrador") {
+        console.log("Administrador detectado, redirecionando para painel...");
+        router.push("/painel");
+      } else {
+        console.log("Usuário comum, redirecionando para página inicial...");
+        router.push("/");
+      }
     }
   }, [user, router]);
 

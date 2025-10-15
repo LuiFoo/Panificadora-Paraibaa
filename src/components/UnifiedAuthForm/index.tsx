@@ -88,7 +88,15 @@ export default function UnifiedAuthForm({
         localStorage.setItem("usuario", JSON.stringify(userData));
         setUser(userData);
         showToast("Login realizado com sucesso!", "success");
-        router.push('/');
+        
+        // Redirecionar baseado na permissão
+        if (data.user.permissao === "administrador") {
+          console.log("Administrador logado, redirecionando para painel");
+          router.push('/painel');
+        } else {
+          console.log("Usuário comum logado, redirecionando para página inicial");
+          router.push('/');
+        }
       } else {
         showToast(data.msg || "Erro ao fazer login", "error");
       }
