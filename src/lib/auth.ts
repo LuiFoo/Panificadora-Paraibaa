@@ -9,7 +9,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       console.log("=== CALLBACK SIGNIN ===");
       console.log("User:", user.email);
       console.log("Account provider:", account?.provider);
@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   events: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       console.log("=== USUÁRIO FEZ LOGIN ===");
       console.log("Email:", user.email);
       console.log("Google ID:", user.id);
@@ -100,7 +100,7 @@ export const authOptions: NextAuthOptions = {
         }
       }
     },
-    async session({ session, token }) {
+    async session({ session }) {
       console.log("Sessão criada para:", session.user?.email);
     },
   },
