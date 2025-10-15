@@ -213,7 +213,7 @@ export default function ProdutosPage() {
     setModalState({
       isOpen: true,
       type: "warning",
-      title: "⚠️ Confirmar Exclusão Definitiva",
+      title: "Confirmar Exclusão Definitiva",
       message: `Tem certeza que deseja EXCLUIR DEFINITIVAMENTE o produto "${produto.nome}"? Esta ação NÃO pode ser desfeita! Se quiser apenas desativá-lo temporariamente, use o botão "Pausar Produto".`,
       onConfirm: async () => {
         try {
@@ -446,25 +446,25 @@ export default function ProdutosPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
               >
                 <option value="todos">Todos os Status</option>
-                <option value="ativos">✅ Ativos</option>
-                <option value="pausados">⏸️ Pausados</option>
+                <option value="ativos">Ativos</option>
+                <option value="pausados">Pausados</option>
               </select>
             </div>
 
             <div className="flex items-end">
               <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-blue-700">📊 Produtos encontrados:</span>
+                  <span className="text-blue-700">Produtos encontrados:</span>
                   <span className="font-bold text-blue-900">{filteredProdutos.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs mt-1">
-                  <span className="text-green-700">✅ Ativos:</span>
+                  <span className="text-green-700">Ativos:</span>
                   <span className="font-semibold text-green-900">
                     {produtos.filter(p => p.status !== "pause").length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs mt-1">
-                  <span className="text-red-700">⏸️ Pausados:</span>
+                  <span className="text-red-700">Pausados:</span>
                   <span className="font-semibold text-red-900">
                     {produtos.filter(p => p.status === "pause").length}
                   </span>

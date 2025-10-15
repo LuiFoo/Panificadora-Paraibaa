@@ -510,7 +510,7 @@ export default function MensagensAdminPage() {
                         <p className="text-xs text-gray-500">@{conversaAtual?.userId || "usuario"}</p>
                         {!conversaAtual && (
                           <p className="text-xs text-red-500 mt-1">
-                            ⚠️ Conversa não encontrada
+                            Conversa não encontrada
                           </p>
                         )}
                       </div>
