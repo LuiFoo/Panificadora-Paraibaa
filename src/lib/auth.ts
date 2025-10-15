@@ -87,31 +87,8 @@ export const authOptions: NextAuthOptions = {
       console.log("Nome:", user.name);
       console.log("Provider:", account?.provider);
       
-      // Se for login com Google, registra/cadastra o usuário no MongoDB
-      if (account?.provider === "google" && user) {
-        console.log("Processando login do Google...");
-        try {
-          const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/google-user-register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              googleId: user.id,
-              email: user.email,
-              name: user.name,
-              picture: user.image
-            }),
-          });
-
-          const data = await response.json();
-          if (data.ok) {
-            console.log("✅ Usuário processado no MongoDB:", data.user.email);
-          } else {
-            console.error("❌ Erro ao processar usuário no MongoDB:", data.msg);
-          }
-        } catch (error) {
-          console.error("❌ Erro ao chamar API de registro:", error);
-        }
-      }
+      // O processamento do usuário será feito pelo useAuthSync
+      // para evitar chamadas duplicadas
     },
     async session({ session }) {
       console.log("Sessão criada para:", session.user?.email);

@@ -8,6 +8,7 @@ interface User {
   name: string;
   permissao: string; // "administrador" ou outro
   password: string;
+  googleId?: string;
 }
 
 interface UserContextType {
@@ -56,30 +57,60 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     // Função para verificar o usuário no servidor
     const validateUser = async () => {
       try {
-        const res = await fetch("/api/verificar-admin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ login: parsedUser.login, password: parsedUser.password }),
-        });
+        // Se é usuário Google, usar get-user-data
+        if (parsedUser.password === 'google-auth' && parsedUser.googleId) {
+          const res = await fetch("/api/auth/get-user-data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ googleId: parsedUser.googleId }),
+          });
 
-        const data = await res.json();
+          const data = await res.json();
 
-        if (data.ok && data.user) {
-          // Usuário válido no servidor
-          const validUser: User = {
-            _id: data.user._id,
-            login: data.user.login,
-            name: data.user.name,
-            permissao: data.user.permissao,
-            password: parsedUser.password, // Mantém a senha para futuras validações
-          };
+          if (data.ok && data.user) {
+            // Usuário válido no servidor
+            const validUser: User = {
+              _id: data.user._id,
+              login: data.user.login,
+              name: data.user.name,
+              permissao: data.user.permissao,
+              password: parsedUser.password,
+            };
 
-          setUser(validUser);
-          localStorage.setItem("usuario", JSON.stringify(validUser));
+            setUser(validUser);
+            localStorage.setItem("usuario", JSON.stringify(validUser));
+          } else {
+            // Usuário não válido, limpando localStorage
+            localStorage.removeItem("usuario");
+            setUser(null);
+          }
         } else {
-          // Usuário não válido, limpando localStorage
-          localStorage.removeItem("usuario");
-          setUser(null);
+          // Para usuários com senha tradicional, usar verificar-admin
+          const res = await fetch("/api/verificar-admin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ login: parsedUser.login, password: parsedUser.password }),
+          });
+
+          const data = await res.json();
+
+          if (data.ok && data.user) {
+            // Usuário válido no servidor
+            const validUser: User = {
+              _id: data.user._id,
+              login: data.user.login,
+              name: data.user.name,
+              permissao: data.user.permissao,
+              password: parsedUser.password, // Mantém a senha para futuras validações
+            };
+
+            setUser(validUser);
+            localStorage.setItem("usuario", JSON.stringify(validUser));
+          } else {
+            // Usuário não válido, limpando localStorage
+            localStorage.removeItem("usuario");
+            setUser(null);
+          }
         }
       } catch (error) {
         console.error("Erro ao verificar usuário:", error);

@@ -27,11 +27,6 @@ export const useAuthSync = () => {
   const { setUser, user } = useUser();
 
   useEffect(() => {
-    // Debounce para evitar múltiplas execuções
-    const timeoutId = setTimeout(() => {
-      syncUserData();
-    }, 100);
-
     const syncUserData = async () => {
       // Verificar se foi logout manual
       const manualLogout = localStorage.getItem("manual_logout");
@@ -51,7 +46,7 @@ export const useAuthSync = () => {
         return;
       }
 
-      if (status === "authenticated" && session?.user) {
+      if (status === "authenticated" && session?.user && !user) {
         try {
           console.log("Sincronizando dados do usuário:", session.user.email);
           
@@ -86,13 +81,6 @@ export const useAuthSync = () => {
           }
           
           if (data.ok && data.user) {
-            // Verificar se usuário precisa completar cadastro
-            if (data.user.password === 'google-auth') {
-              console.log("⚠️ Usuário precisa completar cadastro - não fazendo login automático");
-              // Não fazer login automático, deixar o UnifiedAuthForm lidar com isso
-              return;
-            }
-
             // Usa dados do MongoDB
             const userData: UserData = {
               _id: data.user._id,
@@ -112,16 +100,44 @@ export const useAuthSync = () => {
             localStorage.removeItem("logout_timestamp");
             console.log("✅ Usuário sincronizado com dados do MongoDB");
           } else {
-            // Usuário não existe no MongoDB, precisa completar cadastro
-            console.log("⚠️ Usuário não existe no MongoDB - precisa completar cadastro");
-            // Não fazer login automático, deixar o UnifiedAuthForm lidar com isso
-            return;
+            // Fallback para dados do NextAuth
+            const userData: UserData = {
+              _id: (session.user as GoogleUser).id,
+              login: session.user.email?.split('@')[0] || session.user.name?.toLowerCase().replace(/\s+/g, '') || 'user',
+              password: 'google-auth',
+              name: session.user.name || 'Usuário',
+              email: session.user.email || '',
+              permissao: (session.user as GoogleUser).permissao || "usuario",
+              googleId: (session.user as GoogleUser).id,
+              picture: session.user.image,
+            };
+
+            localStorage.setItem("usuario", JSON.stringify(userData));
+            setUser(userData);
+            // Limpar flag de logout manual quando usuário faz login
+            localStorage.removeItem("manual_logout");
+            localStorage.removeItem("logout_timestamp");
           }
         } catch (error) {
           console.error("Erro ao sincronizar dados do usuário:", error);
-          console.log("⚠️ Erro na sincronização - não fazendo login automático");
-          // Não fazer login automático em caso de erro, deixar o UnifiedAuthForm lidar com isso
-          return;
+          
+          // Fallback para dados do NextAuth em caso de erro
+          const userData: UserData = {
+            _id: (session.user as GoogleUser).id,
+            login: session.user.email?.split('@')[0] || session.user.name?.toLowerCase().replace(/\s+/g, '') || 'user',
+            password: 'google-auth',
+            name: session.user.name || 'Usuário',
+            email: session.user.email || '',
+            permissao: (session.user as GoogleUser).permissao || "usuario",
+            googleId: (session.user as GoogleUser).id,
+            picture: session.user.image,
+          };
+
+          localStorage.setItem("usuario", JSON.stringify(userData));
+          setUser(userData);
+          // Limpar flag de logout manual quando usuário faz login
+          localStorage.removeItem("manual_logout");
+          localStorage.removeItem("logout_timestamp");
         }
       } else if (status === "unauthenticated") {
         // Remove dados do localStorage se não autenticado
@@ -131,10 +147,13 @@ export const useAuthSync = () => {
       }
     };
 
+    // Debounce para evitar múltiplas execuções
+    const timeoutId = setTimeout(syncUserData, 100);
+    
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [session, status, setUser, user]);
+  }, [session, status, setUser]); // Removido 'user' das dependências para evitar loop
 
   return { session, status };
 };

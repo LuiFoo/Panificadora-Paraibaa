@@ -73,8 +73,8 @@ export default function ChatPage() {
   useEffect(() => {
     if (user) {
       fetchMensagens();
-      // Atualizar a cada 5 segundos
-      const interval = setInterval(fetchMensagens, 5000);
+      // Atualizar a cada 30 segundos (reduzido de 5 para 30)
+      const interval = setInterval(fetchMensagens, 30000);
       return () => clearInterval(interval);
     } else {
       setLoading(false);

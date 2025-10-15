@@ -19,107 +19,18 @@ export default function UnifiedAuthForm({
   imageSrc,
   imageAlt
 }: UnifiedAuthFormProps) {
-  const [mode, setMode] = useState<'login' | 'register' | 'complete-registration'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
-    name: '',
-    confirmPassword: ''
+    password: ''
   });
-  const [googleUser, setGoogleUser] = useState<{
-    _id: string;
-    login: string;
-    name: string;
-    email: string;
-    permissao: string;
-    googleId: string;
-    picture?: string | null;
-  } | null>(null);
   
   const { showToast } = useToast();
   const { setUser, user } = useUser();
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Verificar se usuário Google precisa completar cadastro
-  useEffect(() => {
-    const checkGoogleUserStatus = async () => {
-      if (session?.user && !user) { // Só verificar se não há usuário logado
-        try {
-          console.log("🔍 Verificando status do usuário Google:", session.user.email);
-          
-          const response = await fetch('/api/auth/get-user-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              googleId: session.user.id
-            }),
-          });
-
-          const data = await response.json();
-          console.log("📋 Resposta da verificação:", data);
-          
-          if (data.ok && data.user) {
-            console.log("✅ Usuário encontrado no banco:", data.user.email);
-            // Se usuário existe mas tem senha 'google-auth', precisa completar cadastro
-            if (data.user.password === 'google-auth') {
-              console.log("⚠️ Usuário precisa completar cadastro");
-            setMode('complete-registration');
-            setGoogleUser(data.user);
-            setFormData(prev => ({
-              ...prev,
-              name: '', // Campo vazio para o usuário escolher
-              email: data.user.email || session.user.email || ''
-            }));
-            } else {
-              console.log("✅ Usuário já tem cadastro completo, fazendo login automático");
-              // Usuário já tem cadastro completo, fazer login automático
-              const userData = {
-                _id: data.user._id,
-                login: data.user.login,
-                password: 'google-auth',
-                name: data.user.name,
-                email: data.user.email,
-                permissao: data.user.permissao,
-                googleId: data.user.googleId,
-                picture: data.user.picture,
-              };
-              localStorage.setItem("usuario", JSON.stringify(userData));
-              setUser(userData);
-              router.push('/');
-            }
-          } else {
-            console.log("🆕 Usuário novo - precisa completar cadastro");
-            console.log("📧 Email do usuário novo:", session.user.email);
-            console.log("👤 Nome do usuário novo:", session.user.name);
-            // Usuário não existe, precisa completar cadastro
-            setMode('complete-registration');
-            setGoogleUser({
-              _id: '',
-              login: '',
-              name: session.user.name || '',
-              email: session.user.email || '',
-              permissao: 'usuario',
-              googleId: session.user.id,
-              picture: session.user.image,
-            });
-            setFormData(prev => ({
-              ...prev,
-              name: '', // Campo vazio para o usuário escolher
-              email: session.user.email || ''
-            }));
-          }
-        } catch (error) {
-          console.error("❌ Erro ao verificar status do usuário:", error);
-          // Em caso de erro, também forçar completar cadastro
-          setMode('complete-registration');
-        }
-      }
-    };
-
-    checkGoogleUserStatus();
-  }, [session, setUser, router, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -190,75 +101,11 @@ export default function UnifiedAuthForm({
     }
   };
 
-  const handleCompleteRegistration = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name.trim()) {
-      showToast("Por favor, insira um nome para o sistema", "error");
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      showToast("As senhas não coincidem", "error");
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      showToast("A senha deve ter pelo menos 6 caracteres", "error");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      if (!googleUser) {
-        showToast("Erro: dados do usuário não encontrados", "error");
-        return;
-      }
-
-      const response = await fetch('/api/auth/complete-registration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          googleId: googleUser.googleId,
-          password: formData.password,
-          name: formData.name
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.ok && data.user) {
-        const userData = {
-          _id: data.user._id,
-          login: data.user.login,
-          password: 'google-auth',
-          name: data.user.name,
-          email: data.user.email,
-          permissao: data.user.permissao,
-          googleId: data.user.googleId,
-          picture: data.user.picture,
-        };
-        localStorage.setItem("usuario", JSON.stringify(userData));
-        setUser(userData);
-        showToast("Cadastro completado com sucesso!", "success");
-        router.push('/');
-      } else {
-        showToast(data.msg || "Erro ao completar cadastro", "error");
-      }
-    } catch (error) {
-      console.error("Erro ao completar cadastro:", error);
-      showToast("Erro ao completar cadastro", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const getTitle = () => {
     switch (mode) {
       case 'login': return 'Faça login em sua conta';
       case 'register': return 'Crie sua conta';
-      case 'complete-registration': return 'Complete seu cadastro';
       default: return 'Autenticação';
     }
   };
@@ -267,7 +114,6 @@ export default function UnifiedAuthForm({
     switch (mode) {
       case 'login': return 'Entre com Google ou use seu email e senha';
       case 'register': return 'Faça login com Google para criar sua conta';
-      case 'complete-registration': return 'Escolha como quer ser chamado na plataforma e defina uma senha';
       default: return '';
     }
   };
@@ -302,16 +148,6 @@ export default function UnifiedAuthForm({
                 <p className="text-gray-600 text-sm">
                   {getSubtitle()}
                 </p>
-                {mode === 'complete-registration' && formData.email && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <span className="font-medium">Conta Google:</span> {formData.email}
-                    </p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      Agora escolha como quer ser chamado na plataforma
-                    </p>
-                  </div>
-                )}
               </div>
 
             {/* Formulário de Login com Email/Senha */}
@@ -361,135 +197,62 @@ export default function UnifiedAuthForm({
               </form>
             )}
 
-            {/* Formulário de Completar Cadastro */}
-            {(mode === 'complete-registration') && (
-              <form onSubmit={handleCompleteRegistration} className="mb-6">
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                     e s Nome
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="Como você quer ser chamado na plataforma"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Este será o nome que aparecerá em seus pedidos e mensagens
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                      Senha
-                    </label>
-                    <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="Mínimo 6 caracteres"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirmar Senha
-                    </label>
-                    <input
-                      type="password"
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="Digite a senha novamente"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Completando...' : 'Completar Cadastro'}
-                </button>
-              </form>
-            )}
 
             {/* Divisor */}
-            {mode !== 'complete-registration' && (
-              <div className="relative mb-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">ou</span>
-                </div>
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
               </div>
-            )}
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">ou</span>
+              </div>
+            </div>
 
             {/* Botão Google */}
-            {mode !== 'complete-registration' && (
-              <div className="mb-6">
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isLoading}
-                  className="w-full bg-white border-2 border-gray-300 text-gray-700 font-semibold py-4 px-6 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3 text-lg"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
-                      {mode === 'login' ? 'Entrando com Google...' : 'Conectando com Google...'}
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-6 h-6" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                      </svg>
-                      {mode === 'login' ? 'Entrar com Google' : 'Criar conta com Google'}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="w-full bg-white border-2 border-gray-300 text-gray-700 font-semibold py-4 px-6 rounded-lg shadow-sm hover:bg-gray-50 hover:border-gray-400 transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3 text-lg"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
+                    {mode === 'login' ? 'Entrando com Google...' : 'Conectando com Google...'}
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-6 h-6" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    {mode === 'login' ? 'Entrar com Google' : 'Criar conta com Google'}
+                  </>
+                )}
+              </button>
+            </div>
 
             {/* Links de navegação */}
-            {mode !== 'complete-registration' && (
-              <div className="text-center">
-                <p className="text-gray-600 text-sm mb-4">
-                  {mode === 'login' ? 'Ainda não tem uma conta?' : 'Já possui uma conta?'}
-                </p>
-                <button
-                  onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                  className="inline-flex items-center gap-2 w-full justify-center border-2 border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
-                >
-                  {mode === 'login' ? 'Criar conta gratuita' : 'Fazer login'}
-                </button>
-              </div>
-            )}
+            <div className="text-center">
+              <p className="text-gray-600 text-sm mb-4">
+                {mode === 'login' ? 'Ainda não tem uma conta?' : 'Já possui uma conta?'}
+              </p>
+              <button
+                onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+                className="inline-flex items-center gap-2 w-full justify-center border-2 border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
+              >
+                {mode === 'login' ? 'Criar conta gratuita' : 'Fazer login'}
+              </button>
+            </div>
 
             {/* Informações Adicionais */}
             <div className="mt-8 pt-6 border-t border-gray-200">
               <div className="text-center">
                 <p className="text-xs text-gray-500 mb-2">
-                  {mode === 'complete-registration'
-                    ? 'Ao completar o cadastro, você concorda com nossos'
-                    : mode === 'login' 
+                  {mode === 'login' 
                     ? 'Ao fazer login, você concorda com nossos'
                     : 'Ao criar uma conta, você concorda com nossos'
                   }
