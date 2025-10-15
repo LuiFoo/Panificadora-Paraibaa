@@ -90,7 +90,7 @@ export const useAuthSync = () => {
             const userData: UserData = {
               _id: data.user._id,
               login: data.user.login,
-              password: 'google-auth',
+              password: data.user.password || 'google-auth',
               name: data.user.name,
               email: data.user.email,
               permissao: data.user.permissao || "usuario",
@@ -102,6 +102,8 @@ export const useAuthSync = () => {
             setUser(userData);
             // Limpar flag de logout manual quando usuário faz login
             localStorage.removeItem("manual_logout");
+            localStorage.removeItem("logout_timestamp");
+            localStorage.removeItem("logout_timestamp");
             console.log("✅ Usuário sincronizado com dados do MongoDB");
           } else {
             // Fallback para dados do NextAuth
@@ -120,6 +122,7 @@ export const useAuthSync = () => {
             setUser(userData);
             // Limpar flag de logout manual quando usuário faz login
             localStorage.removeItem("manual_logout");
+            localStorage.removeItem("logout_timestamp");
           }
         } catch (error) {
           console.error("Erro ao sincronizar dados do usuário:", error);

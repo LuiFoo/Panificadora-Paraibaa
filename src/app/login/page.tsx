@@ -2,7 +2,7 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import AuthForm from "@/components/AuthForm";
+import UnifiedAuthForm from "@/components/UnifiedAuthForm";
 import { useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
@@ -38,13 +38,8 @@ export default function LoginPage() {
   return (
     <>
       <Header />
-      <AuthForm
-        mode="login"
-        title="Faça login em sua conta"
-        subtitle="Entre com sua conta Google para acessar a Panificadora Paraíba"
-        buttonText="Entrar com Google"
-        linkText="Criar conta gratuita"
-        linkHref="/cadastro"
+      <UnifiedAuthForm
+        initialMode="login"
         imageSrc="/images/imagem3.png"
         imageAlt="Panificadora Paraíba"
       />
