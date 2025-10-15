@@ -180,7 +180,7 @@ export default function CheckoutPage() {
                              data.paesSalgadosEspeciais || data.roscasPaesEspeciais || 
                              data.salgadosAssadosLanches || data.sobremesasTortas || data.docesIndividuais || [];
               
-              const produto = produtos.find((p: any) => p._id === item.id);
+              const produto = produtos.find((p: { _id: string; status?: string }) => p._id === item.id);
               if (produto && !produto.status) {
                 produtoEncontrado = true;
                 break;

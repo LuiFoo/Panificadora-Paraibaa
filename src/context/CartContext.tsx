@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
 
@@ -44,7 +44,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
   // Função para verificar e remover produtos pausados
-  const verificarProdutosPausados = async (items: CartItem[]) => {
+  const verificarProdutosPausados = useCallback(async (items: CartItem[]) => {
     const produtosValidos: CartItem[] = [];
     const produtosPausados: string[] = [];
 
@@ -65,7 +65,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                            data.paesSalgadosEspeciais || data.roscasPaesEspeciais || 
                            data.salgadosAssadosLanches || data.sobremesasTortas || data.docesIndividuais || [];
             
-            const produto = produtos.find((p: any) => p._id === item.id);
+            const produto = produtos.find((p: { _id: string; status?: string }) => p._id === item.id);
             if (produto && !produto.status) {
               produtoEncontrado = true;
               break;
@@ -112,7 +112,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return produtosValidos;
-  };
+  }, [login, showToast]);
 
   // Carregar o carrinho do MongoDB quando o login mudar
   useEffect(() => {
@@ -149,7 +149,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
 
     void fetchCart();
-  }, [login]);
+  }, [login, verificarProdutosPausados]);
 
   // Total de itens no carrinho
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantidade, 0);
@@ -202,7 +202,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     if (existingItemIndex !== -1) {
       updatedItems = [...cartItems];
-      const novaQuantidade = updatedItems[existingItemIndex].quantidade + item.quantidade;
+      // Substituir quantidade em vez de somar
+      const novaQuantidade = item.quantidade;
       
       // Verificar limite por produto (20 unidades)
       if (novaQuantidade > 20) {

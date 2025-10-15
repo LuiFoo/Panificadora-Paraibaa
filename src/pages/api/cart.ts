@@ -57,8 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("Índice do produto existente:", existingProductIndex);
 
       if (existingProductIndex > -1) {
-        console.log("Produto já existe, atualizando quantidade de", user.carrinho.produtos[existingProductIndex].quantidade, "para", user.carrinho.produtos[existingProductIndex].quantidade + quantidade);
-        user.carrinho.produtos[existingProductIndex].quantidade += quantidade;
+        console.log("Produto já existe, substituindo quantidade de", user.carrinho.produtos[existingProductIndex].quantidade, "para", quantidade);
+        user.carrinho.produtos[existingProductIndex].quantidade = quantidade;
       } else {
         console.log("Novo produto, adicionando ao carrinho");
         user.carrinho.produtos.push({ produtoId, nome, valor, quantidade, img });
