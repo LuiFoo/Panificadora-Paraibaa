@@ -147,7 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             { 
               $pull: { 
                 "carrinho.produtos": { produtoId: id }
-              },
+              } as any,
               $set: {
                 "carrinho.updatedAt": new Date().toISOString()
               }
