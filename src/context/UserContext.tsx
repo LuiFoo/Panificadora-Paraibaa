@@ -30,19 +30,26 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   // Recupera o usuário armazenado no localStorage e valida se ainda é válido no servidor
   useEffect(() => {
+    console.log("🔍 UserContext: Iniciando verificação de usuário");
     const savedUser = localStorage.getItem("usuario");
     const manualLogout = localStorage.getItem("manual_logout");
     const logoutTimestamp = localStorage.getItem("logout_timestamp");
+
+    console.log("🔍 UserContext: savedUser existe:", !!savedUser);
+    console.log("🔍 UserContext: manualLogout:", manualLogout);
+    console.log("🔍 UserContext: logoutTimestamp:", logoutTimestamp);
 
     // Se foi logout manual, não carregar usuário
     if (manualLogout === "true") {
       const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp) : 0;
       console.log("🚫 Logout manual detectado - não carregando usuário");
+      console.log("🚫 Tempo desde logout:", timeSinceLogout);
       
       // Se já passou mais de 10 segundos, pode limpar a flag
       if (timeSinceLogout > 10000) {
         localStorage.removeItem("manual_logout");
         localStorage.removeItem("logout_timestamp");
+        console.log("🧹 Flags de logout limpas");
       }
       
       setLoading(false);
@@ -50,6 +57,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (!savedUser) {
+      console.log("❌ Nenhum usuário salvo encontrado");
       setLoading(false);
       return;
     }
@@ -58,9 +66,17 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     // Função para verificar o usuário no servidor
     const validateUser = async () => {
+      console.log("🔍 UserContext: Iniciando validação do usuário");
+      console.log("🔍 UserContext: parsedUser:", {
+        login: parsedUser.login,
+        password: parsedUser.password?.substring(0, 10) + "...",
+        googleId: parsedUser.googleId
+      });
+      
       try {
         // Se é usuário Google, usar get-user-data
         if (parsedUser.password === 'google-auth' && parsedUser.googleId) {
+          console.log("🔍 UserContext: Validando usuário Google");
           const res = await fetch("/api/auth/get-user-data", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -68,6 +84,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           });
 
           const data = await res.json();
+          console.log("🔍 UserContext: Resposta get-user-data:", { ok: data.ok, hasUser: !!data.user });
 
           if (data.ok && data.user) {
             // Usuário válido no servidor
@@ -79,15 +96,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               password: parsedUser.password,
             };
 
+            console.log("✅ UserContext: Usuário Google válido");
             setUser(validUser);
             localStorage.setItem("usuario", JSON.stringify(validUser));
           } else {
             // Usuário não válido, limpando localStorage
+            console.log("❌ UserContext: Usuário Google inválido, limpando localStorage");
             localStorage.removeItem("usuario");
             setUser(null);
           }
         } else {
           // Para usuários com senha tradicional, usar verificar-admin
+          console.log("🔍 UserContext: Validando usuário tradicional");
           const res = await fetch("/api/verificar-admin", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -95,6 +115,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           });
 
           const data = await res.json();
+          console.log("🔍 UserContext: Resposta verificar-admin:", { ok: data.ok, hasUser: !!data.user });
 
           if (data.ok && data.user) {
             // Usuário válido no servidor
@@ -106,20 +127,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               password: parsedUser.password, // Mantém a senha para futuras validações
             };
 
+            console.log("✅ UserContext: Usuário tradicional válido");
             setUser(validUser);
             localStorage.setItem("usuario", JSON.stringify(validUser));
           } else {
             // Usuário não válido, limpando localStorage
+            console.log("❌ UserContext: Usuário tradicional inválido, limpando localStorage");
             localStorage.removeItem("usuario");
             setUser(null);
           }
         }
       } catch (error) {
-        console.error("Erro ao verificar usuário:", error);
+        console.error("❌ UserContext: Erro ao verificar usuário:", error);
         // Se erro ocorrer, mantém o usuário no localStorage temporariamente
         setUser(parsedUser);
       } finally {
         setLoading(false);
+        console.log("🔍 UserContext: Validação concluída, loading = false");
       }
     };
 
