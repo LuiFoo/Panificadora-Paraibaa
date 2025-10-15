@@ -178,6 +178,11 @@ export default function UnifiedAuthForm({
     setIsLoading(true);
 
     try {
+      if (!googleUser) {
+        showToast("Erro: dados do usuário não encontrados", "error");
+        return;
+      }
+
       const response = await fetch('/api/auth/complete-registration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
