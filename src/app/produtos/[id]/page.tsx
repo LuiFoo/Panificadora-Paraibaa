@@ -4,7 +4,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import StarRating from "@/components/StarRating";
 import { useEffect, useState, useCallback, useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
