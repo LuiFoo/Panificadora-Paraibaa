@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
 export async function middleware() {
   // Removido o middleware NextAuth que estava causando conflito
