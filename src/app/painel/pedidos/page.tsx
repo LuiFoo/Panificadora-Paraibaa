@@ -498,7 +498,11 @@ export default function PedidosPage() {
             </div>
             
             <div className="p-6">
-              <PedidoTimeline pedido={pedidoSelecionado} />
+              <PedidoTimeline 
+                statusAtual={pedidoSelecionado.status}
+                modalidade={pedidoSelecionado.modalidadeEntrega}
+                historico={pedidoSelecionado.historico}
+              />
             </div>
           </div>
         </div>
