@@ -348,7 +348,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error("Erro ao adicionar produto:", err);
       const msg = "Erro ao adicionar produto. Tente novamente.";
-      showToast(msg, "error");
+      console.error(msg);
       return { success: false, message: msg };
     }
   };
