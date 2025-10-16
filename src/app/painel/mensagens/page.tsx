@@ -80,6 +80,29 @@ export default function MensagensAdminPage() {
   // Definir conversaAtual antes dos useEffects
   const conversaAtual = conversaTemporaria || conversas.find(c => c.userId === conversaSelecionada);
 
+  const fetchConversas = useCallback(async () => {
+    try {
+      const response = await fetch("/api/mensagens?isAdmin=true");
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          // API já retorna as conversas ordenadas (mais recente primeiro)
+          setConversas(data.conversas);
+          
+          // Scroll automático quando receber novas mensagens
+          setTimeout(() => {
+            scrollToBottom();
+          }, 100);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar conversas:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Fetch inicial das conversas
   useEffect(() => {
     fetchConversas();
@@ -141,30 +164,6 @@ export default function MensagensAdminPage() {
       }, 50);
     }
   }, [conversas, conversaTemporaria, conversaExpandida]);
-
-
-  const fetchConversas = useCallback(async () => {
-    try {
-      const response = await fetch("/api/mensagens?isAdmin=true");
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.success) {
-          // API já retorna as conversas ordenadas (mais recente primeiro)
-          setConversas(data.conversas);
-          
-          // Scroll automático quando receber novas mensagens
-          setTimeout(() => {
-            scrollToBottom();
-          }, 100);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao buscar conversas:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   const marcarComoLida = async (userId: string) => {
     try {
