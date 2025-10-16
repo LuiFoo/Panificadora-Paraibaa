@@ -38,7 +38,7 @@ interface ProfileData {
 export default function ClienteProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const userId = params.userId as string;
+  const userId = params?.userId as string;
   
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +49,29 @@ export default function ClienteProfilePage() {
       loadProfileData();
     }
   }, [userId, loadProfileData]);
+
+  // Se não há userId, mostrar erro
+  if (!userId) {
+    return (
+      <ProtectedRoute requiredPermission="administrador" redirectTo="/">
+        <Header />
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-md p-8 text-center max-w-md mx-4">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Erro</h2>
+            <p className="text-gray-600 mb-6">ID do usuário não encontrado</p>
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Voltar
+            </button>
+          </div>
+        </main>
+        <Footer showMap={false} />
+      </ProtectedRoute>
+    );
+  }
 
   const loadProfileData = useCallback(async () => {
     setLoading(true);
