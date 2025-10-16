@@ -105,12 +105,7 @@ export default function MensagensAdminPage() {
     }
   }, [conversaSelecionada]);
 
-  // Scroll automático quando há novas mensagens
-  useEffect(() => {
-    if (conversaAtual && conversaAtual.mensagens.length > 0) {
-      scrollToBottom();
-    }
-  }, [conversaAtual?.mensagens.length, conversaAtual]);
+  // Scroll automático removido - não queremos scroll automático
 
   const fetchConversas = async () => {
     try {
@@ -149,16 +144,6 @@ export default function MensagensAdminPage() {
     }
   };
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-      }
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 100);
-  };
 
   const handleEnviarResposta = async (e: React.FormEvent) => {
     e.preventDefault();

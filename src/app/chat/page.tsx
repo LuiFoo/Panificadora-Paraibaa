@@ -106,12 +106,7 @@ export default function ChatPage() {
     }
   }, [user, fetchMensagens]);
 
-  // Scroll automático para novas mensagens
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [mensagens]);
+  // Scroll automático removido - não queremos scroll automático
 
   const handleEnviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
