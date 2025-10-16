@@ -15,7 +15,7 @@ const MAPEAMENTO_COLECOES = {
 };
 
 // Função para buscar produto em todas as coleções
-async function buscarProdutoEmTodasColecoes(db: any, id: string) {
+async function buscarProdutoEmTodasColecoes(db: { collection: (name: string) => any }, id: string) {
   // Primeiro, tentar na coleção "produtos"
   let produto = await db.collection("produtos").findOne({ _id: new ObjectId(id) });
   
@@ -133,7 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await db.collection(novaColecao).insertOne(novoProduto);
       } else {
         // Atualizar na mesma coleção
-        const updateData: any = { 
+        const updateData: Record<string, unknown> = { 
           subc,
           nome,
           valor: parseFloat(valor),

@@ -114,7 +114,7 @@ export default function MensagensAdminPage() {
         clearTimeout(buscaTimeout);
       }
     };
-  }, [buscaTimeout]);
+  }, [buscaTimeout, fetchConversas]);
 
   useEffect(() => {
     // Marcar mensagens do cliente como lidas quando admin abre a conversa
@@ -140,10 +140,10 @@ export default function MensagensAdminPage() {
         scrollToBottom();
       }, 50);
     }
-  }, [conversas, conversaTemporaria]);
+  }, [conversas, conversaTemporaria, conversaExpandida]);
 
 
-  const fetchConversas = async () => {
+  const fetchConversas = useCallback(async () => {
     try {
       const response = await fetch("/api/mensagens?isAdmin=true");
       if (response.ok) {
@@ -164,7 +164,7 @@ export default function MensagensAdminPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const marcarComoLida = async (userId: string) => {
     try {

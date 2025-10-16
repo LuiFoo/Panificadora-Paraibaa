@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -47,9 +48,9 @@ export default function ClienteProfilePage() {
     if (userId) {
       loadProfileData();
     }
-  }, [userId]);
+  }, [userId, loadProfileData]);
 
-  const loadProfileData = async () => {
+  const loadProfileData = useCallback(async () => {
     setLoading(true);
     setError("");
     
@@ -68,7 +69,7 @@ export default function ClienteProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
 
   if (loading) {
     return (
@@ -183,9 +184,11 @@ export default function ClienteProfilePage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center gap-4">
                 {profileData.picture ? (
-                  <img
+                  <Image
                     src={profileData.picture}
                     alt={profileData.name}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-full border-2 border-gray-300"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';

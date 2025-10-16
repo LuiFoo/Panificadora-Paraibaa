@@ -213,7 +213,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     };
 
     validateUser();
-  }, [user]); // Executa quando user muda
+  }, [user, loading, lastValidation]); // Executa quando user muda
 
   // Verifica se o usuário tem permissão de administrador usando useMemo para performance
   const isAdmin = useMemo(() => {

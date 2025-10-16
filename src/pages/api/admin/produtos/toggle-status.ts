@@ -15,7 +15,7 @@ const MAPEAMENTO_COLECOES = {
 };
 
 // Função para buscar produto em todas as coleções
-async function buscarProdutoEmTodasColecoes(db: any, id: string) {
+async function buscarProdutoEmTodasColecoes(db: { collection: (name: string) => any }, id: string) {
   // Primeiro, tentar na coleção "produtos"
   let produto = await db.collection("produtos").findOne({ _id: new ObjectId(id) });
   

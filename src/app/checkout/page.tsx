@@ -91,7 +91,7 @@ export default function CheckoutPage() {
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       // Tentar ViaCEP primeiro
-      let response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`, {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`, {
         signal: controller.signal,
         headers: {
           'Accept': 'application/json',

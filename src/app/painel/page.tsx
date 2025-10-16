@@ -6,7 +6,6 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 interface DashboardStats {
   pedidosHoje: number;
@@ -22,7 +21,6 @@ interface DashboardStats {
 
 export default function Painel() {
   const { user } = useUser();
-  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 

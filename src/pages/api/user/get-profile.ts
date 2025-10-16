@@ -10,7 +10,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     let email: string | undefined;
     let userId: string | undefined;
-    let isAdminRequest = false;
 
     if (req.method === "POST") {
       email = req.body.email;
@@ -25,7 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           msg: error 
         });
       }
-      isAdminRequest = true;
     }
 
     if (!email && !userId) {
