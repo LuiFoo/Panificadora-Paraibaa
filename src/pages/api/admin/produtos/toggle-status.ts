@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
-import { ObjectId } from "mongodb";
+import { ObjectId, Db } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
 // Mapeamento das coleções antigas
@@ -15,7 +15,7 @@ const MAPEAMENTO_COLECOES = {
 };
 
 // Função para buscar produto em todas as coleções
-async function buscarProdutoEmTodasColecoes(db: { collection: (name: string) => any }, id: string) {
+async function buscarProdutoEmTodasColecoes(db: Db, id: string) {
   // Primeiro, tentar na coleção "produtos"
   let produto = await db.collection("produtos").findOne({ _id: new ObjectId(id) });
   
