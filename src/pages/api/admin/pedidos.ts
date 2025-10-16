@@ -16,14 +16,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const db = client.db("paraiba");
 
     if (method === "GET") {
-      // Buscar todos os pedidos
+      // Buscar todos os pedidos com informações do usuário
       const pedidos = await db.collection("pedidos")
         .find({})
         .sort({ dataPedido: -1 })
         .limit(100)
         .toArray();
 
-      return res.status(200).json({ success: true, pedidos });
+      // Enriquecer pedidos com informações do usuário
+      const pedidosEnriquecidos = await Promise.all(
+        pedidos.map(async (pedido) => {
+          const usuario = await db.collection("users").findOne({ 
+            email: pedido.emailUsuario || pedido.userEmail 
+          });
+          
+          return {
+            ...pedido,
+            usuario: usuario ? {
+              nome: usuario.name,
+              email: usuario.email,
+              telefone: usuario.phone
+            } : null
+          };
+        })
+      );
+
+      return res.status(200).json({ success: true, pedidos: pedidosEnriquecidos });
     }
 
     return res.status(405).json({ error: "Método não permitido" });

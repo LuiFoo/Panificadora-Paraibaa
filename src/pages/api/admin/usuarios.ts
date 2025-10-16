@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import client from "@/modules/mongodb";
+import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
@@ -13,6 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    const client = await clientPromise;
     const db = client.db("paraiba");
 
     if (method === "GET") {
@@ -47,6 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "userId e permission são obrigatórios" });
       }
 
+      if (typeof userId !== 'string' || typeof permission !== 'string') {
+        return res.status(400).json({ error: "userId e permission devem ser strings válidas" });
+      }
+
       // Não permitir promover usuários a administrador
       if (permission === "administrador") {
         return res.status(403).json({ 
@@ -54,8 +59,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      if (!["usuario"].includes(permission)) {
-        return res.status(400).json({ error: "Permissão inválida. Apenas 'usuario' é permitido" });
+      // Permitir apenas permissões válidas
+      if (!["usuario", "cliente"].includes(permission)) {
+        return res.status(400).json({ error: "Permissão inválida. Apenas 'usuario' ou 'cliente' são permitidos" });
       }
 
       const result = await db.collection("users").updateOne(

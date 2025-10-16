@@ -36,9 +36,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Todos os campos são obrigatórios" });
       }
 
-      if (valor <= 0) {
+      const valorNumerico = parseFloat(valor);
+      if (isNaN(valorNumerico) || valorNumerico <= 0) {
         console.log("❌ Validação falhou - valor inválido");
-        return res.status(400).json({ error: "Valor deve ser maior que zero" });
+        return res.status(400).json({ error: "Valor deve ser um número maior que zero" });
       }
 
       // Mapear subcategoria para nome da coleção
@@ -71,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const novoProduto = {
         subc,
         nome,
-        valor: parseFloat(valor),
+        valor: valorNumerico,
         vtipo,
         ingredientes,
         img,
