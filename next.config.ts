@@ -41,8 +41,7 @@ const nextConfig: NextConfig = {
   // Configuração de servidor
   serverExternalPackages: ['mongodb'],
   
-  // Otimizações de build
-  swcMinify: true,
+  // Otimizações de build (swcMinify é padrão no Next.js 15)
   
   // Configuração de headers de segurança
   async headers() {

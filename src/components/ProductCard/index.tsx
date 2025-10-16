@@ -3,7 +3,6 @@
 import React, { memo } from 'react';
 import Link from 'next/link';
 import OptimizedImage from '@/components/OptimizedImage';
-import { useLazyLoad } from '@/hooks/useIntersectionObserver';
 
 interface ProductCardProps {
   id: string;
@@ -31,11 +30,6 @@ function ProductCardComponent({
   onAddToCart,
   className = ''
 }: ProductCardProps) {
-  const { ref, shouldLoad } = useLazyLoad({
-    threshold: 0.1,
-    rootMargin: '50px'
-  });
-
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -44,22 +38,17 @@ function ProductCardComponent({
 
   return (
     <div
-      ref={ref}
       className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden ${className}`}
     >
       <Link href={`/produtos/${id}`}>
         <div className="relative aspect-square">
-          {shouldLoad ? (
-            <OptimizedImage
-              src={img}
-              alt={nome}
-              className="w-full h-full"
-              priority={false}
-              quality={80}
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-200 animate-pulse" />
-          )}
+          <OptimizedImage
+            src={img}
+            alt={nome}
+            className="w-full h-full"
+            priority={false}
+            quality={80}
+          />
         </div>
       </Link>
 
@@ -87,7 +76,7 @@ function ProductCardComponent({
             R$ {valor.toFixed(2).replace('.', ',')}
           </span>
 
-          {shouldLoad && onAddToCart && (
+          {onAddToCart && (
             <button
               onClick={handleAddToCart}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"

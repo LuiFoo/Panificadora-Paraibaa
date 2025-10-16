@@ -8,8 +8,6 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import Loading, { LoadingSkeleton } from "@/components/Loading";
 import OptimizedImage from "@/components/OptimizedImage";
-import { useDebounce } from "@/hooks/useDebounce";
-import { useFetchCache } from "@/hooks/useFetchCache";
 
 interface ItemCardapio {
   _id: string;
@@ -43,8 +41,15 @@ export default function CardapioPage() {
   const [isVisible, setIsVisible] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
   
-  // Debounce da busca
-  const debouncedSearch = useDebounce(searchTerm, 500);
+  // Debounce simples da busca
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Observer para animações
   useEffect(() => {
@@ -72,28 +77,40 @@ export default function CardapioPage() {
     [categoriaAtual]
   );
 
-  const { data: produtosCache, loading: cacheLoading } = useFetchCache(
-    `produtos-${categoriaUrl}`,
-    async () => {
-      const response = await fetch(`/api/${categoriaUrl}`);
-      if (!response.ok) throw new Error("Falha ao buscar produtos");
-      const data = await response.json();
-      
-      const chavesAPI: { [key: string]: string } = {
-        "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
-        "DOCES INDIVIDUAIS": "docesIndividuais",
-        "PAES DOCES": "paesDoces",
-        "PAES SALGADOS ESPECIAIS": "paesSalgadosEspeciais",
-        "ROSCAS PAES ESPECIAIS": "roscasPaesEspeciais",
-        "SALGADOS ASSADOS LANCHES": "salgadosAssadosLanches",
-        "SOBREMESAS TORTAS": "sobremesasTortas",
-      };
-      
-      const chave = chavesAPI[categoriaAtual] || Object.keys(data)[0];
-      return data[chave] || [];
-    },
-    { ttl: 300000, staleWhileRevalidate: true } // 5 minutos
-  );
+  const [produtosCache, setProdutosCache] = useState<ItemCardapio[]>([]);
+  const [cacheLoading, setCacheLoading] = useState(false);
+
+  // Fetch de produtos
+  useEffect(() => {
+    const fetchProdutos = async () => {
+      setCacheLoading(true);
+      try {
+        const response = await fetch(`/api/${categoriaUrl}`);
+        if (!response.ok) throw new Error("Falha ao buscar produtos");
+        const data = await response.json();
+        
+        const chavesAPI: { [key: string]: string } = {
+          "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
+          "DOCES INDIVIDUAIS": "docesIndividuais",
+          "PAES DOCES": "paesDoces",
+          "PAES SALGADOS ESPECIAIS": "paesSalgadosEspeciais",
+          "ROSCAS PAES ESPECIAIS": "roscasPaesEspeciais",
+          "SALGADOS ASSADOS LANCHES": "salgadosAssadosLanches",
+          "SOBREMESAS TORTAS": "sobremesasTortas",
+        };
+        
+        const chave = chavesAPI[categoriaAtual] || Object.keys(data)[0];
+        setProdutosCache(data[chave] || []);
+      } catch (error) {
+        console.error("Erro ao buscar produtos:", error);
+        setProdutosCache([]);
+      } finally {
+        setCacheLoading(false);
+      }
+    };
+
+    fetchProdutos();
+  }, [categoriaUrl, categoriaAtual]);
 
   // Atualiza a categoria atual da URL ou define a padrão
   useEffect(() => {
