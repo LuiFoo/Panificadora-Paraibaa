@@ -7,6 +7,7 @@ import { useUser } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { validateAndFormatCEP } from "@/lib/cepUtils";
 
 interface Endereco {
   rua: string;
@@ -48,6 +49,8 @@ export default function CheckoutPage() {
   const [salvarDados, setSalvarDados] = useState(false);
   const [dadosCarregados, setDadosCarregados] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepError, setCepError] = useState("");
+  const [cepTimeout, setCepTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Calcular data máxima (1 mês a partir de hoje)
   const getDataMaxima = () => {
@@ -57,16 +60,74 @@ export default function CheckoutPage() {
     return umMesDepois.toISOString().split('T')[0];
   };
 
-  // Função para buscar endereço por CEP
+  // Cleanup timeout quando componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (cepTimeout) {
+        clearTimeout(cepTimeout);
+      }
+    };
+  }, [cepTimeout]);
+
+  // Função para buscar endereço por CEP (otimizada)
   const buscarCep = async (cep: string) => {
     const cepLimpo = cep.replace(/\D/g, '');
     
     if (cepLimpo.length !== 8) return;
     
+    // Validar se é CEP de Ribeirão Preto
+    const validacao = validateAndFormatCEP(cepLimpo);
+    if (!validacao.isValid) {
+      setCepError(validacao.error || "");
+      return;
+    }
+    
+    setCepError(""); // Limpar erro se CEP for válido
     setBuscandoCep(true);
+    
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
-      const data = await response.json();
+      // Timeout de 10 segundos para evitar travamento
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      // Tentar ViaCEP primeiro
+      let response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      let data;
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        // Fallback para BrasilAPI se ViaCEP falhar
+        console.log("ViaCEP falhou, tentando BrasilAPI...");
+        const brasilApiResponse = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (brasilApiResponse.ok) {
+          const brasilApiData = await brasilApiResponse.json();
+          data = {
+            logradouro: brasilApiData.street || "",
+            bairro: brasilApiData.neighborhood || "",
+            localidade: brasilApiData.city || "",
+            uf: brasilApiData.state || "",
+            erro: false
+          };
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
       
       if (!data.erro) {
         setEndereco(prev => ({
@@ -74,13 +135,18 @@ export default function CheckoutPage() {
           rua: data.logradouro || "",
           bairro: data.bairro || "",
           cidade: data.localidade || "",
-          cep: cepLimpo
+          cep: validacao.formatted
         }));
       } else {
-        console.log("CEP não encontrado");
+        setCepError("CEP não encontrado");
       }
     } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        setCepError("Busca demorou muito. Tente novamente.");
+      } else {
+        console.error("Erro ao buscar CEP:", error);
+        setCepError("Erro ao buscar endereço. Tente novamente.");
+      }
     } finally {
       setBuscandoCep(false);
     }
@@ -203,6 +269,16 @@ export default function CheckoutPage() {
           setError("Preencha todos os campos obrigatórios do endereço para entrega");
           setLoading(false);
           return;
+        }
+        
+        // Validar CEP se preenchido
+        if (endereco.cep) {
+          const validacaoCep = validateAndFormatCEP(endereco.cep);
+          if (!validacaoCep.isValid) {
+            setError(validacaoCep.error || "CEP inválido");
+            setLoading(false);
+            return;
+          }
         }
         
         if (!dataEntrega || !horaEntrega) {
@@ -559,6 +635,67 @@ export default function CheckoutPage() {
               {modalidadeEntrega === 'entrega' && (
                 <>
                   <h3 className="text-lg font-medium text-gray-900 mb-3">Endereço de Entrega</h3>
+                  
+                  {/* CEP primeiro para preenchimento automático */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      CEP
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={endereco.cep}
+                          onChange={(e) => {
+                            // Aceitar apenas números
+                            const valor = e.target.value.replace(/\D/g, '');
+                            const cepNumeros = valor;
+                            
+                            // Lógica ultra simples: só formata quando tem 6+ dígitos
+                            let cepFormatado = cepNumeros;
+                            if (cepNumeros.length >= 6) {
+                              cepFormatado = `${cepNumeros.slice(0, 5)}-${cepNumeros.slice(5)}`;
+                            }
+                            
+                            setEndereco({...endereco, cep: cepFormatado});
+                            setCepError("");
+                            
+                            // Buscar CEP quando tiver 8 dígitos
+                            if (cepTimeout) {
+                              clearTimeout(cepTimeout);
+                            }
+                            
+                            if (cepNumeros.length === 8) {
+                              const timeout = setTimeout(() => {
+                                buscarCep(cepNumeros);
+                              }, 500);
+                              setCepTimeout(timeout);
+                            }
+                          }}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                          cepError 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'border-gray-300 focus:ring-amber-500'
+                        }`}
+                        placeholder="14000-000 (Ribeirão Preto)"
+                        maxLength={9}
+                      />
+                      {buscandoCep && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500"></div>
+                        </div>
+                      )}
+                    </div>
+                    {cepError && (
+                      <p className="text-xs text-red-600 mt-1">
+                        ❌ {cepError}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      No momento limitado apenas para Ribeirão Preto
+                    </p>
+                  </div>
+
+                  {/* Campos de endereço preenchidos automaticamente */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -617,55 +754,17 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        CEP
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={endereco.cep}
-                          onChange={(e) => {
-                            const valor = e.target.value.replace(/\D/g, '');
-                            setEndereco({...endereco, cep: valor});
-                            
-                            // Buscar CEP automaticamente quando tiver 8 dígitos
-                            if (valor.length === 8) {
-                              buscarCep(valor);
-                            }
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                          placeholder="Apenas números (8 dígitos) - Opcional"
-                          maxLength={8}
-                        />
-                        {buscandoCep && (
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500"></div>
-                          </div>
-                        )}
-                      </div>
-                      {endereco.cep.length === 8 && !buscandoCep && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✅ CEP válido - Buscando endereço...
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        💡 Digite o CEP para preencher automaticamente o endereço
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Complemento
-                      </label>
-                      <input
-                        type="text"
-                        value={endereco.complemento}
-                        onChange={(e) => setEndereco({...endereco, complemento: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        placeholder="Apartamento, casa, etc."
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Complemento
+                    </label>
+                    <input
+                      type="text"
+                      value={endereco.complemento}
+                      onChange={(e) => setEndereco({...endereco, complemento: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      placeholder="Apartamento, casa, etc."
+                    />
                   </div>
                   
                   {/* Campos de Data e Hora de Entrega */}

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
+import { protegerApiAdmin } from "@/lib/adminAuth";
 
 interface Conversa {
   userId: string;
@@ -12,6 +13,12 @@ interface Conversa {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
+
+  // Verificar se o usuário é admin
+  const { isAdmin, error } = await protegerApiAdmin(req);
+  if (!isAdmin) {
+    return res.status(403).json({ error });
+  }
 
   try {
     const db = client.db("paraiba");

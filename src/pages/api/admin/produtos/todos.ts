@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { protegerApiAdmin } from "@/lib/adminAuth";
 
 // Mapeamento das coleções antigas para as novas subcategorias
 const MAPEAMENTO_COLECOES = {
@@ -43,17 +44,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
   }
 
+  // Verificar se o usuário é admin
+  const { isAdmin, error } = await protegerApiAdmin(req);
+  if (!isAdmin) {
+    return res.status(403).json({ error });
+  }
+
   try {
+    console.log("🔍 Iniciando busca de todos os produtos...");
     const client = await clientPromise;
     const db = client.db("paraiba");
 
     const todosProdutos: ProdutoExistente[] = [];
 
     // Buscar produtos da nova coleção unificada
+    console.log("📦 Buscando produtos da coleção 'produtos'...");
     const produtosNovos = await db.collection("produtos")
       .find({})
       .sort({ dataCriacao: -1 })
       .toArray();
+    console.log(`📦 Encontrados ${produtosNovos.length} produtos na coleção 'produtos'`);
 
     // Adicionar produtos da nova coleção
     for (const produto of produtosNovos) {
@@ -73,10 +83,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Buscar produtos das coleções antigas
+    console.log("📂 Buscando produtos das coleções antigas...");
     for (const [colecaoAntiga, subcategoria] of Object.entries(MAPEAMENTO_COLECOES)) {
+      console.log(`📂 Buscando na coleção: ${colecaoAntiga}`);
       const produtosAntigos = await db.collection(colecaoAntiga)
         .find({ deleted: { $ne: true } })
         .toArray();
+      console.log(`📂 Encontrados ${produtosAntigos.length} produtos na coleção '${colecaoAntiga}'`);
 
       for (const produto of produtosAntigos) {
         todosProdutos.push({
@@ -102,21 +115,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return dateB.getTime() - dateA.getTime();
     });
 
+    console.log(`✅ Total de produtos encontrados: ${todosProdutos.length}`);
+
     // Extrair subcategorias únicas e filtrar apenas as válidas
     const subcategoriasUnicas = [...new Set(todosProdutos.map(p => p.subcategoria))]
       .filter(sub => sub && SUBCATEGORIAS_VALIDAS.includes(sub))
       .sort(); // Ordenar alfabeticamente
 
-    return res.status(200).json({ 
+    const resposta = { 
+      success: true,
       produtos: todosProdutos,
       total: todosProdutos.length,
       subcategorias: subcategoriasUnicas,
       colecoes: Object.keys(MAPEAMENTO_COLECOES).concat(["produtos"])
+    };
+
+    console.log("📤 Retornando resposta:", { 
+      success: resposta.success, 
+      total: resposta.total, 
+      subcategorias: resposta.subcategorias.length 
     });
+
+    return res.status(200).json(resposta);
 
   } catch (error) {
     console.error("Erro ao buscar todos os produtos:", error);
     return res.status(500).json({ 
+      success: false,
       error: "Erro interno do servidor",
       detalhes: error instanceof Error ? error.message : "Erro desconhecido"
     });

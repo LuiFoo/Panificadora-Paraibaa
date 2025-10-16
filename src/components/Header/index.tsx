@@ -11,7 +11,7 @@ import { signOut } from "next-auth/react";
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const { user, setUser, isAdmin } = useUser(); // agora pega isAdmin
+  const { user, setUser, isAdmin, loading } = useUser(); // agora pega isAdmin e loading
   const { totalItems } = useCart();
   const [pedidosPendentes, setPedidosPendentes] = useState(0);
   const [mensagensNaoLidas, setMensagensNaoLidas] = useState(0);
@@ -223,7 +223,7 @@ export default function Header() {
       </nav>
 
       {/* Lado direito - Desktop e Mobile */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 min-h-[40px]">
         {user && (
           <>
             {/* Ícone do painel só para administradores */}
@@ -246,11 +246,16 @@ export default function Header() {
           </>
         )}
 
-        {user ? (
+        {loading ? (
+          <div className="flex items-center gap-2 p-1 md:p-2 h-10 transition-all duration-300">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+            <span className="text-sm text-gray-600 hidden md:block">Carregando...</span>
+          </div>
+        ) : user ? (
           <div className="relative user-menu">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 p-1 md:p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-2 p-1 md:p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 h-10"
             >
               {user.picture ? (
                 <Image
@@ -259,6 +264,13 @@ export default function Header() {
                   width={32}
                   height={32}
                   className="rounded-full border-2 border-gray-300"
+                  onError={(e) => {
+                    console.log("Erro ao carregar foto do header:", user.picture);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log("Foto do header carregada:", user.picture);
+                  }}
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-gray-200 flex items-center justify-center">
@@ -364,7 +376,7 @@ export default function Header() {
         ) : (
           <Link
             href="/login"
-            className="py-[0.6rem] px-5 rounded-lg font-bold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)]"
+            className="py-[0.6rem] px-5 rounded-lg font-bold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] h-10 flex items-center transition-all duration-300"
           >
             Entre / Cadastre-se
           </Link>

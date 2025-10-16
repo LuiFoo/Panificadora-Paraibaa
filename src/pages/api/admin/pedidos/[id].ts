@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
+import { protegerApiAdmin } from "@/lib/adminAuth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -13,6 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Validar se o ID é um ObjectId válido
   if (!ObjectId.isValid(id)) {
     return res.status(400).json({ error: "ID do pedido inválido" });
+  }
+
+  // Verificar se o usuário é admin
+  const { isAdmin, error } = await protegerApiAdmin(req);
+  if (!isAdmin) {
+    return res.status(403).json({ error });
   }
 
   try {

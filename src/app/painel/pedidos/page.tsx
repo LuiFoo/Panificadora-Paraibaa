@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Modal from "@/components/Modal";
 import PedidoTimeline from "@/components/PedidoTimeline";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -48,13 +49,7 @@ export default function PedidosPage() {
   const [loadingPedidos, setLoadingPedidos] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroModalidade, setFiltroModalidade] = useState<string>("todos");
-  const [filtroPeriodo, setFiltroPeriodo] = useState<string>("todos");
-  const [dataInicio, setDataInicio] = useState<string>("");
-  const [dataFim, setDataFim] = useState<string>("");
-  const [buscaTexto, setBuscaTexto] = useState<string>("");
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-  const [pedidoExpandido, setPedidoExpandido] = useState<string | null>(null);
-  const [agruparPorDia, setAgruparPorDia] = useState<boolean>(true);
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<Pedido | null>(null);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -67,64 +62,42 @@ export default function PedidosPage() {
     title: "",
     message: ""
   });
-  const [stats, setStats] = useState({
-    totalPedidos: 0,
-    pedidosPendentes: 0,
-    pedidosHoje: 0,
-    valorTotal: 0
-  });
-
-  useEffect(() => {
-    if (!loading && !isAdmin) {
-      router.push("/");
-    }
-  }, [isAdmin, loading, router]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchPedidos();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const fetchPedidos = async () => {
+    setLoadingPedidos(true);
+    setError("");
     try {
       const response = await fetch("/api/admin/pedidos");
-      if (response.ok) {
-        const data = await response.json();
-        setPedidos(data.pedidos || []);
-        calculateStats(data.pedidos || []);
-        
-        // Disparar evento para atualizar o badge no Header
-        window.dispatchEvent(new Event('refreshPedidosCount'));
+      const data = await response.json();
+      
+      if (data.success) {
+        setPedidos(data.pedidos);
+      } else {
+        setError(data.error || "Erro ao carregar pedidos");
       }
-    } catch (error) {
-      console.error("Erro ao buscar pedidos:", error);
+    } catch (err) {
+      console.error("Erro ao buscar pedidos:", err);
+      setError("Erro ao conectar com o servidor");
     } finally {
       setLoadingPedidos(false);
     }
   };
 
-  const calculateStats = (pedidosList: Pedido[]) => {
-    const hoje = new Date().toDateString();
-    const pedidosHoje = pedidosList.filter(p => 
-      new Date(p.dataPedido).toDateString() === hoje
-    );
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      router.push("/");
+      return;
+    }
     
-    setStats({
-      totalPedidos: pedidosList.length,
-      pedidosPendentes: pedidosList.filter(p => p.status === 'pendente').length,
-      pedidosHoje: pedidosHoje.length,
-      valorTotal: pedidosList.reduce((sum, p) => sum + p.total, 0)
-    });
-  };
+    if (isAdmin) {
+      fetchPedidos();
+    }
+  }, [isAdmin, loading, router]);
 
-  const updateStatus = async (pedidoId: string, novoStatus: string) => {
-    setUpdatingStatus(pedidoId);
-    
+  const handleStatusChange = async (pedidoId: string, novoStatus: string) => {
     try {
-      console.log("Atualizando status do pedido:", pedidoId, "para:", novoStatus);
-      
       const response = await fetch(`/api/admin/pedidos/${pedidoId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -132,388 +105,404 @@ export default function PedidosPage() {
       });
 
       const data = await response.json();
-
-      if (response.ok && data.success) {
-        console.log("Status atualizado com sucesso");
-        fetchPedidos(); // Recarregar lista
+      if (data.success) {
+        setSuccess(`Status do pedido atualizado para ${novoStatus}!`);
+        setTimeout(() => setSuccess(""), 3000);
+        fetchPedidos();
       } else {
-        console.error("Erro ao atualizar status:", data.error);
-        setModalState({
-          isOpen: true,
-          type: "error",
-          title: "Erro",
-          message: data.error || "Erro desconhecido ao atualizar status"
-        });
+        setError(data.error || "Erro ao atualizar status do pedido");
       }
-    } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Erro de Conexão",
-        message: "Erro de conexão. Tente novamente."
-      });
-    } finally {
-      setUpdatingStatus(null);
+    } catch (err) {
+      console.error("Erro ao atualizar status:", err);
+      setError("Erro ao conectar com o servidor");
     }
   };
+
+  const handleDeletePedido = (pedido: Pedido) => {
+    setModalState({
+      isOpen: true,
+      type: "warning",
+      title: "Confirmar Exclusão",
+      message: `Tem certeza que deseja deletar o pedido #${pedido._id.slice(-6)}? Esta ação não pode ser desfeita!`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/admin/pedidos/${pedido._id}`, {
+            method: "DELETE"
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            setSuccess("Pedido deletado com sucesso!");
+            setTimeout(() => setSuccess(""), 3000);
+            fetchPedidos();
+          } else {
+            setError(data.error || "Erro ao deletar pedido");
+          }
+        } catch (err) {
+          console.error("Erro ao deletar pedido:", err);
+          setError("Erro ao conectar com o servidor");
+        }
+      }
+    });
+  };
+
+  const pedidosFiltrados = pedidos.filter(pedido => {
+    const matchStatus = filtroStatus === "todos" || pedido.status === filtroStatus;
+    const matchModalidade = filtroModalidade === "todos" || pedido.modalidadeEntrega === filtroModalidade;
+    return matchStatus && matchModalidade;
+  });
+
+  const totalPedidos = pedidos.length;
+  const pedidosPendentes = pedidos.filter(p => p.status === 'pendente').length;
+  const pedidosConfirmados = pedidos.filter(p => p.status === 'confirmado').length;
+  const pedidosEntregues = pedidos.filter(p => p.status === 'entregue').length;
+  const pedidosCancelados = pedidos.filter(p => p.status === 'cancelado').length;
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pendente': return 'bg-yellow-100 text-yellow-800';
       case 'confirmado': return 'bg-blue-100 text-blue-800';
-      case 'preparando': return 'bg-orange-100 text-orange-800';
+      case 'preparando': return 'bg-purple-100 text-purple-800';
       case 'pronto': return 'bg-green-100 text-green-800';
-      case 'entregue': return 'bg-gray-100 text-gray-800';
+      case 'entregue': return 'bg-green-100 text-green-800';
       case 'cancelado': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getDataRange = () => {
-    const hoje = new Date();
-    const ontem = new Date(hoje);
-    ontem.setDate(ontem.getDate() - 1);
-    
-    const seteDiasAtras = new Date(hoje);
-    seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-    
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    
-    switch (filtroPeriodo) {
-      case 'hoje':
-        return { inicio: hoje.toDateString(), fim: hoje.toDateString() };
-      case 'ontem':
-        return { inicio: ontem.toDateString(), fim: ontem.toDateString() };
-      case 'ultimos7':
-        return { inicio: seteDiasAtras.toDateString(), fim: hoje.toDateString() };
-      case 'mesAtual':
-        return { inicio: inicioMes.toDateString(), fim: hoje.toDateString() };
-      case 'personalizado':
-        if (dataInicio && dataFim) {
-          return { 
-            inicio: new Date(dataInicio).toDateString(), 
-            fim: new Date(dataFim).toDateString() 
-          };
-        }
-        return null;
-      default:
-        return null;
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pendente': return '⏳';
+      case 'confirmado': return '✅';
+      case 'preparando': return '👨‍🍳';
+      case 'pronto': return '🍞';
+      case 'entregue': return '🚚';
+      case 'cancelado': return '❌';
+      default: return '📦';
     }
   };
 
-  const filteredPedidos = pedidos.filter(pedido => {
-    // Filtro de status
-    const matchStatus = filtroStatus === "todos" || pedido.status === filtroStatus;
-    
-    // Filtro de modalidade
-    const matchModalidade = filtroModalidade === "todos" || pedido.modalidadeEntrega === filtroModalidade;
-    
-    // Filtro de busca (ID, userId, produto ou telefone)
-    const matchBusca = !buscaTexto || 
-      pedido._id.includes(buscaTexto) ||
-      pedido.userId.toLowerCase().includes(buscaTexto.toLowerCase()) ||
-      pedido.telefone?.includes(buscaTexto) ||
-      pedido.produtos.some(p => p.nome.toLowerCase().includes(buscaTexto.toLowerCase()));
-    
-    // Filtro por data
-    let matchData = true;
-    if (filtroPeriodo !== "todos") {
-      const dataRange = getDataRange();
-      if (dataRange) {
-        const dataPedido = new Date(pedido.dataPedido).toDateString();
-        const dataInicio = new Date(dataRange.inicio);
-        const dataFim = new Date(dataRange.fim);
-        const pedidoDate = new Date(dataPedido);
-        matchData = pedidoDate >= dataInicio && pedidoDate <= dataFim;
-      }
-    }
-    
-    return matchStatus && matchModalidade && matchBusca && matchData;
-  });
-
-  // Agrupar pedidos por dia se solicitado
-  const pedidosAgrupados: { [key: string]: Pedido[] } = {};
-  if (agruparPorDia) {
-    filteredPedidos.forEach(pedido => {
-      const data = new Date(pedido.dataPedido).toLocaleDateString('pt-BR');
-      if (!pedidosAgrupados[data]) {
-        pedidosAgrupados[data] = [];
-      }
-      pedidosAgrupados[data].push(pedido);
-    });
-  }
-
-  if (loading || loadingPedidos) {
+  if (loading) {
     return (
-      <>
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 py-10 text-center">
-          <p className="text-gray-600 text-lg">Carregando...</p>
-        </main>
-        <Footer showMap={false} />
-      </>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   if (!isAdmin) {
+    return null;
+  }
+
+  if (loadingPedidos) {
     return (
-      <>
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 py-10 text-center">
-          <p className="text-red-600 text-lg">Acesso negado. Apenas administradores.</p>
-        </main>
-        <Footer showMap={false} />
-      </>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando pedidos...</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <>
+    <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Gestão de Pedidos</h1>
-            <p className="text-gray-600 mt-1">Gerencie todos os pedidos da panificadora</p>
-          </div>
-          <Link 
-            href="/painel" 
-            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            ← Voltar ao Painel
-          </Link>
-        </div>
-
-        {/* Estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-600">Total de Pedidos</h3>
-            <p className="text-2xl font-bold text-blue-900">{stats.totalPedidos}</p>
-          </div>
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-yellow-600">Pendentes</h3>
-            <p className="text-2xl font-bold text-yellow-900">{stats.pedidosPendentes}</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-green-600">Hoje</h3>
-            <p className="text-2xl font-bold text-green-900">{stats.pedidosHoje}</p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <h3 className="text-sm font-medium text-purple-600">Valor Total</h3>
-            <p className="text-2xl font-bold text-purple-900">
-              R$ {stats.valorTotal.toFixed(2).replace(".", ",")}
-            </p>
-          </div>
-        </div>
-
-        {/* Filtros Avançados */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-              <span>🔍</span>
-              Filtros Avançados
-            </h3>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={agruparPorDia}
-                onChange={(e) => setAgruparPorDia(e.target.checked)}
-                className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
-              />
-              📅 Agrupar por Dia
-            </label>
-          </div>
-          
-          {/* Primeira linha de filtros */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* Busca */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Buscar:
-              </label>
-              <input
-                type="text"
-                placeholder="ID, cliente, produto..."
-                value={buscaTexto}
-                onChange={(e) => setBuscaTexto(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-
-            {/* Período */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Período:
-              </label>
-              <select
-                value={filtroPeriodo}
-                onChange={(e) => {
-                  setFiltroPeriodo(e.target.value);
-                  if (e.target.value !== 'personalizado') {
-                    setDataInicio("");
-                    setDataFim("");
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+      <div className="max-w-6xl mx-auto">
+        {/* Breadcrumb */}
+        <nav className="mb-6">
+          <ol className="flex items-center space-x-2 text-sm text-gray-600">
+            <li>
+              <button
+                onClick={() => router.push('/painel')}
+                className="hover:text-blue-600 transition-colors"
               >
-                <option value="todos">📅 Todos</option>
-                <option value="hoje">📌 Hoje</option>
-                <option value="ontem">⏮️ Ontem</option>
-                <option value="ultimos7">📊 Últimos 7 dias</option>
-                <option value="mesAtual">📆 Mês Atual</option>
-                <option value="personalizado">🔧 Personalizado</option>
-              </select>
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status:
-              </label>
-              <select
-                value={filtroStatus}
-                onChange={(e) => setFiltroStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="todos">Todos</option>
-                <option value="pendente">⏳ Pendentes</option>
-                <option value="confirmado">✅ Confirmados</option>
-                <option value="preparando">👨‍🍳 Preparando</option>
-                <option value="pronto">🍞 Prontos</option>
-                <option value="entregue">✨ Entregues</option>
-                <option value="cancelado">❌ Cancelados</option>
-              </select>
-            </div>
-
-            {/* Modalidade */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Modalidade:
-              </label>
-              <select
-                value={filtroModalidade}
-                onChange={(e) => setFiltroModalidade(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="todos">Todas</option>
-                <option value="entrega">🚚 Entrega</option>
-                <option value="retirada">🏪 Retirada</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Data personalizada */}
-          {filtroPeriodo === 'personalizado' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
-                  Data Início:
-                </label>
-                <input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                Painel
+              </button>
+            </li>
+            <li className="flex items-center">
+              <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-gray-800 font-medium">Gerenciar Pedidos</span>
+            </li>
+          </ol>
+        </nav>
+        
+        <div className="bg-white rounded-lg shadow-md">
+          {/* Cabeçalho */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-2xl font-bold text-gray-800">Gerenciar Pedidos</h1>
+                    <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
+                      {totalPedidos} pedidos
+                    </span>
+                  </div>
+                  <p className="text-gray-600">Visualize e gerencie todos os pedidos dos clientes</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-blue-900 mb-2">
-                  Data Fim:
-                </label>
-                <input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="flex gap-3">
+                <Link
+                  href="/painel"
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Voltar
+                </Link>
+                <button
+                  onClick={fetchPedidos}
+                  disabled={loadingPedidos}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Atualizar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Mensagens */}
+          {error && (
+            <div className="p-4 bg-red-50 border-l-4 border-red-400">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Contador de resultados e totalizador */}
-          <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-4">
-              <p className="text-sm text-gray-600">
-                <strong>{filteredPedidos.length}</strong> {filteredPedidos.length === 1 ? 'pedido encontrado' : 'pedidos encontrados'}
-              </p>
-              <p className="text-sm font-semibold text-amber-600">
-                Total: R$ {filteredPedidos.reduce((sum, p) => sum + p.total, 0).toFixed(2).replace(".", ",")}
-              </p>
+          {success && (
+            <div className="p-4 bg-green-50 border-l-4 border-green-400">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">{success}</p>
+                </div>
+              </div>
             </div>
-            {(buscaTexto || filtroStatus !== "todos" || filtroModalidade !== "todos" || filtroPeriodo !== "todos") && (
-              <button
-                onClick={() => {
-                  setBuscaTexto("");
-                  setFiltroStatus("todos");
-                  setFiltroModalidade("todos");
-                  setFiltroPeriodo("todos");
-                  setDataInicio("");
-                  setDataFim("");
-                }}
-                className="text-amber-600 hover:text-amber-700 font-medium text-sm flex items-center gap-1"
-              >
-                🔄 Limpar Filtros
-              </button>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* Lista de Pedidos */}
-        <div className="space-y-6">
-          {filteredPedidos.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-600">Nenhum pedido encontrado.</p>
+          {/* Estatísticas */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">📊 Resumo dos Pedidos</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-lg border border-yellow-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-yellow-600">Pendentes</p>
+                    <p className="text-2xl font-bold text-yellow-800">{pedidosPendentes}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">⏳</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-600">Confirmados</p>
+                    <p className="text-2xl font-bold text-blue-800">{pedidosConfirmados}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">✅</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-600">Entregues</p>
+                    <p className="text-2xl font-bold text-green-800">{pedidosEntregues}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">🚚</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-red-600">Cancelados</p>
+                    <p className="text-2xl font-bold text-red-800">{pedidosCancelados}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">❌</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          ) : agruparPorDia ? (
-            // Visualização agrupada por dia
-            Object.keys(pedidosAgrupados).sort((a, b) => {
-              const dateA = a.split('/').reverse().join('-');
-              const dateB = b.split('/').reverse().join('-');
-              return dateB.localeCompare(dateA);
-            }).map((data) => {
-              const pedidosDoDia = pedidosAgrupados[data];
-              const totalDia = pedidosDoDia.reduce((sum, p) => sum + p.total, 0);
-              const qtdItensDia = pedidosDoDia.reduce((sum, p) => sum + p.produtos.reduce((s, prod) => s + prod.quantidade, 0), 0);
-              
-              return (
-                <div key={data} className="space-y-3">
-                  {/* Cabeçalho do Dia */}
-                  <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-lg p-4 shadow-md">
-                    <div className="flex items-center justify-between flex-wrap gap-3">
-                      <div>
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                          📅 {data}
-                        </h3>
-                        <p className="text-amber-100 text-sm mt-1">
-                          {pedidosDoDia.length} {pedidosDoDia.length === 1 ? 'pedido' : 'pedidos'} • {qtdItensDia} {qtdItensDia === 1 ? 'item' : 'itens'}
-                        </p>
+          </div>
+
+          {/* Filtros */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">🔍 Filtros</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Status</label>
+                <select
+                  value={filtroStatus}
+                  onChange={(e) => setFiltroStatus(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <option value="todos">Todos os status</option>
+                  <option value="pendente">Pendente</option>
+                  <option value="confirmado">Confirmado</option>
+                  <option value="preparando">Preparando</option>
+                  <option value="pronto">Pronto</option>
+                  <option value="entregue">Entregue</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Modalidade</label>
+                <select
+                  value={filtroModalidade}
+                  onChange={(e) => setFiltroModalidade(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <option value="todos">Todas as modalidades</option>
+                  <option value="entrega">Entrega</option>
+                  <option value="retirada">Retirada</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de Pedidos */}
+          <div className="p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">📦 Lista de Pedidos</h2>
+            {pedidosFiltrados.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="text-gray-500 text-6xl mb-4">📦</div>
+                <p className="text-gray-600 text-lg">Nenhum pedido encontrado</p>
+                <p className="text-gray-500 text-sm">Tente ajustar os filtros</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {pedidosFiltrados.map((pedido) => (
+                  <div key={pedido._id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-lg">📦</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-gray-800">Pedido #{pedido._id.slice(-6)}</h3>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(pedido.status)}`}>
+                              {getStatusIcon(pedido.status)} {pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div>
+                              <p><strong>Total:</strong> R$ {pedido.total.toFixed(2)}</p>
+                              <p><strong>Modalidade:</strong> {pedido.modalidadeEntrega === 'entrega' ? '🚚 Entrega' : '🏪 Retirada'}</p>
+                              <p><strong>Data:</strong> {new Date(pedido.dataPedido).toLocaleDateString('pt-BR')}</p>
+                            </div>
+                            <div>
+                              <p><strong>Produtos:</strong> {pedido.produtos.length} item(s)</p>
+                              {pedido.telefone && <p><strong>Telefone:</strong> {pedido.telefone}</p>}
+                              {pedido.endereco && (
+                                <p><strong>Endereço:</strong> {pedido.endereco.rua}, {pedido.endereco.numero}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-amber-100 uppercase tracking-wide">Total do Dia</p>
-                        <p className="text-2xl font-bold text-white">
-                          R$ {totalDia.toFixed(2).replace(".", ",")}
-                        </p>
+                      
+                      <div className="flex flex-col lg:flex-row gap-2">
+                        <button
+                          onClick={() => setPedidoSelecionado(pedido)}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                        >
+                          👁️ Ver Detalhes
+                        </button>
+                        
+                        {pedido.status !== 'entregue' && pedido.status !== 'cancelado' && (
+                          <select
+                            onChange={(e) => handleStatusChange(pedido._id, e.target.value)}
+                            value={pedido.status}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                          >
+                            <option value="pendente">Pendente</option>
+                            <option value="confirmado">Confirmado</option>
+                            <option value="preparando">Preparando</option>
+                            <option value="pronto">Pronto</option>
+                            <option value="entregue">Entregue</option>
+                            <option value="cancelado">Cancelado</option>
+                          </select>
+                        )}
+                        
+                        <button
+                          onClick={() => handleDeletePedido(pedido)}
+                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+                        >
+                          🗑️ Deletar
+                        </button>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Pedidos do dia */}
-                  <div className="space-y-3 ml-4">
-                    {pedidosDoDia.map((pedido) => (
-                      renderPedido(pedido)
-                    ))}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            // Visualização em lista simples
-            filteredPedidos.map((pedido) => renderPedido(pedido))
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </main>
+      </div>
       <Footer showMap={false} />
+
+      {/* Modal de Detalhes do Pedido */}
+      {pedidoSelecionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Detalhes do Pedido #{pedidoSelecionado._id.slice(-6)}
+                </h2>
+                <button
+                  onClick={() => setPedidoSelecionado(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <PedidoTimeline pedido={pedidoSelecionado} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       <Modal
@@ -526,216 +515,6 @@ export default function PedidosPage() {
         confirmText="Confirmar"
         cancelText="Cancelar"
       />
-    </>
+    </ProtectedRoute>
   );
-
-  // Função para renderizar um pedido
-  function renderPedido(pedido: Pedido) {
-    return (
-              <div key={pedido._id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                {/* Cabeçalho do Pedido */}
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 flex-wrap mb-2">
-                        <h3 className="text-lg font-semibold">Pedido #{pedido._id.slice(-6)}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(pedido.status)}`}>
-                          {pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)}
-                        </span>
-                        {pedido.modalidadeEntrega === 'entrega' && (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">🚚 Entrega</span>
-                        )}
-                        {pedido.modalidadeEntrega === 'retirada' && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">🏪 Retirada</span>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 text-sm text-gray-600">
-                        <p>👤 <strong>Cliente:</strong> {pedido.userId}</p>
-                        <p>📅 {new Date(pedido.dataPedido).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</p>
-                        <p>📞 {pedido.telefone}</p>
-                        <p>📦 {pedido.produtos.length} {pedido.produtos.length === 1 ? 'item' : 'itens'}</p>
-                      </div>
-                    </div>
-                    <div className="text-right ml-4">
-                      <p className="text-2xl font-bold text-amber-600">
-                        R$ {pedido.total.toFixed(2).replace(".", ",")}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Botões de Ação Rápida */}
-                  <div className="flex gap-2 flex-wrap">
-                    {pedido.status === 'pendente' && (
-                      <>
-                        <button
-                          onClick={() => updateStatus(pedido._id, 'confirmado')}
-                          disabled={updatingStatus === pedido._id}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          ✅ Confirmar
-                        </button>
-                        <button
-                          onClick={() => updateStatus(pedido._id, 'cancelado')}
-                          disabled={updatingStatus === pedido._id}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          ❌ Cancelar
-                        </button>
-                      </>
-                    )}
-                    {pedido.status === 'confirmado' && (
-                      <button
-                        onClick={() => updateStatus(pedido._id, 'preparando')}
-                        disabled={updatingStatus === pedido._id}
-                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        👨‍🍳 Iniciar Preparo
-                      </button>
-                    )}
-                    {pedido.status === 'preparando' && (
-                      <button
-                        onClick={() => updateStatus(pedido._id, 'pronto')}
-                        disabled={updatingStatus === pedido._id}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        🍞 Marcar como Pronto
-                      </button>
-                    )}
-                    {pedido.status === 'pronto' && (
-                      <button
-                        onClick={() => updateStatus(pedido._id, 'entregue')}
-                        disabled={updatingStatus === pedido._id}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      >
-                        ✨ Marcar como Entregue
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setPedidoExpandido(pedidoExpandido === pedido._id ? null : pedido._id)}
-                      className="ml-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
-                    >
-                      {pedidoExpandido === pedido._id ? '▲ Recolher Detalhes' : '▼ Ver Detalhes'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Detalhes Expandidos */}
-                {pedidoExpandido === pedido._id && (
-                  <div className="p-6 space-y-4 bg-gray-50">
-                    {/* Timeline */}
-                    <PedidoTimeline 
-                      statusAtual={pedido.status}
-                      modalidade={pedido.modalidadeEntrega}
-                      historico={pedido.historico}
-                    />
-
-                    {/* Produtos */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4">
-                      <h4 className="font-medium mb-3 text-gray-800 flex items-center gap-2">
-                        <span>🛍️</span>
-                        Produtos do Pedido
-                      </h4>
-                      <div className="space-y-2">
-                        {pedido.produtos.map((produto, index) => (
-                          <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                            <div className="flex-1">
-                              <span className="font-medium text-gray-800">{produto.nome}</span>
-                              <span className="text-sm text-gray-500 ml-2">x{produto.quantidade}</span>
-                            </div>
-                            <span className="font-semibold text-gray-800">
-                              R$ {(produto.valor * produto.quantidade).toFixed(2).replace(".", ",")}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="pt-2 mt-2 border-t-2 border-gray-300 flex justify-between items-center">
-                          <span className="font-bold text-gray-800">Total:</span>
-                          <span className="font-bold text-xl text-amber-600">
-                            R$ {pedido.total.toFixed(2).replace(".", ",")}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Endereço - apenas para entrega */}
-                    {pedido.modalidadeEntrega === 'entrega' && pedido.endereco && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <h4 className="font-medium mb-2 text-green-900 flex items-center gap-2">
-                          <span>🚚</span>
-                          Endereço de Entrega
-                        </h4>
-                        <div className="text-sm text-green-800 space-y-1">
-                          <p><strong>Rua:</strong> {pedido.endereco.rua}, {pedido.endereco.numero}</p>
-                          <p><strong>Bairro:</strong> {pedido.endereco.bairro}</p>
-                          <p><strong>Cidade:</strong> {pedido.endereco.cidade}</p>
-                          <p><strong>CEP:</strong> {pedido.endereco.cep}</p>
-                          {pedido.endereco.complemento && (
-                            <p><strong>Complemento:</strong> {pedido.endereco.complemento}</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Informação de Retirada */}
-                    {pedido.modalidadeEntrega === 'retirada' && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="font-medium mb-2 text-blue-900 flex items-center gap-2">
-                          <span>🏪</span>
-                          Retirada no Local
-                        </h4>
-                        <div className="text-sm text-blue-800 space-y-1">
-                          <p>Cliente deve retirar na panificadora</p>
-                          {pedido.dataRetirada && pedido.horaRetirada && (
-                            <p className="font-medium mt-2">
-                              <strong>📅 Data e Hora:</strong> {new Date(pedido.dataRetirada + 'T' + pedido.horaRetirada).toLocaleString('pt-BR')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Observações */}
-                    {pedido.observacoes && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <h4 className="font-medium mb-2 text-yellow-900 flex items-center gap-2">
-                          <span>📝</span>
-                          Observações do Cliente
-                        </h4>
-                        <p className="text-sm text-yellow-800">{pedido.observacoes}</p>
-                      </div>
-                    )}
-
-                    {/* Controle Manual de Status */}
-                    <div className="bg-gray-100 border border-gray-300 rounded-lg p-4">
-                      <h4 className="font-medium mb-2 text-gray-800 flex items-center gap-2">
-                        <span>⚙️</span>
-                        Controle Manual de Status
-                      </h4>
-                      <div className="flex gap-2 flex-wrap items-center">
-                        <select
-                          value={pedido.status}
-                          onChange={(e) => updateStatus(pedido._id, e.target.value)}
-                          disabled={updatingStatus === pedido._id}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <option value="pendente">⏳ Pendente</option>
-                          <option value="confirmado">✅ Confirmado</option>
-                          <option value="preparando">👨‍🍳 Preparando</option>
-                          <option value="pronto">🍞 Pronto</option>
-                          <option value="entregue">✨ Entregue</option>
-                          <option value="cancelado">❌ Cancelado</option>
-                        </select>
-                        
-                        {updatingStatus === pedido._id && (
-                          <div className="flex items-center text-sm text-gray-500">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500 mr-2"></div>
-                            Atualizando...
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-    );
-  }
 }

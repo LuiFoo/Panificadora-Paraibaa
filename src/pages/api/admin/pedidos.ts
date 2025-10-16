@@ -1,8 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { protegerApiAdmin } from "@/lib/adminAuth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
+
+  // Verificar se o usuário é admin
+  const { isAdmin, error } = await protegerApiAdmin(req);
+  if (!isAdmin) {
+    return res.status(403).json({ error });
+  }
 
   try {
     const client = await clientPromise;
@@ -16,7 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .limit(100)
         .toArray();
 
-      return res.status(200).json({ pedidos });
+      return res.status(200).json({ success: true, pedidos });
     }
 
     return res.status(405).json({ error: "Método não permitido" });

@@ -7,15 +7,22 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { validateAndFormatCEP } from "@/lib/cepUtils";
+
+interface Endereco {
+  rua: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+}
 
 interface ProfileData {
   name: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
+  endereco: Endereco;
   birthDate: string;
   gender: string;
   preferences: {
@@ -34,10 +41,14 @@ export default function ProfilePage() {
     name: "",
     email: "",
     phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
+    endereco: {
+      rua: "",
+      numero: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+      cep: "",
+    },
     birthDate: "",
     gender: "",
     preferences: {
@@ -50,11 +61,16 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [cepError, setCepError] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepTimeout, setCepTimeout] = useState<NodeJS.Timeout | null>(null);
+  
 
   // Carregar dados do usuário apenas uma vez
   useEffect(() => {
     const loadProfileData = async () => {
       if (user && !dataLoaded) {
+        console.log("Carregando dados do perfil para:", user.email);
         try {
           const response = await fetch('/api/user/get-profile', {
             method: 'POST',
@@ -66,18 +82,27 @@ export default function ProfilePage() {
             }),
           });
 
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
           const data = await response.json();
+          console.log("Dados recebidos da API:", data);
 
           if (data.ok && data.profile) {
             // Carrega todos os dados do perfil do MongoDB
-            setProfileData({
+            const newProfileData = {
               name: data.profile.name || "",
               email: data.profile.email || "",
               phone: data.profile.phone || "",
-              address: data.profile.address || "",
-              city: data.profile.city || "",
-              state: data.profile.state || "",
-              zipCode: data.profile.zipCode || "",
+              endereco: {
+                rua: data.profile.endereco?.rua || data.profile.address || "",
+                numero: data.profile.endereco?.numero || data.profile.number || "",
+                bairro: data.profile.endereco?.bairro || data.profile.neighborhood || "",
+                cidade: data.profile.endereco?.cidade || data.profile.city || "",
+                estado: data.profile.endereco?.estado || data.profile.state || "",
+                cep: data.profile.endereco?.cep || data.profile.zipCode || "",
+              },
               birthDate: data.profile.birthDate || "",
               gender: data.profile.gender || "",
               preferences: data.profile.preferences || {
@@ -85,8 +110,11 @@ export default function ProfilePage() {
                 newsletter: false,
                 promotions: false,
               },
-            });
+            };
+            console.log("Dados do perfil carregados:", newProfileData);
+            setProfileData(newProfileData);
           } else {
+            console.log("API retornou erro, usando fallback");
             // Fallback para dados básicos do contexto
             setProfileData(prev => ({
               ...prev,
@@ -97,6 +125,16 @@ export default function ProfilePage() {
           setDataLoaded(true);
         } catch (error) {
           console.error("Erro ao carregar perfil:", error);
+          
+          // Tratamento de erro específico
+          if (error instanceof Error) {
+            if (error.message.includes('fetch')) {
+              console.log("Erro de rede - usando dados básicos");
+            } else {
+              console.log("Erro de API - usando dados básicos");
+            }
+          }
+          
           // Fallback para dados básicos do contexto
           setProfileData(prev => ({
             ...prev,
@@ -113,6 +151,102 @@ export default function ProfilePage() {
     loadProfileData();
   }, [user, router, dataLoaded]);
 
+  // Cleanup timeout quando componente for desmontado
+  useEffect(() => {
+    return () => {
+      if (cepTimeout) {
+        clearTimeout(cepTimeout);
+      }
+    };
+  }, [cepTimeout]);
+
+  // Função para buscar endereço por CEP (otimizada)
+  const buscarCep = async (cep: string) => {
+    const cepLimpo = cep.replace(/\D/g, '');
+    
+    if (cepLimpo.length !== 8) return;
+    
+    // Validar se é CEP de Ribeirão Preto
+    const validacao = validateAndFormatCEP(cepLimpo);
+    if (!validacao.isValid) {
+      setCepError(validacao.error || "");
+      return;
+    }
+    
+    setCepError(""); // Limpar erro se CEP for válido
+    setBuscandoCep(true);
+    
+    try {
+      // Timeout de 10 segundos para evitar travamento
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      // Tentar ViaCEP primeiro
+      let response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      let data;
+      if (response.ok) {
+        data = await response.json();
+      } else {
+        // Fallback para BrasilAPI se ViaCEP falhar
+        console.log("ViaCEP falhou, tentando BrasilAPI...");
+        const brasilApiResponse = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (brasilApiResponse.ok) {
+          const brasilApiData = await brasilApiResponse.json();
+          data = {
+            logradouro: brasilApiData.street || "",
+            bairro: brasilApiData.neighborhood || "",
+            localidade: brasilApiData.city || "",
+            uf: brasilApiData.state || "",
+            erro: false
+          };
+        } else {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+      
+      if (!data.erro) {
+        setProfileData(prev => ({
+          ...prev,
+          endereco: {
+            ...prev.endereco,
+            rua: data.logradouro || "",
+            bairro: data.bairro || "",
+            cidade: data.localidade || prev.endereco.cidade,
+            estado: data.uf || prev.endereco.estado,
+            cep: validacao.formatted
+          }
+        }));
+      } else {
+        setCepError("CEP não encontrado");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        setCepError("Busca demorou muito. Tente novamente.");
+      } else {
+        console.error("Erro ao buscar CEP:", error);
+        setCepError("Erro ao buscar endereço. Tente novamente.");
+      }
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
@@ -125,6 +259,48 @@ export default function ProfilePage() {
           [preferenceKey]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
         },
       }));
+    } else if (name === 'cep') {
+      // Para o campo CEP - aceitar apenas números
+      const valor = value.replace(/\D/g, ''); // Remove tudo que não é número
+      const cepNumeros = valor;
+      
+      // Lógica ultra simples: só formata quando tem 6+ dígitos
+      let cepFormatado = cepNumeros;
+      if (cepNumeros.length >= 6) {
+        cepFormatado = `${cepNumeros.slice(0, 5)}-${cepNumeros.slice(5)}`;
+      }
+      
+      setProfileData(prev => ({
+        ...prev,
+        endereco: {
+          ...prev.endereco,
+          cep: cepFormatado,
+        }
+      }));
+      
+      setCepError("");
+      
+      // Buscar CEP quando tiver 8 dígitos
+      if (cepTimeout) {
+        clearTimeout(cepTimeout);
+      }
+      
+      if (cepNumeros.length === 8) {
+        const timeout = setTimeout(() => {
+          buscarCep(cepNumeros);
+        }, 500);
+        setCepTimeout(timeout);
+      }
+    } else if (name.startsWith('endereco.')) {
+      // Campos de endereço aninhados
+      const field = name.split('.')[1];
+      setProfileData(prev => ({
+        ...prev,
+        endereco: {
+          ...prev.endereco,
+          [field]: value,
+        }
+      }));
     } else {
       setProfileData(prev => ({
         ...prev,
@@ -133,7 +309,17 @@ export default function ProfilePage() {
     }
   };
 
+
   const handleSave = async () => {
+    // Validar CEP antes de salvar
+    if (profileData.endereco.cep) {
+      const validacaoCep = validateAndFormatCEP(profileData.endereco.cep);
+      if (!validacaoCep.isValid) {
+        setCepError(validacaoCep.error || "CEP inválido");
+        return;
+      }
+    }
+    
     setIsLoading(true);
     
     try {
@@ -209,6 +395,13 @@ export default function ProfilePage() {
                 width={80}
                 height={80}
                 className="rounded-full border-4 border-amber-200"
+                onError={(e) => {
+                  console.log("Erro ao carregar imagem:", user.picture);
+                  e.currentTarget.style.display = 'none';
+                }}
+                onLoad={() => {
+                  console.log("Imagem carregada com sucesso:", user.picture);
+                }}
               />
             ) : (
               <div className="w-20 h-20 rounded-full border-4 border-amber-200 bg-gray-200 flex items-center justify-center">
@@ -220,6 +413,35 @@ export default function ProfilePage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-800">Meu Perfil</h1>
               <p className="text-gray-600">Gerencie suas informações pessoais</p>
+              {!dataLoaded && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500"></div>
+                  <span className="text-sm text-gray-600">Carregando dados...</span>
+                  <button
+                    onClick={() => {
+                      setDataLoaded(false);
+                      window.location.reload();
+                    }}
+                    className="px-3 py-1 text-sm bg-amber-500 text-white rounded hover:bg-amber-600"
+                  >
+                    Recarregar
+                  </button>
+                </div>
+              )}
+              {!user && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm text-red-600">Usuário não carregado</span>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("usuario");
+                      window.location.reload();
+                    }}
+                    className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                  >
+                    Limpar Cache
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           
@@ -296,9 +518,33 @@ export default function ProfilePage() {
                   type="tel"
                   name="phone"
                   value={profileData.phone}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    // Aceitar apenas números
+                    const valor = e.target.value.replace(/\D/g, '');
+                    let telefoneFormatado = valor;
+                    
+                    // Formatar telefone: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
+                    if (valor.length >= 2) {
+                      telefoneFormatado = `(${valor.slice(0, 2)}`;
+                      if (valor.length > 2) {
+                        if (valor.length <= 6) {
+                          telefoneFormatado += `) ${valor.slice(2)}`;
+                        } else if (valor.length <= 10) {
+                          telefoneFormatado += `) ${valor.slice(2, 6)}-${valor.slice(6)}`;
+                        } else {
+                          telefoneFormatado += `) ${valor.slice(2, 7)}-${valor.slice(7, 11)}`;
+                        }
+                      }
+                    }
+                    
+                    setProfileData(prev => ({
+                      ...prev,
+                      phone: telefoneFormatado
+                    }));
+                  }}
                   disabled={!isEditing}
                   placeholder="(11) 99999-9999"
+                  maxLength={15}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100"
                 />
               </div>
@@ -331,6 +577,7 @@ export default function ProfilePage() {
                   <option value="">Selecione</option>
                   <option value="masculino">Masculino</option>
                   <option value="feminino">Feminino</option>
+                  <option value="chapa">Chapa</option>
                   <option value="outro">Outro</option>
                   <option value="nao-informar">Prefiro não informar</option>
                 </select>
@@ -343,17 +590,94 @@ export default function ProfilePage() {
                 Endereço
               </h2>
               
+              {/* CEP primeiro para preenchimento automático */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CEP
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="cep"
+                    value={profileData.endereco.cep}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    placeholder="14000-000 (Ribeirão Preto)"
+                    maxLength={9}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent disabled:bg-gray-100 ${
+                      cepError 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 focus:ring-amber-500'
+                    }`}
+                  />
+                  {buscandoCep && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-500"></div>
+                    </div>
+                  )}
+                </div>
+                {cepError && (
+                  <p className="text-xs text-red-600 mt-1">
+                    ❌ {cepError}
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  No momento limitado apenas para Ribeirão Preto
+                </p>
+              </div>
+
+              {/* Campos de endereço */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Endereço
                 </label>
                 <textarea
-                  name="address"
-                  value={profileData.address}
+                  name="endereco.rua"
+                  value={profileData.endereco.rua}
                   onChange={handleInputChange}
                   disabled={!isEditing}
                   rows={3}
-                  placeholder="Rua, número, complemento..."
+                  placeholder="Rua, avenida, etc..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Número
+                </label>
+                <input
+                  type="text"
+                  name="endereco.numero"
+                  value={profileData.endereco.numero}
+                  onChange={(e) => {
+                    // Aceitar apenas números
+                    const valor = e.target.value.replace(/\D/g, '');
+                    setProfileData(prev => ({
+                      ...prev,
+                      endereco: {
+                        ...prev.endereco,
+                        numero: valor
+                      }
+                    }));
+                  }}
+                  disabled={!isEditing}
+                  placeholder="Número"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bairro
+                </label>
+                <input
+                  type="text"
+                  name="endereco.bairro"
+                  value={profileData.endereco.bairro}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  placeholder="Bairro"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100"
                 />
               </div>
@@ -365,8 +689,8 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="text"
-                    name="city"
-                    value={profileData.city}
+                    name="endereco.cidade"
+                    value={profileData.endereco.cidade}
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     placeholder="Cidade"
@@ -379,8 +703,8 @@ export default function ProfilePage() {
                     Estado
                   </label>
                   <select
-                    name="state"
-                    value={profileData.state}
+                    name="endereco.estado"
+                    value={profileData.endereco.estado}
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100"
@@ -416,23 +740,9 @@ export default function ProfilePage() {
                   </select>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  CEP
-                </label>
-                <input
-                  type="text"
-                  name="zipCode"
-                  value={profileData.zipCode}
-                  onChange={handleInputChange}
-                  disabled={!isEditing}
-                  placeholder="00000-000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:bg-gray-100"
-                />
-              </div>
             </div>
           </div>
+
 
           {/* Preferências */}
           <div className="mt-8 pt-6 border-t border-gray-200">

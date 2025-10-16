@@ -3,6 +3,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Modal from "@/components/Modal";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -11,22 +12,21 @@ import Image from "next/image";
 
 interface Produto {
   _id: string;
-  subc?: string; // subcategoria (para produtos novos)
-  subcategoria?: string; // subcategoria (para produtos existentes)
+  subc?: string;
+  subcategoria?: string;
   nome: string;
   valor: number;
-  vtipo: string; // tipo de venda (UN, KG, etc)
+  vtipo: string;
   ingredientes: string;
   img: string;
-  colecaoOrigem: string; // coleção de origem do produto
-  status?: "pause" | "active"; // status do produto (pause = pausado, active ou undefined = ativo)
+  colecaoOrigem: string;
+  status?: "pause" | "active";
   dataCriacao?: string | Date;
   dataAtualizacao?: string | Date;
 }
 
 const TIPOS_VENDA = ["UN", "KG", "PCT", "DZ"];
 
-// Subcategorias válidas como fallback
 const SUBCATEGORIAS_PADRAO = [
   "BOLOS DOCES ESPECIAIS",
   "DOCES INDIVIDUAIS",
@@ -44,10 +44,21 @@ export default function ProdutosPage() {
   const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
   const [filtroSubcategoria, setFiltroSubcategoria] = useState<string>("todos");
-  const [filtroStatus, setFiltroStatus] = useState<string>("todos"); // Filtro para status (todos/ativos/pausados)
+  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [criandoExemplo, setCriandoExemplo] = useState(false);
+
+  const [formData, setFormData] = useState({
+    nome: "",
+    valor: "",
+    vtipo: "UN",
+    ingredientes: "",
+    img: "",
+    subcategoria: "",
+    status: "active"
+  });
+
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -61,30 +72,39 @@ export default function ProdutosPage() {
     message: ""
   });
 
-  // Estados do formulário
-  const [formData, setFormData] = useState({
-    subc: "",
-    nome: "",
-    valor: "",
-    vtipo: "",
-    ingredientes: "",
-    img: ""
-  });
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const fetchProdutos = useCallback(async () => {
     setLoadingProdutos(true);
+    setError("");
     try {
+      console.log("🔍 Fazendo requisição para /api/admin/produtos/todos...");
       const response = await fetch("/api/admin/produtos/todos");
-      if (response.ok) {
-        const data = await response.json();
+      console.log("📡 Resposta recebida:", response.status, response.statusText);
+      
+      const data = await response.json();
+      console.log("📊 Dados recebidos:", { 
+        success: data.success, 
+        total: data.total, 
+        produtos: data.produtos?.length || 0 
+      });
+      
+      if (data.success) {
         setProdutos(data.produtos || []);
-        // Se a API retornar subcategorias, usa elas; senão, mantém as padrão
-        if (data.subcategorias && data.subcategorias.length > 0) {
-          setSubcategorias(data.subcategorias);
+        
+        // Extrair subcategorias únicas dos produtos
+        const subcats = [...new Set((data.produtos || []).map((p: Produto) => p.subc || p.subcategoria).filter(Boolean))] as string[];
+        if (subcats.length > 0) {
+          setSubcategorias([...SUBCATEGORIAS_PADRAO, ...subcats.filter(sub => !SUBCATEGORIAS_PADRAO.includes(sub))]);
         }
+      } else {
+        console.error("❌ API retornou success: false:", data.error);
+        setError(data.error || "Erro ao carregar produtos");
       }
-    } catch (error) {
-      console.error("Erro ao buscar produtos:", error);
+    } catch (err) {
+      console.error("❌ Erro ao buscar produtos:", err);
+      setError("Erro ao conectar com o servidor");
     } finally {
       setLoadingProdutos(false);
     }
@@ -93,653 +113,616 @@ export default function ProdutosPage() {
   useEffect(() => {
     if (!loading && !isAdmin) {
       router.push("/");
+      return;
     }
-  }, [isAdmin, loading, router]);
-
-  useEffect(() => {
+    
     if (isAdmin) {
       fetchProdutos();
-    } else if (!loading) {
-      setLoadingProdutos(false);
     }
-  }, [isAdmin, loading, fetchProdutos]);
+  }, [isAdmin, loading, router, fetchProdutos]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log("🚀 Formulário submetido com dados:", formData);
-    
+    setError("");
+    setSuccess("");
+
     try {
-      let response;
-      let data;
+      const produtoData = {
+        ...formData,
+        valor: parseFloat(formData.valor),
+        subc: formData.subcategoria,
+        colecaoOrigem: "ADMIN_PAINEL"
+      };
 
-      if (produtoEditando) {
-        console.log("📝 Modo: EDITAR produto");
-        // Editar produto existente
-        response = await fetch("/api/admin/produtos/editar-existente", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            id: produtoEditando._id,
-            colecaoOrigem: produtoEditando.colecaoOrigem,
-            nome: formData.nome,
-            valor: parseFloat(formData.valor),
-            vtipo: formData.vtipo,
-            ingredientes: formData.ingredientes,
-            img: formData.img
-          })
-        });
-        data = await response.json();
-      } else {
-        console.log("➕ Modo: CRIAR novo produto");
-        // Criar novo produto
-        response = await fetch("/api/admin/produtos", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            subc: formData.subc,
-            nome: formData.nome,
-            valor: parseFloat(formData.valor),
-            vtipo: formData.vtipo,
-            ingredientes: formData.ingredientes,
-            img: formData.img
-          })
-        });
-        data = await response.json();
-      }
+      const url = produtoEditando 
+        ? `/api/admin/produtos/${produtoEditando._id}`
+        : "/api/admin/produtos";
+      
+      const method = produtoEditando ? "PUT" : "POST";
 
-      console.log("📡 Resposta da API:", { status: response.status, data });
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(produtoData)
+      });
 
-      if (response.ok && data.success) {
-        setModalState({
-          isOpen: true,
-          type: "success",
-          title: "Sucesso",
-          message: produtoEditando ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!"
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(produtoEditando ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!");
+        setTimeout(() => setSuccess(""), 3000);
+        setMostrarFormulario(false);
+        setProdutoEditando(null);
+        setFormData({
+          nome: "",
+          valor: "",
+          vtipo: "UN",
+          ingredientes: "",
+          img: "",
+          subcategoria: "",
+          status: "active"
         });
-        resetFormulario();
         fetchProdutos();
       } else {
-        console.error("❌ Erro na resposta:", data);
-        setModalState({
-          isOpen: true,
-          type: "error",
-          title: "Erro",
-          message: data.error || "Erro desconhecido"
-        });
+        setError(data.error || "Erro ao salvar produto");
       }
-    } catch (error) {
-      console.error("💥 Erro ao salvar produto:", error);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Erro",
-        message: "Erro ao salvar produto. Tente novamente."
-      });
+    } catch (err) {
+      console.error("Erro ao salvar produto:", err);
+      setError("Erro ao conectar com o servidor");
     }
   };
 
-  const resetFormulario = () => {
+  const handleEdit = (produto: Produto) => {
+    setProdutoEditando(produto);
     setFormData({
-      subc: "",
-      nome: "",
-      valor: "",
-      vtipo: "",
-      ingredientes: "",
-      img: ""
-    });
-    setProdutoEditando(null);
-    setMostrarFormulario(false);
-  };
-
-  const editarProduto = (produto: Produto) => {
-    setFormData({
-      subc: produto.subc || produto.subcategoria || "",
       nome: produto.nome,
       valor: produto.valor.toString(),
       vtipo: produto.vtipo,
       ingredientes: produto.ingredientes,
-      img: produto.img
+      img: produto.img,
+      subcategoria: produto.subc || produto.subcategoria || "",
+      status: produto.status || "active"
     });
-    setProdutoEditando(produto);
     setMostrarFormulario(true);
   };
 
-  const excluirProduto = (produto: Produto) => {
+  const handleDelete = (produto: Produto) => {
     setModalState({
       isOpen: true,
       type: "warning",
-      title: "Confirmar Exclusão Definitiva",
-      message: `Tem certeza que deseja EXCLUIR DEFINITIVAMENTE o produto "${produto.nome}"? Esta ação NÃO pode ser desfeita! Se quiser apenas desativá-lo temporariamente, use o botão "Pausar Produto".`,
+      title: "Confirmar Exclusão",
+      message: `Tem certeza que deseja deletar o produto "${produto.nome}"? Esta ação não pode ser desfeita!`,
       onConfirm: async () => {
         try {
-          const response = await fetch("/api/admin/produtos/editar-existente", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              id: produto._id,
-              colecaoOrigem: produto.colecaoOrigem
-            })
+          const response = await fetch(`/api/admin/produtos/${produto._id}`, {
+            method: "DELETE"
           });
 
           const data = await response.json();
-
-          if (response.ok && data.success) {
+          if (data.success) {
+            setSuccess("Produto deletado com sucesso!");
+            setTimeout(() => setSuccess(""), 3000);
             fetchProdutos();
-            setModalState({
-              isOpen: true,
-              type: "success",
-              title: "Sucesso",
-              message: "Produto excluído com sucesso!"
-            });
           } else {
-            setModalState({
-              isOpen: true,
-              type: "error",
-              title: "Erro",
-              message: data.error || "Erro desconhecido"
-            });
+            setError(data.error || "Erro ao deletar produto");
           }
-        } catch (error) {
-          console.error("Erro ao excluir produto:", error);
-          setModalState({
-            isOpen: true,
-            type: "error",
-            title: "Erro",
-            message: "Erro ao excluir produto. Tente novamente."
-          });
+        } catch (err) {
+          console.error("Erro ao deletar produto:", err);
+          setError("Erro ao conectar com o servidor");
         }
       }
     });
   };
 
-  const toggleStatusProduto = async (produto: Produto) => {
-    const novoStatus = produto.status === "pause" ? "active" : "pause";
-    const acao = novoStatus === "pause" ? "pausar" : "ativar";
+  const handleToggleStatus = async (produto: Produto) => {
+    const newStatus = produto.status === "pause" ? "active" : "pause";
     
     try {
-      const response = await fetch("/api/admin/produtos/editar-existente", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json"
-        },
+      const response = await fetch(`/api/admin/produtos/toggle-status?id=${produto._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: produto._id,
-          colecaoOrigem: produto.colecaoOrigem,
-          status: novoStatus
+          status: newStatus
         })
       });
 
       const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
+        setSuccess(`Produto ${newStatus === "active" ? "ativado" : "pausado"} com sucesso!`);
+        setTimeout(() => setSuccess(""), 3000);
         fetchProdutos();
-        // Não mostrar modal de sucesso, apenas recarregar a lista
       } else {
-        setModalState({
-          isOpen: true,
-          type: "error",
-          title: "Erro",
-          message: data.error || `Erro ao ${acao} produto`
-        });
+        setError(data.error || "Erro ao alterar status do produto");
       }
-    } catch (error) {
-      console.error(`Erro ao ${acao} produto:`, error);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Erro",
-        message: `Erro ao ${acao} produto. Tente novamente.`
-      });
+    } catch (err) {
+      console.error("Erro ao alterar status:", err);
+      setError("Erro ao conectar com o servidor");
     }
   };
 
-  const criarProdutoExemplo = async () => {
+  const handleCriarExemplo = async () => {
     setCriandoExemplo(true);
-    
     try {
-      const response = await fetch("/api/admin/produtos/exemplo", {
-        method: "POST"
+      const response = await fetch("/api/admin/produtos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: "Pão de Açúcar Especial",
+          valor: 8.50,
+          vtipo: "UN",
+          ingredientes: "Farinha de trigo, açúcar, fermento, ovos, manteiga",
+          img: "/images/paoAcucar.jpg",
+          subc: "PAES DOCES",
+          status: "active",
+          colecaoOrigem: "ADMIN_PAINEL"
+        })
       });
 
       const data = await response.json();
-
-      if (response.ok && data.success) {
-        setModalState({
-          isOpen: true,
-          type: "success",
-          title: "Sucesso",
-          message: "Produto de exemplo criado com sucesso!"
-        });
-        fetchProdutos(); // Recarregar lista
+      if (data.success) {
+        setSuccess("Produto exemplo criado com sucesso!");
+        setTimeout(() => setSuccess(""), 3000);
+        fetchProdutos();
       } else {
-        setModalState({
-          isOpen: true,
-          type: "error",
-          title: "Erro",
-          message: data.error || "Erro desconhecido"
-        });
+        setError(data.error || "Erro ao criar produto exemplo");
       }
-    } catch (error) {
-      console.error("Erro ao criar produto de exemplo:", error);
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Erro",
-        message: "Erro ao criar produto de exemplo. Tente novamente."
-      });
+    } catch (err) {
+      console.error("Erro ao criar exemplo:", err);
+      setError("Erro ao conectar com o servidor");
     } finally {
       setCriandoExemplo(false);
     }
   };
 
+  const produtosFiltrados = produtos.filter(produto => {
+    const matchSubcategoria = filtroSubcategoria === "todos" || 
+      (produto.subc || produto.subcategoria) === filtroSubcategoria;
+    
+    const matchStatus = filtroStatus === "todos" || 
+      (filtroStatus === "active" && (produto.status === "active" || !produto.status)) ||
+      (filtroStatus === "pause" && produto.status === "pause");
 
-  const filteredProdutos = produtos.filter(produto => {
-    const subcategoria = produto.subc || produto.subcategoria;
-    const matchSubcategoria = filtroSubcategoria === "todos" || subcategoria === filtroSubcategoria;
-    
-    // Filtro de status
-    let matchStatus = true;
-    if (filtroStatus === "ativos") {
-      matchStatus = produto.status !== "pause";
-    } else if (filtroStatus === "pausados") {
-      matchStatus = produto.status === "pause";
-    }
-    
     return matchSubcategoria && matchStatus;
   });
 
+  const totalProdutos = produtos.length;
+  const produtosAtivos = produtos.filter(p => p.status === "active" || !p.status).length;
+  const produtosPausados = produtos.filter(p => p.status === "pause").length;
+
   if (loading) {
     return (
-      <>
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 py-10 text-center">
-          <p className="text-gray-600 text-lg">Carregando...</p>
-        </main>
-        <Footer showMap={false} />
-      </>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   if (!isAdmin) {
-    return (
-      <>
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 py-10 text-center">
-          <p className="text-red-600 text-lg">Acesso negado. Apenas administradores.</p>
-        </main>
-        <Footer showMap={false} />
-      </>
-    );
+    return null;
   }
 
   if (loadingProdutos) {
     return (
-      <>
-        <Header />
-        <main className="max-w-7xl mx-auto px-4 py-10 text-center">
-          <p className="text-gray-600 text-lg">Carregando produtos...</p>
-        </main>
-        <Footer showMap={false} />
-      </>
+      <div className="min-h-screen bg-gray-50 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando produtos...</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <>
+    <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Gerenciar Produtos</h1>
-            <p className="text-gray-600 mt-1">Gerencie o catálogo de produtos da panificadora</p>
-          </div>
-          <div className="flex gap-2">
-            <Link 
-              href="/painel" 
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              ← Voltar ao Painel
-            </Link>
-            <button
-              onClick={() => setMostrarFormulario(true)}
-              className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              + Novo Produto
-            </button>
-          </div>
-        </div>
-
-        {/* Filtros */}
-        <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-          <h3 className="text-lg font-semibold mb-4">Filtros</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subcategoria:
-              </label>
-              <select
-                value={filtroSubcategoria}
-                onChange={(e) => setFiltroSubcategoria(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+      <div className="max-w-6xl mx-auto">
+        {/* Breadcrumb */}
+        <nav className="mb-6">
+          <ol className="flex items-center space-x-2 text-sm text-gray-600">
+            <li>
+              <button
+                onClick={() => router.push('/painel')}
+                className="hover:text-blue-600 transition-colors"
               >
-                <option value="todos">Todas as Subcategorias</option>
-                {subcategorias.map(subcategoria => (
-                  <option key={subcategoria} value={subcategoria}>{subcategoria}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status:
-              </label>
-              <select
-                value={filtroStatus}
-                onChange={(e) => setFiltroStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="todos">Todos os Status</option>
-                <option value="ativos">Ativos</option>
-                <option value="pausados">Pausados</option>
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-blue-700">Produtos encontrados:</span>
-                  <span className="font-bold text-blue-900">{filteredProdutos.length}</span>
+                Painel
+              </button>
+            </li>
+            <li className="flex items-center">
+              <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-gray-800 font-medium">Gerenciar Produtos</span>
+            </li>
+          </ol>
+        </nav>
+        
+        <div className="bg-white rounded-lg shadow-md">
+          {/* Cabeçalho */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
                 </div>
-                <div className="flex items-center justify-between text-xs mt-1">
-                  <span className="text-green-700">Ativos:</span>
-                  <span className="font-semibold text-green-900">
-                    {produtos.filter(p => p.status !== "pause").length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs mt-1">
-                  <span className="text-red-700">Pausados:</span>
-                  <span className="font-semibold text-red-900">
-                    {produtos.filter(p => p.status === "pause").length}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Formulário de Produto */}
-        {mostrarFormulario && (
-          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">
-              {produtoEditando ? "Editar Produto" : "Novo Produto"}
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome do Produto *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Valor (R$) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.valor}
-                    onChange={(e) => setFormData({...formData, valor: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  />
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-2xl font-bold text-gray-800">Gerenciar Produtos</h1>
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                      {totalProdutos} produtos
+                    </span>
+                  </div>
+                  <p className="text-gray-600">Gerencie o catálogo de produtos da padaria</p>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subcategoria *
-                </label>
-                  <select
-                    value={formData.subc}
-                    onChange={(e) => setFormData({...formData, subc: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                  >
-                    <option value="">Selecione uma subcategoria</option>
-                    {subcategorias.map(subcategoria => (
-                      <option key={subcategoria} value={subcategoria}>{subcategoria}</option>
-                    ))}
-                  </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ingredientes *
-                </label>
-                <textarea
-                  value={formData.ingredientes}
-                  onChange={(e) => setFormData({...formData, ingredientes: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  rows={3}
-                  placeholder="Descrição dos ingredientes..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Venda *
-                </label>
-                <select
-                  value={formData.vtipo}
-                  onChange={(e) => setFormData({...formData, vtipo: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  required
+              <div className="flex gap-3">
+                <Link
+                  href="/painel"
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
                 >
-                  <option value="">Selecione o tipo</option>
-                  {TIPOS_VENDA.map(tipo => (
-                    <option key={tipo} value={tipo}>{tipo}</option>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Voltar
+                </Link>
+                <button
+                  onClick={() => setMostrarFormulario(!mostrarFormulario)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  {mostrarFormulario ? 'Cancelar' : 'Novo Produto'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Mensagens */}
+          {error && (
+            <div className="p-4 bg-red-50 border-l-4 border-red-400">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {success && (
+            <div className="p-4 bg-green-50 border-l-4 border-green-400">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">{success}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Estatísticas */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">📊 Resumo dos Produtos</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-blue-600">Total de Produtos</p>
+                    <p className="text-2xl font-bold text-blue-800">{totalProdutos}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">🍞</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-green-600">Produtos Ativos</p>
+                    <p className="text-2xl font-bold text-green-800">{produtosAtivos}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">✅</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-amber-600">Produtos Pausados</p>
+                    <p className="text-2xl font-bold text-amber-800">{produtosPausados}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">⏸️</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Formulário */}
+          {mostrarFormulario && (
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                {produtoEditando ? '✏️ Editar Produto' : '➕ Novo Produto'}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Produto</label>
+                    <input
+                      type="text"
+                      name="nome"
+                      value={formData.nome}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Valor (R$)</label>
+                    <input
+                      type="number"
+                      name="valor"
+                      value={formData.valor}
+                      onChange={handleInputChange}
+                      step="0.01"
+                      min="0"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Venda</label>
+                    <select
+                      name="vtipo"
+                      value={formData.vtipo}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      {TIPOS_VENDA.map(tipo => (
+                        <option key={tipo} value={tipo}>{tipo}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
+                    <select
+                      name="subcategoria"
+                      value={formData.subcategoria}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      <option value="">Selecione uma subcategoria</option>
+                      {subcategorias.map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      <option value="active">Ativo</option>
+                      <option value="pause">Pausado</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes</label>
+                  <textarea
+                    name="ingredientes"
+                    value={formData.ingredientes}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">URL da Imagem</label>
+                  <input
+                    type="url"
+                    name="img"
+                    value={formData.img}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                  >
+                    {produtoEditando ? 'Atualizar Produto' : 'Criar Produto'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMostrarFormulario(false);
+                      setProdutoEditando(null);
+                      setFormData({
+                        nome: "",
+                        valor: "",
+                        vtipo: "UN",
+                        ingredientes: "",
+                        img: "",
+                        subcategoria: "",
+                        status: "active"
+                      });
+                    }}
+                    className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Filtros */}
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">🔍 Filtros</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Subcategoria</label>
+                <select
+                  value={filtroSubcategoria}
+                  onChange={(e) => setFiltroSubcategoria(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <option value="todos">Todas as subcategorias</option>
+                  {subcategorias.map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  URL da Imagem *
-                </label>
-                <input
-                  type="url"
-                  value={formData.img}
-                  onChange={(e) => setFormData({...formData, img: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  placeholder="https://i.imgur.com/EeDC5xQ.png"
-                  required
-                />
-              </div>
-
-
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  onClick={() => console.log("🔘 Botão Criar/Atualizar clicado!", formData)}
-                  className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Status</label>
+                <select
+                  value={filtroStatus}
+                  onChange={(e) => setFiltroStatus(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
                 >
-                  {produtoEditando ? "Atualizar" : "Criar"} Produto
-                </button>
-                <button
-                  type="button"
-                  onClick={resetFormulario}
-                  className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
+                  <option value="todos">Todos os status</option>
+                  <option value="active">Apenas Ativos</option>
+                  <option value="pause">Apenas Pausados</option>
+                </select>
               </div>
-              
-              {/* Debug: mostrar dados do formulário */}
-              <div className="text-xs text-gray-500 mt-4 p-2 bg-gray-50 rounded">
-                <strong>Debug:</strong> 
-                {formData.nome ? ` Nome: ${formData.nome}` : ' (nome vazio)'}
-                {formData.subc ? ` | Subc: ${formData.subc}` : ' | (subc vazio)'}
-                {formData.valor ? ` | Valor: ${formData.valor}` : ' | (valor vazio)'}
-                {formData.vtipo ? ` | Tipo: ${formData.vtipo}` : ' | (tipo vazio)'}
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Lista de Produtos */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProdutos.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <div className="text-6xl mb-4">🛍️</div>
-              <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                {produtos.length === 0 ? "Nenhum produto encontrado" : "Nenhum produto encontrado"}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {produtos.length === 0 
-                  ? "Não há produtos cadastrados no sistema. Adicione o primeiro produto ou verifique se as coleções antigas têm produtos."
-                  : "Tente ajustar os filtros para encontrar produtos."
-                }
-              </p>
-              
-              {produtos.length === 0 && (
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={() => setMostrarFormulario(true)}
-                    className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                  >
-                    + Criar Primeiro Produto
-                  </button>
-                  
-                  <button
-                    onClick={criarProdutoExemplo}
-                    disabled={criandoExemplo}
-                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                  >
-                    {criandoExemplo ? "Criando..." : "📦 Criar Produto de Exemplo"}
-                  </button>
-                </div>
-              )}
             </div>
-          ) : (
-            filteredProdutos.map((produto) => (
-              <div key={produto._id} className={`bg-white border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow ${produto.status === 'pause' ? 'border-red-300 bg-red-50/30' : 'border-gray-200'}`}>
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-lg">{produto.nome}</h3>
-                  <div className="flex gap-2">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {produto.vtipo}
-                    </span>
-                    {produto.status === 'pause' && (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        PAUSADO
-                      </span>
-                    )}
-                  </div>
-                </div>
+          </div>
 
-                {produto.img && (
-                  <div className="w-full h-32 relative mb-3 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
-                    {produto.img.startsWith('http://') || produto.img.startsWith('https://') ? (
-                      produto.img.includes('://i.imgur.com/') || produto.img.includes('://via.placeholder.com/') ? (
-                        <Image
-                          src={produto.img}
-                          alt={produto.nome}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="text-center p-2">
-                          <p className="text-xs text-red-600">❌ URL inválida</p>
-                          <p className="text-xs text-gray-500 break-all">{produto.img}</p>
-                        </div>
-                      )
-                    ) : (
-                      <p className="text-xs text-gray-500">Sem imagem</p>
-                    )}
-                  </div>
-                )}
+          {/* Lista de Produtos */}
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">🍞 Lista de Produtos</h2>
+              <button
+                onClick={handleCriarExemplo}
+                disabled={criandoExemplo}
+                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {criandoExemplo ? 'Criando...' : 'Criar Exemplo'}
+              </button>
+            </div>
 
-                <div className="space-y-2 mb-4">
-                  <p className="text-sm text-gray-600">
-                    <strong>Subcategoria:</strong> {produto.subc || produto.subcategoria}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    <strong>Origem:</strong> {produto.colecaoOrigem}
-                  </p>
-                  <p className="text-lg font-bold text-green-600">
-                    R$ {produto.valor.toFixed(2).replace(".", ",")}
-                  </p>
-                  {produto.ingredientes && (
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      <strong>Ingredientes:</strong> {produto.ingredientes}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => toggleStatusProduto(produto)}
-                    className={`col-span-2 flex items-center justify-center gap-2 px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      produto.status === 'pause'
-                        ? 'bg-green-600 hover:bg-green-500 text-white'
-                        : 'bg-yellow-600 hover:bg-yellow-500 text-white'
-                    }`}
-                  >
-                    {produto.status === 'pause' ? (
-                      <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                        </svg>
-                        Ativar Produto
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        Pausar Produto
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => editarProduto(produto)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => excluirProduto(produto)}
-                    className="bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded text-sm font-medium transition-colors"
-                  >
-                    Excluir
-                  </button>
-                </div>
+            {produtosFiltrados.length === 0 ? (
+              <div className="text-center py-10">
+                <div className="text-gray-500 text-6xl mb-4">🍞</div>
+                <p className="text-gray-600 text-lg">Nenhum produto encontrado</p>
+                <p className="text-gray-500 text-sm">Tente ajustar os filtros ou criar um novo produto</p>
               </div>
-            ))
-          )}
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {produtosFiltrados.map((produto) => (
+                  <div key={produto._id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                        {produto.img ? (
+                          <Image
+                            src={produto.img}
+                            alt={produto.nome}
+                            width={64}
+                            height={64}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <span className="text-gray-500 text-2xl">🍞</span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold text-gray-800 truncate">{produto.nome}</h3>
+                            <p className="text-sm text-gray-600">R$ {produto.valor.toFixed(2)} / {produto.vtipo}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {produto.subc || produto.subcategoria || 'Sem subcategoria'}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              produto.status === "pause"
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-green-100 text-green-800"
+                            }`}
+                          >
+                            {produto.status === "pause" ? "⏸️ Pausado" : "✅ Ativo"}
+                          </span>
+                        </div>
+                        
+                        {produto.ingredientes && (
+                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                            {produto.ingredientes}
+                          </p>
+                        )}
+                        
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={() => handleEdit(produto)}
+                            className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600 transition-colors"
+                          >
+                            ✏️ Editar
+                          </button>
+                          <button
+                            onClick={() => handleToggleStatus(produto)}
+                            className={`px-3 py-1 rounded-lg text-xs transition-colors ${
+                              produto.status === "pause"
+                                ? "bg-green-500 hover:bg-green-600 text-white"
+                                : "bg-amber-500 hover:bg-amber-600 text-white"
+                            }`}
+                          >
+                            {produto.status === "pause" ? "▶️ Ativar" : "⏸️ Pausar"}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(produto)}
+                            className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 transition-colors"
+                          >
+                            🗑️ Deletar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </main>
+      </div>
       <Footer showMap={false} />
 
       {/* Modal */}
@@ -753,6 +736,6 @@ export default function ProdutosPage() {
         confirmText="Confirmar"
         cancelText="Cancelar"
       />
-    </>
+    </ProtectedRoute>
   );
 }

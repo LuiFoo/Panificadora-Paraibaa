@@ -27,6 +27,9 @@ export const useAuthSync = () => {
   const { setUser, user } = useUser();
 
   useEffect(() => {
+    // Evitar execuções desnecessárias
+    if (status === "loading") return;
+    
     console.log("🔍 useAuthSync: Status:", status, "Session:", !!session, "User:", !!user);
     
     const syncUserData = async () => {

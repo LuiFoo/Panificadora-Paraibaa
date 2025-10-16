@@ -1,31 +1,54 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
+import { protegerApiAdmin } from "@/lib/adminAuth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
+  if (req.method !== "POST" && req.method !== "GET") {
     return res.status(405).json({ msg: "Método não permitido" });
   }
 
   try {
-    const { email } = req.body;
+    let email: string | undefined;
+    let userId: string | undefined;
+    let isAdminRequest = false;
 
-    if (!email) {
+    if (req.method === "POST") {
+      email = req.body.email;
+      // POST é para usuário buscar seu próprio perfil
+    } else if (req.method === "GET") {
+      userId = req.query.userId as string;
+      // GET é para admin buscar perfil de outros usuários - precisa verificar admin
+      const { isAdmin, error } = await protegerApiAdmin(req);
+      if (!isAdmin) {
+        return res.status(403).json({ 
+          ok: false, 
+          msg: error 
+        });
+      }
+      isAdminRequest = true;
+    }
+
+    if (!email && !userId) {
       return res.status(400).json({ 
         ok: false, 
-        msg: "Email é obrigatório" 
+        msg: "Email ou userId é obrigatório" 
       });
     }
 
     const db = client.db("paraiba");
     const users = db.collection("users");
 
-    console.log("Buscando perfil do usuário:", email);
-    
-    // Busca o usuário pelo email
-    const user = await users.findOne({ email });
+    let user;
+    if (email) {
+      console.log("Buscando perfil do usuário por email:", email);
+      user = await users.findOne({ email });
+    } else if (userId) {
+      console.log("Buscando perfil do usuário por userId:", userId);
+      user = await users.findOne({ login: userId });
+    }
 
     if (!user) {
-      console.log("Usuário não encontrado para email:", email);
+      console.log("Usuário não encontrado para:", email || userId);
       return res.status(404).json({ 
         ok: false, 
         msg: "Usuário não encontrado" 
@@ -40,10 +63,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: user.name || "",
         email: user.email || "",
         phone: user.phone || "",
-        address: user.address || "",
-        city: user.city || "",
-        state: user.state || "",
-        zipCode: user.zipCode || "",
+        endereco: user.endereco || {
+          rua: user.address || "",
+          numero: user.number || "",
+          bairro: user.neighborhood || "",
+          cidade: user.city || "",
+          estado: user.state || "",
+          cep: user.zipCode || "",
+        },
         birthDate: user.birthDate || "",
         gender: user.gender || "",
         preferences: user.preferences || {

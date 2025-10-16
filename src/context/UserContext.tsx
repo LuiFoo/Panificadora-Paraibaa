@@ -25,19 +25,39 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [lastValidation, setLastValidation] = useState<number>(0);
 
   // Debug logs removidos para produção
 
   // Recupera o usuário armazenado no localStorage e valida se ainda é válido no servidor
   useEffect(() => {
-    console.log("🔍 UserContext: Iniciando verificação de usuário");
+    // Evitar múltiplas execuções simultâneas
+    if (loading === false) return;
+    
     const savedUser = localStorage.getItem("usuario");
     const manualLogout = localStorage.getItem("manual_logout");
     const logoutTimestamp = localStorage.getItem("logout_timestamp");
 
-    console.log("🔍 UserContext: savedUser existe:", !!savedUser);
-    console.log("🔍 UserContext: manualLogout:", manualLogout);
-    console.log("🔍 UserContext: logoutTimestamp:", logoutTimestamp);
+    // Logs apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🔍 UserContext: Iniciando verificação de usuário");
+      console.log("🔍 UserContext: savedUser existe:", !!savedUser);
+      console.log("🔍 UserContext: manualLogout:", manualLogout);
+    }
+    
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        console.log("🔍 UserContext: Usuário salvo:", {
+          name: parsedUser.name,
+          email: parsedUser.email,
+          picture: parsedUser.picture,
+          googleId: parsedUser.googleId
+        });
+      } catch (e) {
+        console.error("🔍 UserContext: Erro ao parsear usuário salvo:", e);
+      }
+    }
     
     // Se já temos um usuário no contexto, não precisa recarregar do localStorage
     if (user) {
@@ -73,12 +93,24 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     // Função para verificar o usuário no servidor
     const validateUser = async () => {
-      console.log("🔍 UserContext: Iniciando validação do usuário");
-      console.log("🔍 UserContext: parsedUser:", {
-        login: parsedUser.login,
-        password: parsedUser.password?.substring(0, 10) + "...",
-        googleId: parsedUser.googleId
-      });
+      // Evitar validações muito frequentes (cache de 30 segundos)
+      const now = Date.now();
+      if (now - lastValidation < 30000) {
+        console.log("🔍 UserContext: Validação recente, pulando");
+        setLoading(false);
+        return;
+      }
+      
+      setLastValidation(now);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log("🔍 UserContext: Iniciando validação do usuário");
+        console.log("🔍 UserContext: parsedUser:", {
+          login: parsedUser.login,
+          password: parsedUser.password?.substring(0, 10) + "...",
+          googleId: parsedUser.googleId
+        });
+      }
       
       try {
         // Se é usuário Google, usar get-user-data
@@ -101,9 +133,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               name: data.user.name,
               permissao: data.user.permissao,
               password: parsedUser.password,
+              email: data.user.email,
+              picture: data.user.picture,
+              googleId: data.user.googleId,
             };
 
-            console.log("✅ UserContext: Usuário Google válido");
+            console.log("✅ UserContext: Usuário Google válido", {
+              name: validUser.name,
+              email: validUser.email,
+              picture: validUser.picture
+            });
             setUser(validUser);
             localStorage.setItem("usuario", JSON.stringify(validUser));
           } else {
@@ -132,9 +171,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               name: data.user.name,
               permissao: data.user.permissao,
               password: parsedUser.password, // Mantém a senha para futuras validações
+              email: data.user.email,
+              picture: data.user.picture,
             };
 
-            console.log("✅ UserContext: Usuário tradicional válido");
+            console.log("✅ UserContext: Usuário tradicional válido", {
+              name: validUser.name,
+              email: validUser.email,
+              picture: validUser.picture
+            });
             setUser(validUser);
             localStorage.setItem("usuario", JSON.stringify(validUser));
           } else {
@@ -146,8 +191,21 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("❌ UserContext: Erro ao verificar usuário:", error);
-        // Se erro ocorrer, mantém o usuário no localStorage temporariamente
-        setUser(parsedUser);
+        
+        // Se erro ocorrer, verifica se é erro de rede ou servidor
+        if (error instanceof Error) {
+          if (error.message.includes('fetch')) {
+            console.log("⚠️ UserContext: Erro de rede - usando usuário do localStorage");
+            setUser(parsedUser);
+          } else {
+            console.log("⚠️ UserContext: Erro de validação - limpando dados");
+            localStorage.removeItem("usuario");
+            setUser(null);
+          }
+        } else {
+          console.log("⚠️ UserContext: Erro desconhecido - usando usuário do localStorage");
+          setUser(parsedUser);
+        }
       } finally {
         setLoading(false);
         console.log("🔍 UserContext: Validação concluída, loading = false");

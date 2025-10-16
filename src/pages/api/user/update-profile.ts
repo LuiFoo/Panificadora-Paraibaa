@@ -1,14 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import client from "@/modules/mongodb";
 
+interface Endereco {
+  rua: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  cep: string;
+}
+
 interface ProfileData {
   name: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
+  endereco: Endereco;
   birthDate: string;
   gender: string;
   preferences: {
@@ -21,10 +27,7 @@ interface ProfileData {
 interface UpdateData {
   name: string;
   phone: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zipCode: string | null;
+  endereco: Endereco | null;
   birthDate: string | null;
   gender: string | null;
   preferences: {
@@ -45,10 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       name, 
       email, 
       phone, 
-      address, 
-      city, 
-      state, 
-      zipCode, 
+      endereco,
       birthDate, 
       gender, 
       preferences 
@@ -78,10 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const updateData: UpdateData = {
       name,
       phone: phone || null,
-      address: address || null,
-      city: city || null,
-      state: state || null,
-      zipCode: zipCode || null,
+      endereco: endereco || null,
       birthDate: birthDate || null,
       gender: gender || null,
       preferences: {
@@ -118,10 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: updatedUser?.name,
         email: updatedUser?.email,
         phone: updatedUser?.phone,
-        address: updatedUser?.address,
-        city: updatedUser?.city,
-        state: updatedUser?.state,
-        zipCode: updatedUser?.zipCode,
+        endereco: updatedUser?.endereco,
         birthDate: updatedUser?.birthDate,
         gender: updatedUser?.gender,
         preferences: updatedUser?.preferences,

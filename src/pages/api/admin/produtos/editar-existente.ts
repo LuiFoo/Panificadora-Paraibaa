@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
+import { protegerApiAdmin } from "@/lib/adminAuth";
 
 // Mapeamento das coleções antigas
 const MAPEAMENTO_COLECOES = {
@@ -15,6 +16,12 @@ const MAPEAMENTO_COLECOES = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
+
+  // Verificar se o usuário é admin
+  const { isAdmin, error } = await protegerApiAdmin(req);
+  if (!isAdmin) {
+    return res.status(403).json({ error });
+  }
 
   try {
     const client = await clientPromise;
