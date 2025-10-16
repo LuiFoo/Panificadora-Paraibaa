@@ -44,6 +44,29 @@ export default function ClienteProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const loadProfileData = useCallback(async () => {
+    if (!userId) return;
+    
+    setLoading(true);
+    setError("");
+    
+    try {
+      const response = await fetch(`/api/user/get-profile?userId=${userId}`);
+      const data = await response.json();
+
+      if (data.ok) {
+        setProfileData(data.profile);
+      } else {
+        setError(data.msg || "Erro ao carregar dados do cliente");
+      }
+    } catch (error) {
+      console.error("Erro ao carregar perfil:", error);
+      setError("Erro interno. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (userId) {
       loadProfileData();
@@ -72,27 +95,6 @@ export default function ClienteProfilePage() {
       </ProtectedRoute>
     );
   }
-
-  const loadProfileData = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    
-    try {
-      const response = await fetch(`/api/user/get-profile?userId=${userId}`);
-      const data = await response.json();
-
-      if (data.ok) {
-        setProfileData(data.profile);
-      } else {
-        setError(data.msg || "Erro ao carregar dados do cliente");
-      }
-    } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
-      setError("Erro interno. Tente novamente.");
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
 
   if (loading) {
     return (
