@@ -4,7 +4,6 @@ import { UserProvider } from "@/context/UserContext";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
 import SessionProvider from "@/components/SessionProvider";
-import AuthSync from "@/components/AuthSync";
 
 export const metadata: Metadata = {
   title: 'Panificadora Paraíba',
