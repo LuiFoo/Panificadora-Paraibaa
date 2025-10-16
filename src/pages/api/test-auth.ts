@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("👤 Dados da sessão:", {
         email: session.user?.email,
         name: session.user?.name,
-        permissao: (session.user as any)?.permissao
+        permissao: (session.user as { permissao?: string })?.permissao
       });
     }
 
@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         sessionData: session ? {
           email: session.user?.email,
           name: session.user?.name,
-          permissao: (session.user as any)?.permissao
+          permissao: (session.user as { permissao?: string })?.permissao
         } : null,
         fetchSessionData: fetchSession ? {
           email: fetchSession.user?.email,
