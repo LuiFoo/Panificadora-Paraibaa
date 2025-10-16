@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Otimizações de performance
+  experimental: {
+    optimizePackageImports: ['@/components', '@/hooks', '@/context'],
+  },
+  
+  // Configuração de imagens otimizada
   images: {
     remotePatterns: [
       {
@@ -24,8 +30,42 @@ const nextConfig: NextConfig = {
         hostname: 'lh3.googleusercontent.com',
       },
     ],
+    // Otimizações de imagem
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 dias
   },
+  
+  // Configuração de compressão
+  compress: true,
+  
+  // Configuração de servidor
   serverExternalPackages: ['mongodb'],
+  
+  // Otimizações de build
+  swcMinify: true,
+  
+  // Configuração de headers de segurança
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

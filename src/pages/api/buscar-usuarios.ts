@@ -7,10 +7,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { search } = req.query;
+    const { q } = req.query;
 
-    if (!search || typeof search !== "string") {
-      return res.status(400).json({ error: "Parâmetro 'search' é obrigatório" });
+    if (!q || typeof q !== "string") {
+      return res.status(400).json({ error: "Parâmetro 'q' é obrigatório" });
     }
 
     const db = client.db("paraiba");
@@ -20,8 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const usuarios = await usuariosCollection
       .find({
         $or: [
-          { login: { $regex: search, $options: "i" } },
-          { name: { $regex: search, $options: "i" } }
+          { login: { $regex: q, $options: "i" } },
+          { name: { $regex: q, $options: "i" } }
         ],
         permissao: { $ne: "administrador" } // Excluir administradores
       })

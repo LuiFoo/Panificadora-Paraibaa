@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useToast } from "@/context/ToastContext";
+// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,7 +26,7 @@ export default function UnifiedAuthForm({
     password: ''
   });
   
-  const { showToast } = useToast();
+  // const { showToast } = useToast(); // Toast desabilitado
   const { setUser } = useUser();
   const router = useRouter();
 
@@ -48,11 +48,11 @@ export default function UnifiedAuthForm({
       
       if (result?.error) {
         console.error("Erro no Google Auth:", result.error);
-        showToast("Erro ao conectar com Google", "error");
+        console.log("Erro ao conectar com Google");
       }
     } catch (error) {
       console.error("Erro Google Auth:", error);
-      showToast("Erro ao conectar com Google", "error");
+      console.log("Erro ao conectar com Google");
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +87,7 @@ export default function UnifiedAuthForm({
         };
         localStorage.setItem("usuario", JSON.stringify(userData));
         setUser(userData);
-        showToast("Login realizado com sucesso!", "success");
+        console.log("Login realizado com sucesso!");
         
         // Redirecionar baseado na permissão com delay para evitar conflitos
         setTimeout(() => {
@@ -100,11 +100,11 @@ export default function UnifiedAuthForm({
           }
         }, 200);
       } else {
-        showToast(data.msg || "Erro ao fazer login", "error");
+        console.log(data.msg || "Erro ao fazer login");
       }
     } catch (error) {
       console.error("Erro no login:", error);
-      showToast("Erro ao fazer login", "error");
+      console.log("Erro ao fazer login");
     } finally {
       setIsLoading(false);
     }

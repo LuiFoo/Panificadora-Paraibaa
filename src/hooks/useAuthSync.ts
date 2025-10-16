@@ -27,6 +27,8 @@ export const useAuthSync = () => {
   const { setUser, user } = useUser();
 
   useEffect(() => {
+    console.log("🔍 useAuthSync: Status:", status, "Session:", !!session, "User:", !!user);
+    
     const syncUserData = async () => {
       // Verificar se foi logout manual
       const manualLogout = localStorage.getItem("manual_logout");
@@ -46,7 +48,8 @@ export const useAuthSync = () => {
         return;
       }
 
-      if (status === "authenticated" && session?.user && !user) {
+      if (status === "authenticated" && session?.user) {
+        console.log("🔍 useAuthSync: Tentando sincronizar usuário autenticado:", session.user.email);
         try {
           console.log("Sincronizando dados do usuário:", session.user.email);
           
@@ -85,7 +88,7 @@ export const useAuthSync = () => {
             const userData: UserData = {
               _id: data.user._id,
               login: data.user.login,
-              password: data.user.password || 'google-auth',
+              password: 'google-auth',
               name: data.user.name,
               email: data.user.email,
               permissao: data.user.permissao || "usuario",
@@ -93,12 +96,17 @@ export const useAuthSync = () => {
               picture: data.user.picture || undefined,
             };
 
-            localStorage.setItem("usuario", JSON.stringify(userData));
-            setUser(userData);
-            // Limpar flag de logout manual quando usuário faz login
-            localStorage.removeItem("manual_logout");
-            localStorage.removeItem("logout_timestamp");
-            console.log("✅ Usuário sincronizado com dados do MongoDB");
+            // Só atualiza se o usuário atual for diferente ou não existir
+            if (!user || user.login !== userData.login) {
+              localStorage.setItem("usuario", JSON.stringify(userData));
+              setUser(userData);
+              // Limpar flag de logout manual quando usuário faz login
+              localStorage.removeItem("manual_logout");
+              localStorage.removeItem("logout_timestamp");
+              console.log("✅ Usuário sincronizado com dados do MongoDB");
+            } else {
+              console.log("✅ Usuário já está sincronizado");
+            }
           } else {
             // Fallback para dados do NextAuth
             const userData: UserData = {
@@ -112,11 +120,17 @@ export const useAuthSync = () => {
               picture: session.user.image || undefined,
             };
 
-            localStorage.setItem("usuario", JSON.stringify(userData));
-            setUser(userData);
-            // Limpar flag de logout manual quando usuário faz login
-            localStorage.removeItem("manual_logout");
-            localStorage.removeItem("logout_timestamp");
+            // Só atualiza se o usuário atual for diferente ou não existir
+            if (!user || user.login !== userData.login) {
+              localStorage.setItem("usuario", JSON.stringify(userData));
+              setUser(userData);
+              // Limpar flag de logout manual quando usuário faz login
+              localStorage.removeItem("manual_logout");
+              localStorage.removeItem("logout_timestamp");
+              console.log("✅ Usuário sincronizado com dados do NextAuth (fallback)");
+            } else {
+              console.log("✅ Usuário já está sincronizado (fallback)");
+            }
           }
         } catch (error) {
           console.error("Erro ao sincronizar dados do usuário:", error);
@@ -133,11 +147,17 @@ export const useAuthSync = () => {
             picture: session.user.image || undefined,
           };
 
-          localStorage.setItem("usuario", JSON.stringify(userData));
-          setUser(userData);
-          // Limpar flag de logout manual quando usuário faz login
-          localStorage.removeItem("manual_logout");
-          localStorage.removeItem("logout_timestamp");
+          // Só atualiza se o usuário atual for diferente ou não existir
+          if (!user || user.login !== userData.login) {
+            localStorage.setItem("usuario", JSON.stringify(userData));
+            setUser(userData);
+            // Limpar flag de logout manual quando usuário faz login
+            localStorage.removeItem("manual_logout");
+            localStorage.removeItem("logout_timestamp");
+            console.log("✅ Usuário sincronizado com dados do NextAuth (erro fallback)");
+          } else {
+            console.log("✅ Usuário já está sincronizado (erro fallback)");
+          }
         }
       } else if (status === "unauthenticated") {
         // Remove dados do localStorage se não autenticado

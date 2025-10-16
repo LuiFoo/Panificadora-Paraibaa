@@ -265,11 +265,7 @@ export default function CheckoutPage() {
         return;
       }
 
-      if (total > 500) {
-        setError("Valor máximo do pedido é R$ 500,00. Para pedidos maiores, entre em contato conosco.");
-        setLoading(false);
-        return;
-      }
+      // Limite de valor removido - clientes podem fazer pedidos de qualquer valor
 
       // Enviar pedido
       const response = await fetch(`/api/orders?userId=${encodeURIComponent(user?.login || "")}`, {

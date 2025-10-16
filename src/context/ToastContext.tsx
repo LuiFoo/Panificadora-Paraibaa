@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, useContext, ReactNode, useEffect } from "react";
 
 interface ToastContextType {
   showToast: (message: string, type: "success" | "error" | "warning" | "info") => void;
@@ -18,11 +18,9 @@ export function useToast() {
 
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  // Toasts desabilitados - mensagens agora aparecem inline no frontend
   const showToast = (message: string, type: "success" | "error" | "warning" | "info") => {
-    // Função vazia - não mostra mais pop-ups
-    // As mensagens já aparecem inline nas páginas (como em produtos/[id])
-    console.log(`[${type.toUpperCase()}]`, message); // Log para debug
+    // Sistema de toast desabilitado - não mostra notificações
+    console.log(`Toast (${type}): ${message}`);
   };
 
   return (

@@ -38,8 +38,27 @@ export default function Header() {
 
     fetchPedidosPendentes();
     
-    // Atualizar a cada 2 minutos (reduzido de 30 segundos)
-    const interval = setInterval(fetchPedidosPendentes, 120000);
+    // Polling inteligente - só quando a página está visível
+    let interval: NodeJS.Timeout;
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(interval);
+      } else {
+        // Página ficou visível, buscar pedidos imediatamente
+        fetchPedidosPendentes();
+        // Reiniciar polling
+        interval = setInterval(fetchPedidosPendentes, 120000);
+      }
+    };
+    
+    // Iniciar polling se página estiver visível
+    if (!document.hidden) {
+      interval = setInterval(fetchPedidosPendentes, 120000);
+    }
+    
+    // Escutar mudanças de visibilidade
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     // Listener para evento customizado de atualização
     const handleRefresh = () => fetchPedidosPendentes();
@@ -47,6 +66,7 @@ export default function Header() {
     
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('refreshPedidosCount', handleRefresh);
     };
   }, [isAdmin]);
@@ -100,8 +120,27 @@ export default function Header() {
 
     fetchMensagensNaoLidas();
     
-    // Atualizar a cada 10 segundos
-    const interval = setInterval(fetchMensagensNaoLidas, 10000);
+    // Polling inteligente - só quando a página está visível
+    let interval: NodeJS.Timeout;
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(interval);
+      } else {
+        // Página ficou visível, buscar mensagens imediatamente
+        fetchMensagensNaoLidas();
+        // Reiniciar polling
+        interval = setInterval(fetchMensagensNaoLidas, 15000);
+      }
+    };
+    
+    // Iniciar polling se página estiver visível
+    if (!document.hidden) {
+      interval = setInterval(fetchMensagensNaoLidas, 15000);
+    }
+    
+    // Escutar mudanças de visibilidade
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     // Listener para evento customizado de atualização
     const handleRefresh = () => fetchMensagensNaoLidas();
@@ -109,6 +148,7 @@ export default function Header() {
     
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('refreshMensagensCount', handleRefresh);
     };
   }, [user, isAdmin]);
@@ -260,7 +300,7 @@ export default function Header() {
                 </Link>
                 
                 <Link
-                  href="/pedidos"
+                  href="/meus-pedidos"
                   onClick={() => setUserMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
                 >

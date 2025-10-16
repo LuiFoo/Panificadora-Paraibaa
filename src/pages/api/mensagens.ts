@@ -53,14 +53,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             };
           }
           conversas[userId].mensagens.push(msg);
+          
+          // Atualizar ultimaMensagem se esta mensagem for mais recente
+          if (new Date(msg.dataEnvio) > new Date(conversas[userId].ultimaMensagem)) {
+            conversas[userId].ultimaMensagem = msg.dataEnvio;
+          }
+          
           if (!msg.lida && msg.remetente === "cliente") {
             conversas[userId].naoLidas++;
           }
         });
 
+        // Converter para array e ordenar por ultimaMensagem (mais recente primeiro)
+        const conversasArray = Object.values(conversas);
+        conversasArray.sort((a, b) => {
+          return new Date(b.ultimaMensagem).getTime() - new Date(a.ultimaMensagem).getTime();
+        });
+
         return res.status(200).json({ 
           success: true,
-          conversas: Object.values(conversas)
+          conversas: conversasArray
         });
       }
 
@@ -72,19 +84,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (method === "POST") {
       const { userId, userName, mensagem, remetente } = req.body;
-
+      
+      // Validação mais robusta
       if (!userId || !userName || !mensagem || !remetente) {
         return res.status(400).json({ 
           error: "userId, userName, mensagem e remetente são obrigatórios" 
         });
       }
 
+      if (typeof userId !== 'string' || typeof userName !== 'string' || typeof mensagem !== 'string' || typeof remetente !== 'string') {
+        return res.status(400).json({ 
+          error: "Todos os campos devem ser strings válidas" 
+        });
+      }
+
+      if (mensagem.trim().length === 0) {
+        return res.status(400).json({ 
+          error: "Mensagem não pode estar vazia" 
+        });
+      }
+
+      if (mensagem.length > 1000) {
+        return res.status(400).json({ 
+          error: "Mensagem muito longa (máximo 1000 caracteres)" 
+        });
+      }
+
+      if (!['cliente', 'admin'].includes(remetente)) {
+        return res.status(400).json({ 
+          error: "Remetente deve ser 'cliente' ou 'admin'" 
+        });
+      }
+
+      // Verificar se já existe uma mensagem idêntica nos últimos 2 segundos (evitar duplicatas)
+      const agora = new Date();
+      const doisSegundosAtras = new Date(agora.getTime() - 2000);
+      
+      const mensagemDuplicada = await mensagensCollection.findOne({
+        userId,
+        mensagem: mensagem.trim(),
+        remetente,
+        dataEnvio: { $gte: doisSegundosAtras }
+      });
+
+      if (mensagemDuplicada) {
+        return res.status(409).json({ 
+          error: "Mensagem duplicada detectada. Aguarde alguns segundos antes de enviar novamente." 
+        });
+      }
+
       const novaMensagem = {
         userId,
         userName,
-        mensagem,
+        mensagem: mensagem.trim(),
         remetente, // "cliente" ou "admin"
-        dataEnvio: new Date(),
+        dataEnvio: agora,
         lida: false
       };
 

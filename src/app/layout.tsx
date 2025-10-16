@@ -4,6 +4,8 @@ import { UserProvider } from "@/context/UserContext";
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
 import SessionProvider from "@/components/SessionProvider";
+import { PermissionSync } from "@/components/PermissionSync";
+import AuthSync from "@/components/AuthSync";
 
 export const metadata: Metadata = {
   title: 'Panificadora Paraíba',
@@ -24,8 +26,8 @@ export default function RootLayout({
         <SessionProvider>
           <ToastProvider>
             <UserProvider>
-              {/* AuthSync temporariamente desabilitado para evitar conflitos */}
-              {/* <AuthSync /> */}
+              <AuthSync />
+              <PermissionSync />
               <CartProvider>
                 {children}
               </CartProvider>

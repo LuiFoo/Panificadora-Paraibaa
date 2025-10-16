@@ -38,6 +38,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     console.log("🔍 UserContext: savedUser existe:", !!savedUser);
     console.log("🔍 UserContext: manualLogout:", manualLogout);
     console.log("🔍 UserContext: logoutTimestamp:", logoutTimestamp);
+    
+    // Se já temos um usuário no contexto, não precisa recarregar do localStorage
+    if (user) {
+      console.log("🔍 UserContext: Usuário já existe no contexto, pulando verificação");
+      setLoading(false);
+      return;
+    }
 
     // Se foi logout manual, não carregar usuário
     if (manualLogout === "true") {

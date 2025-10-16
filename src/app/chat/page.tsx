@@ -36,6 +36,7 @@ export default function ChatPage() {
     message: ""
   });
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchMensagens = useCallback(async () => {
     if (!user) return;
@@ -73,20 +74,49 @@ export default function ChatPage() {
   useEffect(() => {
     if (user) {
       fetchMensagens();
-      // Atualizar a cada 30 segundos (reduzido de 5 para 30)
-      const interval = setInterval(fetchMensagens, 30000);
-      return () => clearInterval(interval);
+      
+      // Polling inteligente - só quando a página está visível
+      let interval: NodeJS.Timeout;
+      
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          clearInterval(interval);
+        } else {
+          // Página ficou visível, buscar mensagens imediatamente
+          fetchMensagens();
+          // Reiniciar polling
+          interval = setInterval(fetchMensagens, 30000);
+        }
+      };
+      
+      // Iniciar polling se página estiver visível
+      if (!document.hidden) {
+        interval = setInterval(fetchMensagens, 30000);
+      }
+      
+      // Escutar mudanças de visibilidade
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     } else {
       setLoading(false);
     }
   }, [user, fetchMensagens]);
 
-  // Scroll automático removido - usuário controla manualmente
+  // Scroll automático para novas mensagens
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [mensagens]);
 
   const handleEnviarMensagem = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!novaMensagem.trim() || !user) return;
+    if (!novaMensagem.trim() || !user || enviando) return;
 
     setEnviando(true);
     
@@ -115,14 +145,31 @@ export default function ChatPage() {
         setTimeout(() => {
           inputRef.current?.focus();
         }, 100);
+      } else {
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: data.error || "Erro ao enviar mensagem. Tente novamente."
+        });
       }
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
+      let errorMessage = "Erro ao enviar mensagem. Tente novamente.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+        } else if (error.message.includes('500')) {
+          errorMessage = "Erro interno do servidor. Tente novamente em alguns instantes.";
+        }
+      }
+      
       setModalState({
         isOpen: true,
         type: "error",
         title: "Erro",
-        message: "Erro ao enviar mensagem. Tente novamente."
+        message: errorMessage
       });
     } finally {
       setEnviando(false);
@@ -221,20 +268,27 @@ export default function ChatPage() {
   return (
     <>
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-10">
+      <main className="max-w-4xl mx-auto px-2 md:px-4 py-4 md:py-10">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {/* Cabeçalho do Chat */}
-          <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-4 text-white">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+          <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-3 md:p-4 text-white">
+            <h1 className="text-lg md:text-2xl font-bold flex items-center gap-2">
               💬 Chat com a Panificadora Paraíba
             </h1>
-            <p className="text-sm text-amber-100 mt-1">
+            <p className="text-xs md:text-sm text-amber-100 mt-1">
               Tire suas dúvidas ou faça pedidos especiais
             </p>
           </div>
 
           {/* Área de Mensagens */}
-          <div className="overflow-y-auto p-4 bg-gray-50" style={{ height: "calc(100vh - 200px)", minHeight: "400px", maxHeight: "calc(100vh - 200px)" }}>
+          <div 
+            className="overflow-y-auto overflow-x-hidden p-2 md:p-4 bg-gray-50 chat-container" 
+            style={{ 
+              height: "calc(100vh - 180px)", 
+              minHeight: "300px", 
+              maxHeight: "calc(100vh - 180px)"
+            }}
+          >
             {loading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -264,7 +318,7 @@ export default function ChatPage() {
                     }`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
+                      className={`max-w-[85%] md:max-w-[70%] rounded-lg p-2 md:p-3 chat-message ${
                         msg.remetente === "cliente"
                           ? "bg-amber-500 text-white"
                           : "bg-white border border-gray-200 text-gray-800"
@@ -275,7 +329,9 @@ export default function ChatPage() {
                           {msg.remetente === "cliente" ? "Você" : "🍞 Panificadora"}
                         </span>
                       </div>
-                      <p className="text-sm break-words">{msg.mensagem}</p>
+                      <p className="text-sm md:text-sm break-words" style={{ whiteSpace: 'pre-wrap' }}>
+                        {msg.mensagem}
+                      </p>
                       <span
                         className={`text-xs mt-1 block ${
                           msg.remetente === "cliente"
@@ -293,12 +349,13 @@ export default function ChatPage() {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </div>
 
           {/* Formulário de Envio */}
-          <form onSubmit={handleEnviarMensagem} className="border-t border-gray-200 p-4 bg-white">
+          <form onSubmit={handleEnviarMensagem} className="border-t border-gray-200 p-2 md:p-4 bg-white">
             <div className="flex gap-2">
               <div className="flex-1">
                 <input
@@ -311,7 +368,7 @@ export default function ChatPage() {
                     }
                   }}
                   placeholder="Digite sua mensagem..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                   disabled={enviando}
                   maxLength={500}
                 />
@@ -329,19 +386,19 @@ export default function ChatPage() {
               <button
                 type="submit"
                 disabled={enviando || !novaMensagem.trim()}
-                className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white px-3 md:px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-1 md:gap-2 text-sm md:text-base"
               >
                 {enviando ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Enviando...
+                    <span className="hidden md:inline">Enviando...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
-                    Enviar
+                    <span className="hidden md:inline">Enviar</span>
                   </>
                 )}
               </button>
@@ -350,9 +407,9 @@ export default function ChatPage() {
         </div>
 
         {/* Informações */}
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-semibold text-blue-900 mb-2">ℹ️ Informações</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="mt-4 md:mt-6 p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold text-blue-900 mb-2 text-sm md:text-base">ℹ️ Informações</h3>
+          <ul className="text-xs md:text-sm text-blue-800 space-y-1">
             <li>• Responderemos sua mensagem o mais breve possível</li>
             <li>• Horário de atendimento: Segunda a Sábado, 6h às 19h</li>
             <li>• Você receberá notificações quando houver resposta</li>

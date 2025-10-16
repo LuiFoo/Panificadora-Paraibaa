@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
-import { useToast } from "@/context/ToastContext";
+// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
@@ -27,7 +27,7 @@ interface ProfileData {
 
 export default function ProfilePage() {
   const { user, setUser } = useUser();
-  const { showToast } = useToast();
+  // const { showToast } = useToast(); // Toast desabilitado
   const router = useRouter();
   
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -154,14 +154,14 @@ export default function ProfilePage() {
           name: profileData.name,
         });
         
-        showToast("Perfil atualizado com sucesso!", "success");
+        console.log("Perfil atualizado com sucesso!");
         setIsEditing(false);
       } else {
-        showToast(data.msg || "Erro ao atualizar perfil", "error");
+        console.log(data.msg || "Erro ao atualizar perfil");
       }
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
-      showToast("Erro ao atualizar perfil", "error");
+      console.log("Erro ao atualizar perfil");
     } finally {
       setIsLoading(false);
     }

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react";
 import { useUser } from "@/context/UserContext";
-import { useToast } from "@/context/ToastContext";
+// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 
 // ---------------- Tipos ----------------
 export interface CartItem {
@@ -39,7 +39,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 // --------------- Provider ---------------
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useUser();
-  const { showToast } = useToast();
+  // const { showToast } = useToast(); // Toast desabilitado
   const login = user?.login ?? "guest";
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -103,12 +103,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       
       // Notificar sobre produtos pausados
       if (produtosPausados.length > 0) {
-        showToast(`Produtos pausados removidos do carrinho: ${produtosPausados.join(', ')}`, "warning");
+        console.log(`Produtos pausados removidos do carrinho: ${produtosPausados.join(', ')}`);
       }
       
       // Notificar sobre preços atualizados
       if (produtosComPrecoAtualizado.length > 0) {
-        showToast(`Preços atualizados: ${produtosComPrecoAtualizado.join(', ')}`, "info");
+        console.log(`Preços atualizados: ${produtosComPrecoAtualizado.join(', ')}`);
       }
       
       // Atualizar o carrinho no backend
@@ -133,7 +133,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return produtosValidos;
-  }, [login, showToast]);
+  }, [login]);
 
   // Carregar o carrinho do MongoDB quando o login mudar
   useEffect(() => {
@@ -278,17 +278,17 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Validações do frontend antes de enviar para API
     if (item.quantidade <= 0) {
       const msg = "Quantidade deve ser maior que zero";
-      showToast(msg, "warning");
+      console.log(msg);
       return { success: false, message: msg };
     }
 
     if (item.quantidade > 20) {
       const msg = "Quantidade máxima permitida por produto é 20 unidades";
-      showToast(msg, "warning");
+      console.log(msg);
       return { success: false, message: msg };
     }
 
-    // Limite de valor removido
+    // Limite de valor removido - clientes podem fazer pedidos de qualquer valor
 
     const existingItemIndex = cartItems.findIndex((i) => i.id === item.id);
     let updatedItems: CartItem[];
@@ -301,22 +301,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       // Verificar limite por produto (20 unidades)
       if (novaQuantidade > 20) {
         const msg = "Quantidade máxima permitida por produto é 20 unidades";
-        showToast(msg, "warning");
+        console.log(msg);
         return { success: false, message: msg };
       }
       
-      // Limite total do carrinho removido
+      // Limite total do carrinho removido - clientes podem fazer pedidos de qualquer valor
 
       updatedItems[existingItemIndex].quantidade = novaQuantidade;
     } else {
       // Verificar limite de tipos de produtos
       if (cartItems.length >= 20) {
         const msg = "Limite máximo de 20 tipos de produtos no carrinho atingido";
-        showToast(msg, "warning");
+        console.log(msg);
         return { success: false, message: msg };
       }
 
-      // Limite total do carrinho removido
+      // Limite total do carrinho removido - clientes podem fazer pedidos de qualquer valor
 
       updatedItems = [...cartItems, item];
     }
@@ -337,12 +337,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (res.ok) {
         setCartItems(updatedItems);
         const msg = "Produto adicionado ao carrinho!";
-        showToast(msg, "success");
+        console.log(msg);
         return { success: true, message: msg };
       } else {
         const errorData = await res.json();
         const msg = errorData.error || "Erro ao adicionar produto";
-        showToast(msg, "error");
+        console.log(msg);
         return { success: false, message: msg };
       }
     } catch (err) {
@@ -372,11 +372,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     // Só validar limites se estiver AUMENTANDO a quantidade
     if (quantidade > quantidadeAtual) {
       if (quantidade > 20) {
-        showToast("Quantidade máxima permitida por produto é 20 unidades", "warning");
+        console.log("Quantidade máxima permitida por produto é 20 unidades");
         return;
       }
 
-      // Limite total do carrinho removido
+      // Limite total do carrinho removido - clientes podem fazer pedidos de qualquer valor
     }
 
     const updatedCart = cartItems.map((item) =>
@@ -394,11 +394,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setCartItems(updatedCart);
       } else {
         const errorData = await res.json();
-        showToast(errorData.error || "Erro ao atualizar produto", "error");
+        console.log(errorData.error || "Erro ao atualizar produto");
       }
     } catch (err) {
       console.error("Erro ao atualizar produto:", err);
-      showToast("Erro ao atualizar produto. Tente novamente.", "error");
+      console.log("Erro ao atualizar produto. Tente novamente.");
     }
   };
 
@@ -430,10 +430,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       console.log("🔄 Forçando atualização do carrinho...");
       const produtosValidos = await verificarProdutosPausados(cartItems);
       setCartItems(produtosValidos);
-      showToast("Carrinho atualizado com sucesso!", "success");
+        console.log("Carrinho atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao forçar atualização:", error);
-      showToast("Erro ao atualizar carrinho", "error");
+      console.log("Erro ao atualizar carrinho");
     }
   };
 

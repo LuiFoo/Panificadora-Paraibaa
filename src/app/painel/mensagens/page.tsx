@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Modal from "@/components/Modal";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface Mensagem {
   _id: string;
@@ -35,6 +35,7 @@ export default function MensagensAdminPage() {
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [conversaTemporaria, setConversaTemporaria] = useState<Conversa | null>(null);
   const [conversaSelecionada, setConversaSelecionada] = useState<string | null>(null);
+  const [conversaExpandida, setConversaExpandida] = useState<string | null>(null);
   const [novaMensagem, setNovaMensagem] = useState("");
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -42,6 +43,7 @@ export default function MensagensAdminPage() {
   const [buscaUsuario, setBuscaUsuario] = useState("");
   const [usuariosEncontrados, setUsuariosEncontrados] = useState<Usuario[]>([]);
   const [buscandoUsuarios, setBuscandoUsuarios] = useState(false);
+  const [buscaTimeout, setBuscaTimeout] = useState<NodeJS.Timeout | null>(null);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -60,48 +62,74 @@ export default function MensagensAdminPage() {
 
   // Definir conversaAtual antes dos useEffects
   const conversaAtual = conversaTemporaria || conversas.find(c => c.userId === conversaSelecionada);
-  const [ultimoTamanhoMensagens, setUltimoTamanhoMensagens] = useState<number>(0);
 
-  // Debug: verificar se conversaAtual está sendo encontrada
-  console.log("Conversas:", conversas);
-  console.log("Conversa selecionada:", conversaSelecionada);
-  console.log("Conversa atual:", conversaAtual);
-  console.log("Conversas length:", conversas.length);
-  console.log("Conversas userIds:", conversas.map(c => c.userId));
-
+  // Fetch inicial das conversas
   useEffect(() => {
     fetchConversas();
-    // Atualizar a cada 5 segundos, mas só se não houver conversa temporária
-    const interval = setInterval(() => {
-      // Só fazer fetch se não há conversa selecionada ou se a conversa já existe no banco
-      if (!conversaSelecionada || conversas.some(c => c.userId === conversaSelecionada && c.mensagens.length > 0)) {
+    
+    // Polling inteligente - só quando a página está visível
+    let interval: NodeJS.Timeout;
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        clearInterval(interval);
+      } else {
+        // Página ficou visível, buscar conversas imediatamente
         fetchConversas();
+        // Reiniciar polling
+        interval = setInterval(fetchConversas, 30000);
       }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [conversaSelecionada, conversas]);
+    };
+    
+    // Iniciar polling se página estiver visível
+    if (!document.hidden) {
+      interval = setInterval(fetchConversas, 30000);
+    }
+    
+    // Escutar mudanças de visibilidade
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Limpar timeout se existir
+      if (buscaTimeout) {
+        clearTimeout(buscaTimeout);
+      }
+    };
+  }, [buscaTimeout]);
 
   useEffect(() => {
     // Marcar mensagens do cliente como lidas quando admin abre a conversa
     if (conversaSelecionada) {
       marcarComoLida(conversaSelecionada);
-      // Resetar o contador quando trocar de conversa (não faz scroll)
-      setUltimoTamanhoMensagens(conversaAtual?.mensagens.length || 0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversaSelecionada]);
 
-  // Scroll automático APENAS quando uma nova mensagem for adicionada
+  // Scroll automático quando há novas mensagens
   useEffect(() => {
     if (conversaAtual && conversaAtual.mensagens.length > 0) {
-      // Só faz scroll se o número de mensagens aumentou (nova mensagem)
-      if (conversaAtual.mensagens.length > ultimoTamanhoMensagens) {
-        scrollToBottom();
-      }
-      setUltimoTamanhoMensagens(conversaAtual.mensagens.length);
+      scrollToBottom();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversaAtual?.mensagens.length]);
+
+  const fetchConversas = async () => {
+    try {
+      const response = await fetch("/api/mensagens?isAdmin=true");
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success) {
+          // API já retorna as conversas ordenadas (mais recente primeiro)
+          setConversas(data.conversas);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar conversas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const marcarComoLida = async (userId: string) => {
     try {
@@ -115,11 +143,8 @@ export default function MensagensAdminPage() {
         })
       });
       
-      // Aguardar um pouco e buscar conversas atualizadas
-      setTimeout(() => {
-        fetchConversas();
-        window.dispatchEvent(new Event('refreshMensagensCount'));
-      }, 500);
+      // Atualizar contador no header
+      window.dispatchEvent(new Event('refreshMensagensCount'));
     } catch (error) {
       console.error("Erro ao marcar mensagens como lidas:", error);
     }
@@ -130,46 +155,26 @@ export default function MensagensAdminPage() {
       if (messagesContainerRef.current) {
         messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
       }
-    }, 100);
-  };
-
-  const fetchConversas = async () => {
-    try {
-      const response = await fetch("/api/mensagens?isAdmin=true");
-      const data = await response.json();
-      
-      if (data.success) {
-        // Ordenar conversas pela data da última mensagem (mais recente primeiro)
-        const conversasOrdenadas = data.conversas.sort((a: Conversa, b: Conversa) => {
-          return new Date(b.ultimaMensagem).getTime() - new Date(a.ultimaMensagem).getTime();
-        });
-        setConversas(conversasOrdenadas);
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
       }
-    } catch (error) {
-      console.error("Erro ao buscar conversas:", error);
-    } finally {
-      setLoading(false);
-    }
+    }, 100);
   };
 
   const handleEnviarResposta = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!novaMensagem.trim() || !conversaSelecionada) return;
+    if (!novaMensagem.trim() || !conversaSelecionada || enviando) return;
 
     setEnviando(true);
-    
-    try {
-      // Usar conversa temporária se existir, senão buscar nas conversas normais
-      const conversa = conversaTemporaria || conversas.find(c => c.userId === conversaSelecionada);
-      if (!conversa) return;
 
+    try {
       const response = await fetch("/api/mensagens", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: conversaSelecionada,
-          userName: conversa.userName,
+          userName: conversaAtual?.userName || "Admin",
           mensagem: novaMensagem,
           remetente: "admin"
         })
@@ -197,11 +202,21 @@ export default function MensagensAdminPage() {
       }
     } catch (error) {
       console.error("Erro ao enviar resposta:", error);
+      let errorMessage = "Erro ao enviar resposta. Tente novamente.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
+        } else if (error.message.includes('500')) {
+          errorMessage = "Erro interno do servidor. Tente novamente em alguns instantes.";
+        }
+      }
+      
       setModalState({
         isOpen: true,
         type: "error",
         title: "Erro",
-        message: "Erro ao enviar resposta. Tente novamente."
+        message: errorMessage
       });
     } finally {
       setEnviando(false);
@@ -227,38 +242,28 @@ export default function MensagensAdminPage() {
     if (!conversaSelecionada) return;
 
     try {
-      // Se for conversa temporária, apenas limpar sem chamar API
-      if (conversaTemporaria) {
-        setConversaTemporaria(null);
-        setConversaSelecionada(null);
-        
-        setModalState({
-          isOpen: true,
-          type: "success",
-          title: "Sucesso",
-          message: "Conversa temporária removida."
-        });
-        return;
-      }
-
-      // Para conversas reais, chamar API
       const response = await fetch(`/api/mensagens?userId=${conversaSelecionada}`, {
         method: "DELETE"
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (response.ok) {
         setModalState({
           isOpen: true,
           type: "success",
           title: "Sucesso",
-          message: data.message
+          message: "Conversa deletada com sucesso!"
         });
 
-        // Limpar seleção e atualizar lista
-        setConversaSelecionada(null);
+        // Limpar conversa temporária se existir
+        if (conversaTemporaria) {
+          setConversaTemporaria(null);
+        }
+
+        // Atualizar lista de conversas
         await fetchConversas();
+        
+        // Limpar conversa selecionada
+        setConversaSelecionada(null);
         
         // Atualizar contador no header
         window.dispatchEvent(new Event('refreshMensagensCount'));
@@ -274,397 +279,501 @@ export default function MensagensAdminPage() {
     }
   };
 
-  const buscarUsuarios = async (termo: string) => {
-    if (!termo || termo.length < 2) {
+  const handleBuscarUsuarios = useCallback(async (query: string) => {
+    if (!query.trim()) {
       setUsuariosEncontrados([]);
       return;
     }
 
     setBuscandoUsuarios(true);
     try {
-      const response = await fetch(`/api/buscar-usuarios?search=${encodeURIComponent(termo)}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setUsuariosEncontrados(data.usuarios);
+      const response = await fetch(`/api/buscar-usuarios?q=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setUsuariosEncontrados(data.usuarios || []);
       }
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
     } finally {
       setBuscandoUsuarios(false);
     }
-  };
+  }, []);
 
-  const iniciarNovaConversa = async (usuario: Usuario) => {
-    // Verificar se já existe conversa com esse usuário
-    const conversaExistente = conversas.find(c => c.userId === usuario.login);
-    
-    if (conversaExistente) {
-      setConversaSelecionada(usuario.login);
-      setMostrarNovaConversa(false);
-      setBuscaUsuario("");
-      setUsuariosEncontrados([]);
-        setModalState({
-          isOpen: true,
-          type: "info",
-          title: "Conversa Existente",
-          message: `Conversa com ${usuario.name} já existe. Selecionando...`
-        });
-      return;
-    }
-
-    // Criar uma conversa temporária com os dados do usuário
-    const novaConversaTemporaria = {
+  const handleSelecionarUsuario = (usuario: Usuario) => {
+    // Criar conversa temporária
+    const novaConversa: Conversa = {
       userId: usuario.login,
       userName: usuario.name,
       mensagens: [],
-      ultimaMensagem: "",
+      ultimaMensagem: new Date().toISOString(),
       naoLidas: 0
     };
-    
-    // Definir conversa temporária
-    setConversaTemporaria(novaConversaTemporaria);
-    
-    // Selecionar a nova conversa
+
+    setConversaTemporaria(novaConversa);
     setConversaSelecionada(usuario.login);
+    setConversaExpandida(usuario.login);
+    setMostrarNovaConversa(false);
+    setBuscaUsuario("");
+    setUsuariosEncontrados([]);
+  };
+
+  const handleToggleConversa = (userId: string) => {
+    if (conversaExpandida === userId) {
+      // Se já está expandida, fecha
+      setConversaExpandida(null);
+      setConversaSelecionada(null);
+      setConversaTemporaria(null);
+    } else {
+      // Abre nova conversa
+      setConversaExpandida(userId);
+      setConversaSelecionada(userId);
+      setConversaTemporaria(null);
+    }
+  };
+
+  const handleNovaConversa = () => {
+    setMostrarNovaConversa(true);
+    setBuscaUsuario("");
+    setUsuariosEncontrados([]);
+  };
+
+  const handleCancelarNovaConversa = () => {
     setMostrarNovaConversa(false);
     setBuscaUsuario("");
     setUsuariosEncontrados([]);
     
-    setModalState({
-      isOpen: true,
-      type: "success",
-      title: "Nova Conversa",
-      message: `Conversa iniciada com ${usuario.name}. Agora você pode enviar a primeira mensagem!`
-    });
+    // Limpar timeout se existir
+    if (buscaTimeout) {
+      clearTimeout(buscaTimeout);
+      setBuscaTimeout(null);
+    }
   };
 
-  const totalNaoLidas = conversas.reduce((sum, c) => sum + c.naoLidas, 0);
+  if (loading) {
+    return (
+      <ProtectedRoute requiredPermission="administrador" redirectTo="/">
+        <Header />
+        <main className="min-h-screen bg-gray-50 p-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Carregando mensagens...</p>
+            </div>
+          </div>
+        </main>
+        <Footer showMap={false} />
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {/* Cabeçalho */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
-              <Link 
-                href="/painel" 
-                className="text-white hover:text-blue-100 text-sm mb-2 inline-flex items-center"
-              >
-                ← Voltar ao Painel
-              </Link>
-              <h1 className="text-3xl font-bold flex items-center gap-2 mt-2">
-                Mensagens dos Clientes
-              </h1>
-              <p className="text-blue-100 mt-1">
-                {totalNaoLidas > 0 && (
-                  <span className="bg-red-500 px-2 py-1 rounded-full text-xs font-bold mr-2">
-                    {totalNaoLidas} nova{totalNaoLidas > 1 ? 's' : ''}
-                  </span>
-                )}
-                Responda as mensagens dos seus clientes
-              </p>
+      <main className="min-h-screen bg-gray-50 p-2 md:p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-3 md:p-6 border-b border-gray-200">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <h1 className="text-lg md:text-2xl font-bold text-gray-800">Mensagens dos Clientes</h1>
+                <button
+                  onClick={handleNovaConversa}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base w-full md:w-auto"
+                >
+                  + Nova Conversa
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3" style={{ height: "calc(100vh - 250px)", minHeight: "600px" }}>
-              {/* Lista de Conversas */}
-              <div className="border-r border-gray-200 flex flex-col bg-gray-50">
-                <div className="p-4 border-b border-gray-200 bg-white">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="font-semibold text-gray-800">
-                      Conversas ({conversas.length})
-                    </h2>
-                    <button
-                      onClick={() => setMostrarNovaConversa(!mostrarNovaConversa)}
-                      className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1"
-                      title="Iniciar nova conversa"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Nova
-                    </button>
-                  </div>
-                  
-                  {/* Buscar usuário para nova conversa */}
-                  {mostrarNovaConversa && (
-                    <div className="mb-3">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={buscaUsuario}
-                          onChange={(e) => {
-                            setBuscaUsuario(e.target.value);
-                            buscarUsuarios(e.target.value);
-                          }}
-                          placeholder="Digite o username ou nome..."
-                          className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
-                        {buscandoUsuarios && (
-                          <div className="absolute right-2 top-2">
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-500"></div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Lista de usuários encontrados */}
-                      {usuariosEncontrados.length > 0 && (
-                        <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                          {usuariosEncontrados.map((usuario) => (
-                            <button
-                              key={usuario._id}
-                              onClick={() => iniciarNovaConversa(usuario)}
-                              className="w-full p-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 transition-colors"
-                            >
-                              <p className="font-semibold text-gray-800 text-sm">{usuario.name}</p>
-                              <p className="text-xs text-gray-500">@{usuario.login}</p>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {buscaUsuario.length >= 2 && !buscandoUsuarios && usuariosEncontrados.length === 0 && (
-                        <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                          Nenhum usuário encontrado com &quot;{buscaUsuario}&quot;
-                        </div>
-                      )}
-                      
-                      {buscaUsuario.length > 0 && buscaUsuario.length < 2 && (
-                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                          Digite pelo menos 2 caracteres para buscar
-                        </div>
-                      )}
-                    </div>
-                  )}
+            {/* Lista de Conversas com Sistema de Expansão */}
+            <div className="max-h-[calc(100vh-200px)] overflow-y-auto overflow-x-hidden w-full">
+              {(conversas.length === 0 && !conversaTemporaria) ? (
+                <div className="p-3 md:p-4 text-center text-gray-500">
+                  <p className="text-sm md:text-base">Nenhuma conversa encontrada</p>
                 </div>
-                
-                {/* Lista de conversas com scroll */}
-                <div className="flex-1 overflow-y-auto">
-                  {loading ? (
-                    <div className="flex items-center justify-center h-32">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                    </div>
-                  ) : conversas.length === 0 ? (
-                    <div className="text-center py-10 px-4">
-                      <div className="text-4xl mb-2">📭</div>
-                      <p className="text-gray-500 text-sm">Nenhuma mensagem ainda</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-gray-200">
-                    {conversas.map((conversa) => (
-                      <button
-                        key={conversa.userId}
-                        onClick={() => setConversaSelecionada(conversa.userId)}
-                        className={`w-full p-4 text-left hover:bg-gray-100 transition-colors ${
-                          conversaSelecionada === conversa.userId ? "bg-blue-50 border-l-4 border-blue-500" : ""
+              ) : (
+                <div className="space-y-2 relative">
+                  {/* Incluir conversa temporária se existir */}
+                  {conversaTemporaria && (
+                    <div key={conversaTemporaria.userId} className="border border-gray-200 rounded-lg conversa-container">
+                      {/* Cabeçalho da Conversa Temporária - Sempre Visível */}
+                      <div
+                        onClick={() => handleToggleConversa(conversaTemporaria.userId)}
+                        className={`p-3 md:p-4 cursor-pointer conversa-header ${
+                          conversaExpandida === conversaTemporaria.userId ? 'expanded' : ''
                         }`}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                              {conversa.userName}
-                              {conversa.naoLidas > 0 && (
-                                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                                  {conversa.naoLidas}
-                                </span>
-                              )}
-                            </h3>
-                            <p className="text-xs text-gray-500 mt-1">
-                              @{conversa.userId}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {new Date(conversa.ultimaMensagem).toLocaleString("pt-BR", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                hour: "2-digit",
-                                minute: "2-digit"
-                              })}
-                            </p>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            {/* Nome do usuário e ID */}
+                            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 mb-1">
+                              <h3 className="font-semibold text-gray-800 truncate text-sm md:text-base">{conversaTemporaria.userName}</h3>
+                              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full w-fit">
+                                @{conversaTemporaria.userId}
+                              </span>
+                              {/* Indicador de expansão */}
+                              <span className="text-xs text-gray-400">
+                                {conversaExpandida === conversaTemporaria.userId ? '▼' : '▶'}
+                              </span>
+                              {/* Indicador de conversa nova */}
+                              <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full w-fit">
+                                Nova
+                              </span>
+                            </div>
+                            
+                            {/* Preview da mensagem */}
+                            <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-2 mb-1">
+                              <p className="text-xs md:text-sm text-gray-600 truncate conversa-preview flex-1">
+                                Nova conversa iniciada
+                              </p>
+                            </div>
+                            
+                            {/* Horário da última mensagem */}
+                            <div className="flex flex-col md:flex-row md:items-center gap-1">
+                              <span className="text-xs text-gray-400">
+                                📅 {new Date(conversaTemporaria.ultimaMensagem).toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              <span className="text-xs text-gray-400 hidden md:inline">
+                                • 0 msg
+                              </span>
+                              <span className="text-xs text-gray-400 md:hidden">
+                                0 msg
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </button>
-                    ))}
+                      </div>
+
+                      {/* Área de Mensagens - Expansível */}
+                      {conversaExpandida === conversaTemporaria.userId && (
+                        <div className="border-t border-gray-200 conversa-expandida">
+                          {/* Cabeçalho da Conversa Expandida */}
+                          <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                              <div>
+                                <h4 className="font-semibold text-gray-800 text-sm md:text-base">
+                                  Nova conversa com {conversaTemporaria.userName}
+                                </h4>
+                                <p className="text-xs md:text-sm text-gray-600">ID: {conversaTemporaria.userId}</p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConversaSelecionada(conversaTemporaria.userId);
+                                  handleDeletarConversa();
+                                }}
+                                className="text-red-600 hover:text-red-700 text-xs md:text-sm font-medium"
+                              >
+                                Deletar Conversa
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Mensagens */}
+                          <div 
+                            ref={conversaExpandida === conversaTemporaria.userId ? messagesContainerRef : null}
+                            className="max-h-[250px] overflow-y-auto overflow-x-hidden p-2 md:p-4 space-y-3 md:space-y-4 chat-container"
+                          >
+                            <div className="text-center text-gray-500 py-8">
+                              <p className="text-sm">Nova conversa</p>
+                              <p className="text-xs">Envie sua primeira mensagem para iniciar</p>
+                            </div>
+                            <div ref={conversaExpandida === conversaTemporaria.userId ? messagesEndRef : null} />
+                          </div>
+
+                          {/* Input de Mensagem */}
+                          {conversaSelecionada === conversaTemporaria.userId && (
+                            <form onSubmit={handleEnviarResposta} className="p-2 md:p-4 border-t border-gray-200">
+                              <div className="flex gap-2">
+                                <input
+                                  ref={inputRef}
+                                  type="text"
+                                  value={novaMensagem}
+                                  onChange={(e) => setNovaMensagem(e.target.value)}
+                                  placeholder="Digite sua mensagem..."
+                                  className="flex-1 px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  disabled={enviando}
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={enviando || !novaMensagem.trim()}
+                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base"
+                                >
+                                  {enviando ? 'Enviando...' : 'Enviar'}
+                                </button>
+                              </div>
+                            </form>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* Área de Chat */}
-              <div className="md:col-span-2 flex flex-col" style={{ height: "calc(100vh - 200px)", minHeight: "600px" }}>
-                {!conversaSelecionada ? (
-                  <div className="flex items-center justify-center h-full bg-gray-50">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">📋</div>
-                      <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                        Selecione uma conversa
-                      </h3>
-                      <p className="text-gray-500">
-                        Escolha um cliente à esquerda para ver as mensagens
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {/* Header da Conversa */}
-                    <div className="p-4 border-b border-gray-200 bg-white flex items-center justify-between flex-shrink-0">
-                      <div>
-                        <h3 className="font-semibold text-gray-800">
-                          {conversaAtual?.userName || "Nome não encontrado"}
-                        </h3>
-                        <p className="text-xs text-gray-500">@{conversaAtual?.userId || "usuario"}</p>
-                        {!conversaAtual && (
-                          <p className="text-xs text-red-500 mt-1">
-                            Conversa não encontrada
-                          </p>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleDeletarConversa}
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
-                        title="Deletar conversa"
+                  
+                  {conversas.map((conversa) => (
+                    <div key={conversa.userId} className="border border-gray-200 rounded-lg conversa-container">
+                      {/* Cabeçalho da Conversa - Sempre Visível */}
+                      <div
+                        onClick={() => handleToggleConversa(conversa.userId)}
+                        className={`p-3 md:p-4 cursor-pointer conversa-header ${
+                          conversaExpandida === conversa.userId ? 'expanded' : ''
+                        }`}
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Deletar Conversa
-                      </button>
-                    </div>
-
-                    {/* Mensagens - Área com scroll */}
-                    <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-gray-50">
-                      <div className="space-y-4">
-                        {conversaAtual?.mensagens && conversaAtual.mensagens.length > 0 ? (
-                          conversaAtual.mensagens.map((msg) => (
-                            <div
-                              key={msg._id}
-                              className={`flex ${
-                                msg.remetente === "admin" ? "justify-end" : "justify-start"
-                              }`}
-                            >
-                              <div
-                                className={`max-w-[70%] rounded-lg p-3 ${
-                                  msg.remetente === "admin"
-                                    ? "bg-blue-500 text-white"
-                                    : "bg-white border border-gray-200 text-gray-800"
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-xs font-semibold">
-                                    {msg.remetente === "admin" ? "Você (Padaria)" : "Cliente"}
-                                  </span>
-                                </div>
-                                <p className="text-sm break-words">{msg.mensagem}</p>
-                                <span
-                                  className={`text-xs mt-1 block ${
-                                    msg.remetente === "admin"
-                                      ? "text-blue-100"
-                                      : "text-gray-500"
-                                  }`}
-                                >
-                                  {new Date(msg.dataEnvio).toLocaleString("pt-BR", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    hour: "2-digit",
-                                    minute: "2-digit"
-                                  })}
-                                </span>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="flex items-center justify-center h-full min-h-[200px]">
-                            <div className="text-center">
-                              <div className="text-4xl mb-4">✉️</div>
-                              <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                                Nova Conversa
-                              </h3>
-                              <p className="text-gray-500 mb-4">
-                                Envie a primeira mensagem para {conversaAtual?.userName || "este cliente"}
-                              </p>
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                <p className="text-sm text-blue-800">
-                                  Digite sua mensagem no campo abaixo para iniciar a conversa
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                      </div>
-                    </div>
-
-                    {/* Formulário de Resposta */}
-                    <form onSubmit={handleEnviarResposta} className="border-t border-gray-200 p-4 bg-white flex-shrink-0">
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <input
-                            ref={inputRef}
-                            type="text"
-                            value={novaMensagem}
-                            onChange={(e) => {
-                              if (e.target.value.length <= 500) {
-                                setNovaMensagem(e.target.value);
-                              }
-                            }}
-                            placeholder="Digite sua resposta..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={enviando}
-                            maxLength={500}
-                          />
-                          <div className="flex justify-between items-center mt-1">
-                            <span className={`text-xs ${novaMensagem.length > 450 ? 'text-red-500' : 'text-gray-500'}`}>
-                              {novaMensagem.length}/500 caracteres
-                            </span>
-                            {novaMensagem.length > 450 && (
-                              <span className="text-xs text-red-500 font-medium">
-                                Limite próximo!
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            {/* Nome do usuário e ID */}
+                            <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2 mb-1">
+                              <h3 className="font-semibold text-gray-800 truncate text-sm md:text-base">{conversa.userName}</h3>
+                              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full w-fit">
+                                @{conversa.userId}
                               </span>
-                            )}
+                              {/* Indicador de expansão */}
+                              <span className="text-xs text-gray-400">
+                                {conversaExpandida === conversa.userId ? '▼' : '▶'}
+                              </span>
+                            </div>
+                            
+                            {/* Preview da mensagem */}
+                            <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-2 mb-1">
+                              {(() => {
+                                const ultimaMensagem = conversa.mensagens[conversa.mensagens.length - 1];
+                                if (!ultimaMensagem) return null;
+                                
+                                return (
+                                  <span className={`text-xs px-2 py-1 rounded-full w-fit ${
+                                    ultimaMensagem.remetente === 'admin' 
+                                      ? 'bg-blue-100 text-blue-800' 
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}>
+                                    {ultimaMensagem.remetente === 'admin' ? '👤 Admin' : '👤 Cliente'}
+                                  </span>
+                                );
+                              })()}
+                              <p 
+                                className="text-xs md:text-sm text-gray-600 truncate conversa-preview flex-1"
+                                title={conversa.mensagens[conversa.mensagens.length - 1]?.mensagem || 'Nenhuma mensagem'}
+                              >
+                                {(() => {
+                                  const mensagem = conversa.mensagens[conversa.mensagens.length - 1]?.mensagem || 'Nenhuma mensagem';
+                                  return mensagem.length > 40 ? mensagem.substring(0, 40) + '...' : mensagem;
+                                })()}
+                              </p>
+                            </div>
+                            
+                            {/* Horário da última mensagem */}
+                            <div className="flex flex-col md:flex-row md:items-center gap-1">
+                              <span className="text-xs text-gray-400">
+                                📅 {new Date(conversa.ultimaMensagem).toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              <span className="text-xs text-gray-400 hidden md:inline">
+                                • {conversa.mensagens.length} msg{conversa.mensagens.length !== 1 ? 's' : ''}
+                              </span>
+                              <span className="text-xs text-gray-400 md:hidden">
+                                {conversa.mensagens.length} msg{conversa.mensagens.length !== 1 ? 's' : ''}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <button
-                          type="submit"
-                          disabled={enviando || !novaMensagem.trim()}
-                          className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-6 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
-                        >
-                          {enviando ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              Enviando...
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                              </svg>
-                              Enviar
-                            </>
+                          
+                          {/* Badge de mensagens não lidas */}
+                          {conversa.naoLidas > 0 && (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center font-bold">
+                                {conversa.naoLidas}
+                              </span>
+                            </div>
                           )}
-                        </button>
+                        </div>
                       </div>
-                    </form>
-                  </>
-                )}
-              </div>
+
+                      {/* Área de Mensagens - Expansível */}
+                      {conversaExpandida === conversa.userId && (
+                        <div className="border-t border-gray-200 conversa-expandida">
+                          {/* Cabeçalho da Conversa Expandida */}
+                          <div className="p-3 md:p-4 bg-gray-50 border-b border-gray-200">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+                              <div>
+                                <h4 className="font-semibold text-gray-800 text-sm md:text-base">
+                                  Conversa com {conversa.userName}
+                                </h4>
+                                <p className="text-xs md:text-sm text-gray-600">ID: {conversa.userId}</p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConversaSelecionada(conversa.userId);
+                                  handleDeletarConversa();
+                                }}
+                                className="text-red-600 hover:text-red-700 text-xs md:text-sm font-medium"
+                              >
+                                Deletar Conversa
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Mensagens */}
+                          <div 
+                            ref={conversaExpandida === conversa.userId ? messagesContainerRef : null}
+                            className="max-h-[250px] overflow-y-auto overflow-x-hidden p-2 md:p-4 space-y-3 md:space-y-4 chat-container"
+                          >
+                            {conversa.mensagens.length === 0 ? (
+                              <div className="text-center text-gray-500 py-8">
+                                <p className="text-sm">Nenhuma mensagem ainda</p>
+                                <p className="text-xs">Inicie a conversa enviando uma mensagem</p>
+                              </div>
+                            ) : (
+                              conversa.mensagens.map((mensagem) => (
+                                <div
+                                  key={mensagem._id}
+                                  className={`flex ${mensagem.remetente === 'admin' ? 'justify-end' : 'justify-start'}`}
+                                >
+                                  <div
+                                    className={`max-w-[85%] md:max-w-xs lg:max-w-md px-3 md:px-4 py-2 rounded-lg chat-message ${
+                                      mensagem.remetente === 'admin'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-200 text-gray-800'
+                                    }`}
+                                  >
+                                    <p className="text-sm break-words" style={{ whiteSpace: 'pre-wrap' }}>
+                                      {mensagem.mensagem}
+                                    </p>
+                                    <p className={`text-xs mt-1 ${
+                                      mensagem.remetente === 'admin' ? 'text-blue-100' : 'text-gray-500'
+                                    }`}>
+                                      {new Date(mensagem.dataEnvio).toLocaleString('pt-BR')}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                            <div ref={conversaExpandida === conversa.userId ? messagesEndRef : null} />
+                          </div>
+
+                          {/* Input de Mensagem */}
+                          {conversaSelecionada === conversa.userId && (
+                            <form onSubmit={handleEnviarResposta} className="p-2 md:p-4 border-t border-gray-200">
+                              <div className="flex gap-2">
+                                <input
+                                  ref={inputRef}
+                                  type="text"
+                                  value={novaMensagem}
+                                  onChange={(e) => setNovaMensagem(e.target.value)}
+                                  placeholder="Digite sua mensagem..."
+                                  className="flex-1 px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  disabled={enviando}
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={enviando || !novaMensagem.trim()}
+                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-3 md:px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base"
+                                >
+                                  {enviando ? 'Enviando...' : 'Enviar'}
+                                </button>
+                              </div>
+                            </form>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
-      <Footer showMap={false} />
+      </main>
 
-      {/* Modal */}
+      {/* Modal para Nova Conversa */}
+      {mostrarNovaConversa && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 md:p-6 w-full max-w-md">
+            <h3 className="text-base md:text-lg font-semibold mb-4">Nova Conversa</h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Buscar usuário:
+              </label>
+              <input
+                type="text"
+                value={buscaUsuario}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBuscaUsuario(value);
+                  
+                  // Limpar timeout anterior
+                  if (buscaTimeout) {
+                    clearTimeout(buscaTimeout);
+                  }
+                  
+                  if (value.trim()) {
+                    // Debounce de 300ms
+                    const timeout = setTimeout(() => {
+                      handleBuscarUsuarios(value);
+                    }, 300);
+                    setBuscaTimeout(timeout);
+                  } else {
+                    setUsuariosEncontrados([]);
+                  }
+                }}
+                placeholder="Digite o nome ou login do usuário..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {buscandoUsuarios && (
+              <div className="text-center py-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+              </div>
+            )}
+
+            {usuariosEncontrados.length > 0 && (
+              <div className="mb-4 max-h-40 overflow-y-auto">
+                <p className="text-sm font-medium text-gray-700 mb-2">Usuários encontrados:</p>
+                <div className="space-y-1">
+                  {usuariosEncontrados.map((usuario) => (
+                    <button
+                      key={usuario._id}
+                      onClick={() => handleSelecionarUsuario(usuario)}
+                      className="w-full text-left p-2 hover:bg-gray-100 rounded-lg border border-gray-200"
+                    >
+                      <p className="font-medium">{usuario.name}</p>
+                      <p className="text-sm text-gray-600">@{usuario.login}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={handleCancelarNovaConversa}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação */}
       <Modal
         isOpen={modalState.isOpen}
         onClose={() => setModalState({ ...modalState, isOpen: false })}
-        onConfirm={modalState.onConfirm}
+        type={modalState.type}
         title={modalState.title}
         message={modalState.message}
-        type={modalState.type}
-        confirmText="OK"
+        onConfirm={modalState.onConfirm}
       />
+
+      <Footer showMap={false} />
     </ProtectedRoute>
   );
 }
-

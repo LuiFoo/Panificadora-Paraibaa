@@ -61,6 +61,42 @@ export default function GerenciarUsuarios() {
     fetchUsuarios();
   }, []);
 
+  const handleUpdatePermission = async (userId: string, currentPermission: string) => {
+    const newPermission = currentPermission === "administrador" ? "usuario" : "administrador";
+    
+    try {
+      const response = await fetch("/api/admin/usuarios", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          permission: newPermission
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSuccess(`Permissão atualizada para ${newPermission === "administrador" ? "Administrador" : "Usuário"}!`);
+        setTimeout(() => setSuccess(""), 3000);
+        fetchUsuarios();
+        
+        // Disparar evento para notificar outros usuários logados
+        window.dispatchEvent(new CustomEvent('permissionUpdated', {
+          detail: { 
+            userId, 
+            newPermission,
+            message: `Permissão atualizada para ${newPermission === "administrador" ? "Administrador" : "Usuário"}`
+          }
+        }));
+      } else {
+        setError(data.error || "Erro ao atualizar permissão");
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar permissão:", err);
+      setError("Erro ao conectar com o servidor");
+    }
+  };
+
   const handleDeleteUser = (userId: string, userName: string) => {
     setModalState({
       isOpen: true,
@@ -295,12 +331,24 @@ export default function GerenciarUsuarios() {
                           }
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.name)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold transition-colors"
-                          >
-                            🗑️ Deletar
-                          </button>
+                          <div className="flex gap-2 justify-center">
+                            <button
+                              onClick={() => handleUpdatePermission(user.id, user.permission)}
+                              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                user.permission === "administrador"
+                                  ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                                  : "bg-green-500 hover:bg-green-600 text-white"
+                              }`}
+                            >
+                              {user.permission === "administrador" ? "⬇️ Remover Admin" : "⬆️ Tornar Admin"}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.name)}
+                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold transition-colors"
+                            >
+                              🗑️ Deletar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

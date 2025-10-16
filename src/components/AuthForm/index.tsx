@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useToast } from "@/context/ToastContext";
+// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 import Link from "next/link";
 import Image from "next/image";
 
@@ -28,7 +28,7 @@ export default function AuthForm({
   imageAlt
 }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { showToast } = useToast();
+  // const { showToast } = useToast(); // Toast desabilitado
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -39,11 +39,11 @@ export default function AuthForm({
       
       if (result?.error) {
         console.error("Erro no Google Auth:", result.error);
-        showToast("Erro ao conectar com Google", "error");
+        console.log("Erro ao conectar com Google");
       }
     } catch (error) {
       console.error("Erro Google Auth:", error);
-      showToast("Erro ao conectar com Google", "error");
+      console.log("Erro ao conectar com Google");
     } finally {
       setIsLoading(false);
     }

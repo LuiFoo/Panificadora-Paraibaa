@@ -15,58 +15,56 @@ function Cardapio() {
             <h3>Bolos e Doces Especiais</h3>
             <p>- Delicie-se com nossos bolos e doces especiais, preparados com carinho e os melhores ingredientes!</p>
         </article>
-        <BolosDocesEspeciaisPage /> {/* Componente para bolos e doces especiais */}
+        <BolosDocesEspeciaisPage />
     </section>
 
     <section className="flex flex-col gap-5">
         <article className="flex flex-col gap-3">
-            <h3>Bolos e Doces Especiais</h3>
-            <p>- Delicie-se com nossos bolos e doces especiais, preparados com carinho e os melhores ingredientes!</p>
+            <h3>Doces Individuais</h3>
+            <p>- Doces deliciosos para saborear a qualquer momento do dia!</p>
         </article>
-        <DocesIndividuaisPage /> {/* Componente para bolos e doces especiais */}
+        <DocesIndividuaisPage />
     </section>
 
     <section className="flex flex-col gap-5">
         <article className="flex flex-col gap-3">
-            <h3>Bolos e Doces Especiais</h3>
-            <p>- Delicie-se com nossos bolos e doces especiais, preparados com carinho e os melhores ingredientes!</p>
+            <h3>Pães Doces</h3>
+            <p>- Pães doces fresquinhos, perfeitos para o café da manhã!</p>
         </article>
-        <PaesDocesPage /> {/* Componente para bolos e doces especiais */}
+        <PaesDocesPage />
     </section>
 
     <section className="flex flex-col gap-5">
         <article className="flex flex-col gap-3">
-            <h3>Bolos e Doces Especiais</h3>
-            <p>- Delicie-se com nossos bolos e doces especiais, preparados com carinho e os melhores ingredientes!</p>
+            <h3>Pães Salgados Especiais</h3>
+            <p>- Pães salgados especiais, ideais para acompanhar suas refeições!</p>
         </article>
-        <PaesSalgadosEspeciaisPage /> {/* Componente para bolos e doces especiais */}
+        <PaesSalgadosEspeciaisPage />
     </section>
 
     <section className="flex flex-col gap-5">
         <article className="flex flex-col gap-3">
-            <h3>Bolos e Doces Especiais</h3>
-            <p>- Delicie-se com nossos bolos e doces especiais, preparados com carinho e os melhores ingredientes!</p>
+            <h3>Roscas e Pães Especiais</h3>
+            <p>- Roscas e pães especiais, preparados com ingredientes selecionados!</p>
         </article>
-        <RoscasPaesEspeciaisPage /> {/* Componente para bolos e doces especiais */}
-    </section>
-
-    
-    <section className="flex flex-col gap-5">
-        <article className="flex flex-col gap-3">
-            <h3>Bolos e Doces Especiais</h3>
-            <p>- Delicie-se com nossos bolos e doces especiais, preparados com carinho e os melhores ingredientes!</p>
-        </article>
-        <SalgadosAssadosLanchesPage/> {/* Componente para bolos e doces especiais */}
+        <RoscasPaesEspeciaisPage />
     </section>
 
     <section className="flex flex-col gap-5">
         <article className="flex flex-col gap-3">
-            <h3>Bolos e Doces Especiais</h3>
-            <p>- Delicie-se com nossos bolos e doces especiais, preparados com carinho e os melhores ingredientes!</p>
+            <h3>Salgados Assados e Lanches</h3>
+            <p>- Salgados assados e lanches, perfeitos para qualquer hora!</p>
         </article>
-        <SobremesasTortasPage/> {/* Componente para bolos e doces especiais */}
+        <SalgadosAssadosLanchesPage/>
     </section>
 
+    <section className="flex flex-col gap-5">
+        <article className="flex flex-col gap-3">
+            <h3>Sobremesas e Tortas</h3>
+            <p>- Sobremesas e tortas deliciosas para adoçar seu dia!</p>
+        </article>
+        <SobremesasTortasPage/>
+    </section>
 
 </main>
 

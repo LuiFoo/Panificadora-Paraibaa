@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext";
-import { useToast } from "@/context/ToastContext";
+// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 import Loading from "@/components/Loading";
 import OptimizedImage from "@/components/OptimizedImage";
 
@@ -54,7 +54,7 @@ export default function ProdutoDetalhePage() {
 
   const { addItem } = useCart();
   const { user } = useUser();
-  const { showToast } = useToast();
+  // const { showToast } = useToast(); // Toast desabilitado
 
   // Observer para animações
   useEffect(() => {
@@ -162,7 +162,7 @@ export default function ProdutoDetalhePage() {
 
   const enviarAvaliacao = async (nota: number) => {
     if (!user?.login) {
-      showToast("Faça login para avaliar este produto", "warning");
+      console.log("Faça login para avaliar este produto");
       return;
     }
 
@@ -185,13 +185,13 @@ export default function ProdutoDetalhePage() {
 
       if (data.success) {
         setMinhaAvaliacao(nota);
-        showToast("Avaliação enviada com sucesso!", "success");
+        console.log("Avaliação enviada com sucesso!");
         // Atualizar média
         buscarAvaliacoes(produto._id);
       }
     } catch (error) {
       console.error("Erro ao enviar avaliação:", error);
-      showToast("Erro ao enviar avaliação", "error");
+      console.log("Erro ao enviar avaliação");
     } finally {
       setAvaliandoProduto(false);
     }
