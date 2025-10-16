@@ -5,14 +5,12 @@ import Footer from "@/components/Footer";
 import UnifiedAuthForm from "@/components/UnifiedAuthForm";
 import { useEffect, useState } from "react";
 import { useUser } from "@/context/UserContext";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const { user } = useUser();
-  const router = useRouter();
   const [hasRedirected, setHasRedirected] = useState(false);
 
-  // Redirecionar se já estiver logado
+  // Redirecionar se já estiver logado - versão simplificada e robusta
   useEffect(() => {
     if (user && !hasRedirected) {
       console.log("Usuário já está logado, verificando permissões...");
@@ -20,21 +18,17 @@ export default function LoginPage() {
       
       setHasRedirected(true);
       
-      // Adicionar um pequeno delay para evitar conflitos
-      const timeoutId = setTimeout(() => {
-        // Se for administrador, redirecionar para o painel
-        if (user.permissao === "administrador") {
-          console.log("Administrador detectado, redirecionando para painel...");
-          router.push("/painel");
-        } else {
-          console.log("Usuário comum, redirecionando para página inicial...");
-          router.push("/");
-        }
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
+      // Sempre redirecionar para a página inicial quando acessar /login
+      const targetPath = "/";
+      
+      console.log("Redirecionando para:", targetPath);
+      
+      // Pequeno delay para mostrar a mensagem
+      setTimeout(() => {
+        window.location.href = targetPath;
+      }, 500);
     }
-  }, [user, router, hasRedirected]);
+  }, [user, hasRedirected]);
 
   // Mostrar loading enquanto verifica autenticação
   if (user) {
@@ -45,6 +39,17 @@ export default function LoginPage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#B69B4C] mx-auto mb-4"></div>
             <p className="text-gray-600">Você já está logado. Redirecionando...</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Se não for redirecionado automaticamente, clique 
+              <button 
+                onClick={() => {
+                  window.location.href = "/";
+                }}
+                className="text-[#B69B4C] underline ml-1"
+              >
+                aqui
+              </button>
+            </p>
           </div>
         </main>
         <Footer showMap={false} />
