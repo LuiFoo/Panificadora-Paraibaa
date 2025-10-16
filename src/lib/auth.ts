@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import clientPromise from "@/modules/mongodb";
 
 // Estender tipos do NextAuth
 declare module "next-auth" {
@@ -42,10 +43,30 @@ export const authOptions: NextAuthOptions = {
       console.log("Token:", token);
       
       // Adiciona informações extras do usuário na sessão
-      if (token && session.user && token.sub) {
+      if (token && session.user && token.sub && session.user.email) {
         session.user.id = token.sub;
-        session.user.permissao = (token as { permissao?: string }).permissao || "usuario";
-        console.log("✅ Sessão configurada para:", session.user.email);
+        
+        // Buscar permissão atual do banco de dados
+        try {
+          const client = await clientPromise;
+          const db = client.db("paraiba");
+          const user = await db.collection("users").findOne({ 
+            email: session.user.email 
+          });
+          
+          if (user) {
+            session.user.permissao = user.permissao || "usuario";
+            console.log("✅ Permissão atualizada do banco:", session.user.permissao);
+          } else {
+            session.user.permissao = "usuario";
+            console.log("⚠️ Usuário não encontrado no banco, usando permissão padrão");
+          }
+        } catch (error) {
+          console.error("❌ Erro ao buscar permissão do banco:", error);
+          session.user.permissao = (token as { permissao?: string }).permissao || "usuario";
+        }
+        
+        console.log("✅ Sessão configurada para:", session.user.email, "com permissão:", session.user.permissao);
       }
       return session;
     },
