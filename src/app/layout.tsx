@@ -25,7 +25,8 @@ export default function RootLayout({
         <SessionProvider>
           <ToastProvider>
             <UserProvider>
-              <AuthSync />
+              {/* AuthSync temporariamente desabilitado para evitar conflitos */}
+              {/* <AuthSync /> */}
               <CartProvider>
                 {children}
               </CartProvider>

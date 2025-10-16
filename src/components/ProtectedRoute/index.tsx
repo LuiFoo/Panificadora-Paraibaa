@@ -31,14 +31,14 @@ export default function ProtectedRoute({
 
       // Se não há usuário logado
       if (!user) {
-        router.replace("/");
+        router.push("/");
         return;
       }
 
       // Verifica a permissão
       if (requiredPermission === "administrador" && user.permissao !== "administrador") {
         showToast("Acesso negado! Você precisa ser um administrador para acessar esta página.", "error");
-        router.replace("/");
+        router.push("/");
         return;
       }
 

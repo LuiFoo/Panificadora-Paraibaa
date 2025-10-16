@@ -93,10 +93,10 @@ export default function UnifiedAuthForm({
         setTimeout(() => {
           if (data.user.permissao === "administrador") {
             console.log("Administrador logado, redirecionando para painel");
-            router.replace('/painel');
+            router.push('/painel');
           } else {
             console.log("Usuário comum logado, redirecionando para página inicial");
-            router.replace('/');
+            router.push('/');
           }
         }, 200);
       } else {

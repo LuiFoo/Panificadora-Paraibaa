@@ -22,10 +22,10 @@ export default function CadastroPage() {
         // Se for administrador, redirecionar para o painel
         if (user.permissao === "administrador") {
           console.log("Administrador detectado, redirecionando para painel...");
-          router.replace("/painel");
+          router.push("/painel");
         } else {
           console.log("Usuário comum, redirecionando para página inicial...");
-          router.replace("/");
+          router.push("/");
         }
       }, 100);
 
