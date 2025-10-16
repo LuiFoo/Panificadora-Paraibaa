@@ -15,37 +15,48 @@ export async function verificarAdmin(req: NextApiRequest): Promise<boolean> {
     }
 
     // Buscar sessão do NextAuth
-    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/session`, {
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const sessionUrl = `${baseUrl}/api/auth/session`;
+    
+    console.log("🔍 Verificando sessão em:", sessionUrl);
+    
+    const response = await fetch(sessionUrl, {
       headers: {
         cookie: req.headers.cookie,
       },
     });
     
     if (!response.ok) {
-      console.log("🔒 Falha ao verificar sessão:", response.status);
+      console.log("🔒 Falha ao verificar sessão:", response.status, response.statusText);
       return false;
     }
     
     const session = await response.json();
     if (!session?.user?.email) {
       console.log("🔒 Sessão inválida - sem email");
+      console.log("🔍 Dados da sessão:", JSON.stringify(session, null, 2));
       return false;
     }
 
     console.log("🔍 Verificando permissões para:", session.user.email);
     
     // Verificar no banco se o usuário é admin
-    const client = await clientPromise;
-    const db = client.db("paraiba");
-    const user = await db.collection("users").findOne({ 
-      email: session.user.email,
-      permissao: "administrador"
-    });
-    
-    const isAdmin = !!user;
-    console.log(isAdmin ? "✅ Usuário é admin" : "❌ Usuário não é admin");
-    
-    return isAdmin;
+    try {
+      const client = await clientPromise;
+      const db = client.db("paraiba");
+      const user = await db.collection("users").findOne({ 
+        email: session.user.email,
+        permissao: "administrador"
+      });
+      
+      const isAdmin = !!user;
+      console.log(isAdmin ? "✅ Usuário é admin" : "❌ Usuário não é admin");
+      
+      return isAdmin;
+    } catch (dbError) {
+      console.error("❌ Erro ao conectar com o banco de dados:", dbError);
+      return false;
+    }
   } catch (error) {
     console.error("❌ Erro ao verificar admin:", error);
     return false;

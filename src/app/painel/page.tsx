@@ -27,13 +27,50 @@ export default function Painel() {
   const fetchStats = async () => {
     setLoading(true);
     try {
+      console.log("🔍 Buscando estatísticas do dashboard...");
       const response = await fetch("/api/admin/dashboard-stats");
+      
+      console.log("📊 Status da resposta:", response.status, response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log("📊 Dados recebidos:", data);
+      
       if (data.success) {
         setStats(data.stats);
+        console.log("✅ Estatísticas carregadas com sucesso");
+      } else {
+        console.error("❌ Erro na resposta da API:", data.error);
+        // Definir estatísticas padrão em caso de erro
+        setStats({
+          pedidosHoje: 0,
+          totalUsuarios: 0,
+          totalProdutos: 0,
+          pedidosPorStatus: {
+            pendente: 0,
+            confirmado: 0,
+            cancelado: 0,
+            entregue: 0
+          }
+        });
       }
     } catch (error) {
-      console.error("Erro ao buscar estatísticas:", error);
+      console.error("❌ Erro ao buscar estatísticas:", error);
+      // Definir estatísticas padrão em caso de erro
+      setStats({
+        pedidosHoje: 0,
+        totalUsuarios: 0,
+        totalProdutos: 0,
+        pedidosPorStatus: {
+          pendente: 0,
+          confirmado: 0,
+          cancelado: 0,
+          entregue: 0
+        }
+      });
     } finally {
       setLoading(false);
     }
