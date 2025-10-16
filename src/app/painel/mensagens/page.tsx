@@ -4,7 +4,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Modal from "@/components/Modal";
-import Link from "next/link";
 import { useState, useEffect, useRef, useCallback } from "react";
 
 interface Mensagem {

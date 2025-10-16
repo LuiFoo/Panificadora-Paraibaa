@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, ReactNode } from "react";
 
 interface ToastContextType {
   showToast: (message: string, type: "success" | "error" | "warning" | "info") => void;
