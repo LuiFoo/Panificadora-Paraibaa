@@ -3,6 +3,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -103,23 +104,13 @@ export default function Painel() {
       <main className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-6xl mx-auto">
           {/* Breadcrumb */}
-          <nav className="mb-6">
-            <ol className="flex items-center space-x-2 text-sm text-gray-600">
-              <li>
-                <span className="text-gray-800 font-medium">Painel Administrativo</span>
-              </li>
-            </ol>
-          </nav>
+          <BreadcrumbNav 
+            items={[
+              { label: "Painel Administrativo", icon: "🏠", color: "blue" }
+            ]}
+          />
           
           <div className="bg-white rounded-lg shadow-md">
-            {/* Breadcrumb */}
-            <nav className="mb-6">
-              <ol className="flex items-center space-x-2 text-sm text-gray-600">
-                <li>
-                  <span className="text-gray-800 font-medium">Painel Administrativo</span>
-                </li>
-              </ol>
-            </nav>
 
             {/* Cabeçalho */}
             <div className="p-6 border-b border-gray-200">

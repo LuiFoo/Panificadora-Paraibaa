@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Modal from "@/components/Modal";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -326,25 +327,12 @@ export default function ProdutosPage() {
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
       <div className="max-w-6xl mx-auto">
-        {/* Breadcrumb */}
-        <nav className="mb-6">
-          <ol className="flex items-center space-x-2 text-sm text-gray-600">
-            <li>
-              <button
-                onClick={() => router.push('/painel')}
-                className="hover:text-blue-600 transition-colors"
-              >
-                Painel
-              </button>
-            </li>
-            <li className="flex items-center">
-              <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-              </svg>
-              <span className="text-gray-800 font-medium">Gerenciar Produtos</span>
-            </li>
-          </ol>
-        </nav>
+        <BreadcrumbNav 
+          items={[
+            { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+            { label: "Produtos", icon: "🛍️", color: "orange" }
+          ]}
+        />
         
         <div className="bg-white rounded-lg shadow-md">
           {/* Cabeçalho */}

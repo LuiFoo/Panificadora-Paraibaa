@@ -183,51 +183,18 @@ export default function ClienteProfilePage() {
       <Header />
       <main className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
-          {/* Navegação Visual Dinâmica */}
-          <div className="mb-6">
-            <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div className="flex items-center space-x-2 text-sm">
-                <button
-                  onClick={() => router.push('/painel')}
-                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors font-medium"
-                >
-                  🏠 Painel
-                </button>
-                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                {from === 'mensagens' && (
-                  <>
-                    <button
-                      onClick={() => router.push('/painel/mensagens')}
-                      className="px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors font-medium"
-                    >
-                      💬 Mensagens
-                    </button>
-                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </>
-                )}
-                {from === 'usuarios' && (
-                  <>
-                    <button
-                      onClick={() => router.push('/painel/usuarios')}
-                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors font-medium"
-                    >
-                      👥 Usuários
-                    </button>
-                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </>
-                )}
-                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-medium">
-                  👤 Perfil do Cliente
-                </span>
-              </div>
-            </div>
-          </div>
+          <BreadcrumbNav 
+            items={[
+              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+              ...(from === 'mensagens' ? [
+                { label: "Mensagens", href: "/painel/mensagens", icon: "💬", color: "green" }
+              ] : []),
+              ...(from === 'usuarios' ? [
+                { label: "Usuários", href: "/painel/usuarios", icon: "👥", color: "purple" }
+              ] : []),
+              { label: "Perfil do Cliente", icon: "👤", color: "orange" }
+            ]}
+          />
           {/* Cabeçalho */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
