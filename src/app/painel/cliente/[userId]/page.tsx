@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Loading from "@/components/Loading";
+import BreadcrumbNav from "@/components/BreadcrumbNav";
 
 interface Endereco {
   rua: string;
@@ -38,7 +39,9 @@ interface ProfileData {
 export default function ClienteProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const userId = params?.userId as string;
+  const from = searchParams.get('from'); // 'mensagens' ou 'usuarios'
   
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -180,36 +183,51 @@ export default function ClienteProfilePage() {
       <Header />
       <main className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
-          {/* Breadcrumb */}
-          <nav className="mb-6">
-            <ol className="flex items-center space-x-2 text-sm text-gray-600">
-              <li>
+          {/* Navegação Visual Dinâmica */}
+          <div className="mb-6">
+            <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+              <div className="flex items-center space-x-2 text-sm">
                 <button
                   onClick={() => router.push('/painel')}
-                  className="hover:text-blue-600 transition-colors"
+                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors font-medium"
                 >
-                  Painel
+                  🏠 Painel
                 </button>
-              </li>
-              <li className="flex items-center">
-                <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                 </svg>
-                <button
-                  onClick={() => router.push('/painel/mensagens')}
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Mensagens
-                </button>
-              </li>
-              <li className="flex items-center">
-                <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span className="text-gray-800 font-medium">Perfil do Cliente</span>
-              </li>
-            </ol>
-          </nav>
+                {from === 'mensagens' && (
+                  <>
+                    <button
+                      onClick={() => router.push('/painel/mensagens')}
+                      className="px-3 py-1 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors font-medium"
+                    >
+                      💬 Mensagens
+                    </button>
+                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </>
+                )}
+                {from === 'usuarios' && (
+                  <>
+                    <button
+                      onClick={() => router.push('/painel/usuarios')}
+                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors font-medium"
+                    >
+                      👥 Usuários
+                    </button>
+                    <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </>
+                )}
+                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full font-medium">
+                  👤 Perfil do Cliente
+                </span>
+              </div>
+            </div>
+          </div>
           {/* Cabeçalho */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Modal from "@/components/Modal";
+import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -331,7 +332,8 @@ export default function MensagensAdminPage() {
   // Função para abrir perfil do cliente
   const handleAbrirPerfilCliente = (userId: string) => {
     // Navegar para a página do perfil do cliente usando Next.js router
-    router.push(`/painel/cliente/${userId}`);
+    // Passar informação de onde veio via query parameter
+    router.push(`/painel/cliente/${userId}?from=mensagens`);
   };
 
   const handleSelecionarUsuario = (usuario: Usuario) => {
@@ -406,25 +408,12 @@ export default function MensagensAdminPage() {
       <Header />
       <main className="min-h-screen bg-gray-50 p-2 md:p-4">
         <div className="max-w-6xl mx-auto">
-          {/* Breadcrumb */}
-          <nav className="mb-6">
-            <ol className="flex items-center space-x-2 text-sm text-gray-600">
-              <li>
-                <button
-                  onClick={() => router.push('/painel')}
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Painel
-                </button>
-              </li>
-              <li className="flex items-center">
-                <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span className="text-gray-800 font-medium">Mensagens</span>
-              </li>
-            </ol>
-          </nav>
+          <BreadcrumbNav 
+            items={[
+              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Mensagens", icon: "💬", color: "green" }
+            ]}
+          />
           
           <div className="bg-white rounded-lg shadow-md">
             <div className="p-3 md:p-6 border-b border-gray-200">

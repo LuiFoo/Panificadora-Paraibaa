@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Modal from "@/components/Modal";
+import BreadcrumbNav from "@/components/BreadcrumbNav";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -172,25 +173,12 @@ export default function GerenciarUsuarios() {
       <Header />
       <main className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-6xl mx-auto">
-          {/* Breadcrumb */}
-          <nav className="mb-6">
-            <ol className="flex items-center space-x-2 text-sm text-gray-600">
-              <li>
-                <button
-                  onClick={() => router.push('/painel')}
-                  className="hover:text-blue-600 transition-colors"
-                >
-                  Painel
-                </button>
-              </li>
-              <li className="flex items-center">
-                <svg className="w-4 h-4 mx-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span className="text-gray-800 font-medium">Gerenciar Usuários</span>
-              </li>
-            </ol>
-          </nav>
+          <BreadcrumbNav 
+            items={[
+              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Usuários", icon: "👥", color: "purple" }
+            ]}
+          />
           
           <div className="bg-white rounded-lg shadow-md">
             {/* Cabeçalho */}
@@ -371,7 +359,7 @@ export default function GerenciarUsuarios() {
                           </div>
                           <div>
                             <button
-                              onClick={() => router.push(`/painel/cliente/${user.login}`)}
+                              onClick={() => router.push(`/painel/cliente/${user.login}?from=usuarios`)}
                               className="font-semibold text-gray-800 hover:text-blue-600 hover:underline cursor-pointer text-left flex items-center gap-1"
                               title="Clique para ver o perfil completo"
                             >
