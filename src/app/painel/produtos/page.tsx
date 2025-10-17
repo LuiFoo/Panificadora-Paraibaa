@@ -341,10 +341,10 @@ export default function ProdutosPage() {
         href: "",
         alt: ""
       },
-      ingredientes: [],
-      alergicos: [],
+      ingredientes: [] as string[],
+      alergicos: [] as string[],
       destaque: false,
-      tags: [],
+      tags: [] as string[],
       status: "ativo"
     });
   };
@@ -377,10 +377,10 @@ export default function ProdutosPage() {
         href: produto.imagem?.href || produto.img || "",
         alt: produto.imagem?.alt || produto.nome
       },
-      ingredientes: produto.ingredientes || [],
-      alergicos: produto.alergicos || [],
+      ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : (produto.ingredientes ? [produto.ingredientes] : []),
+      alergicos: Array.isArray(produto.alergicos) ? produto.alergicos : (produto.alergicos ? [produto.alergicos] : []),
       destaque: produto.destaque || false,
-      tags: produto.tags || [],
+      tags: Array.isArray(produto.tags) ? produto.tags : (produto.tags ? [produto.tags] : []),
       status: produto.status || "ativo"
     });
     setMostrarFormulario(true);
@@ -922,7 +922,7 @@ export default function ProdutosPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes (separados por vírgula)</label>
                       <textarea
-                        value={formData.ingredientes.join(', ')}
+                        value={Array.isArray(formData.ingredientes) ? formData.ingredientes.join(', ') : (formData.ingredientes || '')}
                         onChange={(e) => handleArrayChange('ingredientes', e.target.value)}
                         rows={3}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -932,7 +932,7 @@ export default function ProdutosPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Alérgenos (separados por vírgula)</label>
                       <textarea
-                        value={formData.alergicos.join(', ')}
+                        value={Array.isArray(formData.alergicos) ? formData.alergicos.join(', ') : (formData.alergicos || '')}
                         onChange={(e) => handleArrayChange('alergicos', e.target.value)}
                         rows={3}
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -997,7 +997,7 @@ export default function ProdutosPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Tags (separadas por vírgula)</label>
                     <input
                       type="text"
-                      value={formData.tags.join(', ')}
+                      value={Array.isArray(formData.tags) ? formData.tags.join(', ') : (formData.tags || '')}
                       onChange={(e) => handleArrayChange('tags', e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all duration-200 shadow-sm hover:shadow-md"
                       placeholder="tradicional, caseiro, artesanal..."
