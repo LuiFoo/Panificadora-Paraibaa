@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import client from "@/modules/mongodb";
+import clientPromise from "@/modules/mongodb";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db("paraiba");
     const avaliacoesCollection = db.collection("avaliacoes");
 

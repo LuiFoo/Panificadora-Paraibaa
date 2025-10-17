@@ -1,5 +1,5 @@
 // import type { NextApiRequest, NextApiResponse } from "next";
-// import client from "@/modules/mongodb";
+// import clientPromise from "@/modules/mongodb";
 
 // export default async function handler(
 //   req: NextApiRequest,
@@ -27,14 +27,14 @@
 // }
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import client from "@/modules/mongodb";
+import clientPromise from "@/modules/mongodb";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
-    await client.connect();
+    const client = await clientPromise;
     const dbPadaria = client.db("paraiba");
 
     const salgadosAssadosLanches = await dbPadaria
