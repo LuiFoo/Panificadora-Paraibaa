@@ -41,7 +41,7 @@ export default function ClienteProfilePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = params?.userId as string;
-  const from = searchParams.get('from'); // 'mensagens' ou 'usuarios'
+  const from = searchParams?.get('from'); // 'mensagens' ou 'usuarios'
   
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
