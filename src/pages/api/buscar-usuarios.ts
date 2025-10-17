@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import client from "@/modules/mongodb";
+import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -20,6 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Parâmetro 'q' é obrigatório" });
     }
 
+    const client = await clientPromise;
     const db = client.db("paraiba");
     const usuariosCollection = db.collection("users");
 

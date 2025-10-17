@@ -1,12 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import client from "@/modules/mongodb";
+import clientPromise from "@/modules/mongodb";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   try {
-    await client.connect();
+    const client = await clientPromise;
     const db = client.db("paraiba");
 
     // Buscar produtos de todas as coleções
