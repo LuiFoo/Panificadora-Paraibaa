@@ -29,7 +29,7 @@ export default function ChatPage() {
   const [enviando, setEnviando] = useState(false);
   
   // Verificar se o usuário veio da página fale-conosco
-  const fromFaleConosco = searchParams.get('from') === 'fale-conosco';
+  const fromFaleConosco = searchParams?.get('from') === 'fale-conosco';
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
