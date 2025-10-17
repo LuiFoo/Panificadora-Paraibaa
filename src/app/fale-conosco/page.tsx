@@ -97,7 +97,7 @@ function FaleConosco() {
 
                                 <li>
                                     <Link 
-                                        href="/chat" 
+                                        href="/chat?from=fale-conosco" 
                                         className="flex flex-row items-center gap-2 bg-[#0084FF] hover:bg-[#0066cc] transition-all px-5 md:px-6 py-3 md:py-4 text-white rounded-xl shadow-lg hover:shadow-xl font-semibold text-sm md:text-base transform hover:scale-105"
                                     >
                                         <Image
@@ -312,7 +312,7 @@ function FaleConosco() {
 
                             <div className="mt-6 md:mt-8 p-4 md:p-5 bg-gradient-to-r from-yellow-50 to-amber-50 border-l-4 border-[#B69B4C] rounded-r-xl shadow-md">
                                 <p className="text-sm md:text-base text-gray-800">
-                                    <strong className="text-[#B69B4C]">💡 Dica:</strong> Use o <Link href="/chat" className="text-blue-600 hover:underline font-semibold">chat online</Link> ou <a href="https://api.whatsapp.com/send?phone=551636151947" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline font-semibold">WhatsApp</a> para fazer sua encomenda rapidamente!
+                                    <strong className="text-[#B69B4C]">💡 Dica:</strong> Use o <Link href="/chat?from=fale-conosco" className="text-blue-600 hover:underline font-semibold">chat online</Link> ou <a href="https://api.whatsapp.com/send?phone=551636151947" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline font-semibold">WhatsApp</a> para fazer sua encomenda rapidamente!
                                 </p>
                             </div>
                         </article>

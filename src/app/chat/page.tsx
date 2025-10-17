@@ -3,9 +3,12 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Modal from "@/components/Modal";
+import ErrorModal from "@/components/ErrorModal";
+import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useUser } from "@/context/UserContext";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 interface Mensagem {
   _id: string;
@@ -19,10 +22,14 @@ interface Mensagem {
 
 export default function ChatPage() {
   const { user } = useUser();
+  const searchParams = useSearchParams();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [novaMensagem, setNovaMensagem] = useState("");
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  
+  // Verificar se o usuário veio da página fale-conosco
+  const fromFaleConosco = searchParams.get('from') === 'fale-conosco';
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -32,6 +39,15 @@ export default function ChatPage() {
   }>({
     isOpen: false,
     type: "info",
+    title: "",
+    message: ""
+  });
+  const [errorModal, setErrorModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
     title: "",
     message: ""
   });
@@ -141,12 +157,21 @@ export default function ChatPage() {
           inputRef.current?.focus();
         }, 100);
       } else {
-        setModalState({
-          isOpen: true,
-          type: "error",
-          title: "Erro",
-          message: data.error || "Erro ao enviar mensagem. Tente novamente."
-        });
+        // Verificar se é erro de acesso negado para usar o modal específico
+        if (data.error && data.error.includes("Acesso negado")) {
+          setErrorModal({
+            isOpen: true,
+            title: "Erro",
+            message: data.error
+          });
+        } else {
+          setModalState({
+            isOpen: true,
+            type: "error",
+            title: "Erro",
+            message: data.error || "Erro ao enviar mensagem. Tente novamente."
+          });
+        }
       }
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
@@ -157,15 +182,26 @@ export default function ChatPage() {
           errorMessage = "Erro de conexão. Verifique sua internet e tente novamente.";
         } else if (error.message.includes('500')) {
           errorMessage = "Erro interno do servidor. Tente novamente em alguns instantes.";
+        } else if (error.message.includes('Acesso negado')) {
+          errorMessage = "Acesso negado. Apenas administradores podem acessar esta API.";
         }
       }
       
-      setModalState({
-        isOpen: true,
-        type: "error",
-        title: "Erro",
-        message: errorMessage
-      });
+      // Verificar se é erro de acesso negado para usar o modal específico
+      if (errorMessage.includes("Acesso negado")) {
+        setErrorModal({
+          isOpen: true,
+          title: "Erro",
+          message: errorMessage
+        });
+      } else {
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: errorMessage
+        });
+      }
     } finally {
       setEnviando(false);
     }
@@ -175,17 +211,28 @@ export default function ChatPage() {
     return (
       <>
         <Header />
-        <main className="max-w-4xl mx-auto px-4 py-10">
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {/* Cabeçalho do Chat */}
-            <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-4 text-white">
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                💬 Chat com a Panificadora Paraíba
-              </h1>
-              <p className="text-sm text-amber-100 mt-1">
-                Faça login para conversar conosco
-              </p>
-            </div>
+        <main className="min-h-screen bg-gray-50 p-2 md:p-4">
+          <div className="max-w-6xl mx-auto">
+            {/* Breadcrumb - só aparece quando vem do fale-conosco */}
+            {fromFaleConosco && (
+              <BreadcrumbNav 
+                items={[
+                  { label: "Fale Conosco", href: "/fale-conosco", icon: "📞", color: "blue" },
+                  { label: "Chat", icon: "💬", color: "green" }
+                ]}
+              />
+            )}
+            
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              {/* Cabeçalho do Chat */}
+              <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-4 text-white">
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  💬 Chat com a Panificadora Paraíba
+                </h1>
+                <p className="text-sm text-amber-100 mt-1">
+                  Faça login para conversar conosco
+                </p>
+              </div>
 
             {/* Conteúdo */}
             <div className="p-8 text-center">
@@ -254,7 +301,8 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-        </main>
+        </div>
+      </main>
         <Footer showMap={false} />
       </>
     );
@@ -263,17 +311,34 @@ export default function ChatPage() {
   return (
     <>
       <Header />
-      <main className="max-w-4xl mx-auto px-2 md:px-4 py-4 md:py-10">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {/* Cabeçalho do Chat */}
-          <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-3 md:p-4 text-white">
-            <h1 className="text-lg md:text-2xl font-bold flex items-center gap-2">
-              💬 Chat com a Panificadora Paraíba
-            </h1>
-            <p className="text-xs md:text-sm text-amber-100 mt-1">
-              Tire suas dúvidas ou faça pedidos especiais
-            </p>
-          </div>
+      <main className="min-h-screen bg-gray-50 p-2 md:p-4">
+        <div className="max-w-6xl mx-auto">
+          {/* Breadcrumb - só aparece quando vem do fale-conosco */}
+          {fromFaleConosco && (
+            <BreadcrumbNav 
+              items={[
+                { label: "Fale Conosco", href: "/fale-conosco", icon: "📞", color: "blue" },
+                { label: "Chat", icon: "💬", color: "green" }
+              ]}
+            />
+          )}
+          
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-3 md:p-6 border-b border-gray-200">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-lg md:text-2xl font-bold text-gray-800">Chat com a Panificadora Paraíba</h1>
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                      💬 Chat
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Tire suas dúvidas ou faça pedidos especiais
+                  </p>
+                </div>
+              </div>
+            </div>
 
           {/* Área de Mensagens */}
           <div 
@@ -410,8 +475,9 @@ export default function ChatPage() {
             <li>• Você receberá notificações quando houver resposta</li>
           </ul>
         </div>
-      </main>
-      <Footer showMap={false} />
+      </div>
+    </main>
+    <Footer showMap={false} />
 
       {/* Modal */}
       <Modal
@@ -421,6 +487,15 @@ export default function ChatPage() {
         title={modalState.title}
         message={modalState.message}
         type={modalState.type}
+        confirmText="OK"
+      />
+
+      {/* Modal de Erro com design similar ao Nova Conversa */}
+      <ErrorModal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal({ ...errorModal, isOpen: false })}
+        title={errorModal.title}
+        message={errorModal.message}
         confirmText="OK"
       />
     </>

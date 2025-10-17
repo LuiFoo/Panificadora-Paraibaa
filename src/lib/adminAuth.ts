@@ -123,3 +123,118 @@ export async function protegerApiAdmin(req: NextApiRequest): Promise<{ isAdmin: 
     };
   }
 }
+
+/**
+ * Verifica se o usuário está autenticado (admin ou usuário normal)
+ * @param req - Requisição Next.js
+ * @returns Promise<{ isAuthenticated: boolean, isAdmin: boolean, user?: any, error?: string }>
+ */
+export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAuthenticated: boolean, isAdmin: boolean, user?: any, error?: string }> {
+  try {
+    console.log("🔍 === INICIANDO VERIFICAÇÃO DE AUTENTICAÇÃO ===");
+    console.log("📝 Método da requisição:", req.method);
+    console.log("🔗 URL da requisição:", req.url);
+    
+    // Verificar se há cookies de sessão
+    if (!req.headers.cookie) {
+      console.log("🔒 Nenhum cookie de sessão encontrado");
+      return {
+        isAuthenticated: false,
+        isAdmin: false,
+        error: "Acesso negado. Você precisa estar logado para acessar esta funcionalidade."
+      };
+    }
+
+    // Buscar sessão do NextAuth
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const sessionUrl = `${baseUrl}/api/auth/session`;
+    
+    console.log("🔍 Verificando sessão em:", sessionUrl);
+    
+    const response = await fetch(sessionUrl, {
+      headers: {
+        cookie: req.headers.cookie,
+      },
+    });
+    
+    console.log("📡 Status da resposta da sessão:", response.status, response.statusText);
+    
+    if (!response.ok) {
+      console.log("🔒 Falha ao verificar sessão:", response.status, response.statusText);
+      return {
+        isAuthenticated: false,
+        isAdmin: false,
+        error: "Acesso negado. Sessão inválida."
+      };
+    }
+    
+    const session = await response.json();
+    console.log("🔍 Dados da sessão recebidos:", JSON.stringify(session, null, 2));
+    
+    if (!session?.user?.email) {
+      console.log("🔒 Sessão inválida - sem email");
+      return {
+        isAuthenticated: false,
+        isAdmin: false,
+        error: "Acesso negado. Sessão inválida."
+      };
+    }
+
+    console.log("🔍 Verificando usuário no banco para:", session.user.email);
+    
+    // Verificar no banco se o usuário existe e suas permissões
+    try {
+      const client = await clientPromise;
+      const db = client.db("paraiba");
+      
+      const user = await db.collection("users").findOne({ 
+        email: session.user.email
+      });
+      
+      if (!user) {
+        console.log("❌ Usuário não encontrado no banco");
+        return {
+          isAuthenticated: false,
+          isAdmin: false,
+          error: "Acesso negado. Usuário não encontrado."
+        };
+      }
+      
+      const isAdmin = user.permissao === "administrador";
+      console.log("👤 Usuário encontrado:", {
+        email: user.email,
+        permissao: user.permissao,
+        nome: user.name,
+        isAdmin
+      });
+      
+      console.log("✅ Autenticação verificada com sucesso");
+      console.log("🔍 === FIM DA VERIFICAÇÃO DE AUTENTICAÇÃO ===");
+      
+      return {
+        isAuthenticated: true,
+        isAdmin,
+        user: {
+          email: user.email,
+          name: user.name,
+          login: user.login,
+          permissao: user.permissao
+        }
+      };
+    } catch (dbError) {
+      console.error("❌ Erro ao conectar com o banco de dados:", dbError);
+      return {
+        isAuthenticated: false,
+        isAdmin: false,
+        error: "Erro interno na verificação de permissões."
+      };
+    }
+  } catch (error) {
+    console.error("❌ Erro geral ao verificar autenticação:", error);
+    return {
+      isAuthenticated: false,
+      isAdmin: false,
+      error: "Erro interno na verificação de permissões."
+    };
+  }
+}

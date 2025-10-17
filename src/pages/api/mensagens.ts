@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
-import { protegerApiAdmin } from "@/lib/adminAuth";
+import { protegerApiAdmin, verificarAutenticacao } from "@/lib/adminAuth";
 
 interface Conversa {
   userId: string;
@@ -14,10 +14,10 @@ interface Conversa {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
 
-  // Verificar se o usuário é admin
-  const { isAdmin, error } = await protegerApiAdmin(req);
-  if (!isAdmin) {
-    return res.status(403).json({ error });
+  // Verificar autenticação do usuário (admin ou usuário normal)
+  const { isAuthenticated, isAdmin, user, error: authError } = await verificarAutenticacao(req);
+  if (!isAuthenticated) {
+    return res.status(403).json({ error: authError });
   }
 
   try {
@@ -30,10 +30,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       let query = {};
       
-      if (isAdmin === "true") {
+      if (isAdmin === "true" && user?.permissao === "administrador") {
         // Admin vê todas as conversas
         query = {};
       } else if (userId) {
+        // Verificar se o usuário está tentando acessar suas próprias mensagens
+        if (!isAdmin && user?.login !== userId) {
+          return res.status(403).json({ 
+            error: "Acesso negado. Você só pode visualizar suas próprias mensagens." 
+          });
+        }
         // Cliente vê apenas suas mensagens
         query = { userId: userId as string };
       } else {
@@ -97,6 +103,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!userId || !userName || !mensagem || !remetente) {
         return res.status(400).json({ 
           error: "userId, userName, mensagem e remetente são obrigatórios" 
+        });
+      }
+
+      // Verificar se o usuário está enviando mensagem para si mesmo (caso seja usuário normal)
+      if (!isAdmin && user?.login !== userId) {
+        return res.status(403).json({ 
+          error: "Acesso negado. Você só pode enviar mensagens em seu próprio nome." 
         });
       }
 
@@ -167,6 +180,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "userId é obrigatório" });
       }
 
+      // Verificar se o usuário está tentando marcar mensagens de outro usuário (caso seja usuário normal)
+      if (!isAdmin && user?.login !== userId) {
+        return res.status(403).json({ 
+          error: "Acesso negado. Você só pode marcar suas próprias mensagens como lidas." 
+        });
+      }
+
       if (marcarComoLida) {
         // Se for admin, marca mensagens do cliente como lidas
         // Se for cliente, marca mensagens do admin como lidas
@@ -195,6 +215,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Deletar conversa inteira (todas as mensagens de um usuário)
       if (userId) {
+        // Verificar se o usuário está tentando deletar mensagens de outro usuário (caso seja usuário normal)
+        if (!isAdmin && user?.login !== userId) {
+          return res.status(403).json({ 
+            error: "Acesso negado. Você só pode deletar suas próprias mensagens." 
+          });
+        }
+
         const result = await mensagensCollection.deleteMany({
           userId: userId as string
         });
