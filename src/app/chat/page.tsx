@@ -6,7 +6,7 @@ import Modal from "@/components/Modal";
 import ErrorModal from "@/components/ErrorModal";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useUser } from "@/context/UserContext";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -20,7 +20,7 @@ interface Mensagem {
   lida: boolean;
 }
 
-export default function ChatPage() {
+function ChatContent() {
   const { user } = useUser();
   const searchParams = useSearchParams();
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -499,6 +499,27 @@ export default function ChatPage() {
         confirmText="OK"
       />
     </>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <>
+        <Header />
+        <main className="min-h-screen bg-gray-50 p-2 md:p-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Carregando chat...</p>
+            </div>
+          </div>
+        </main>
+        <Footer showMap={false} />
+      </>
+    }>
+      <ChatContent />
+    </Suspense>
   );
 }
 
