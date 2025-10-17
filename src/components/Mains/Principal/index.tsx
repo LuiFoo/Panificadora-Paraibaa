@@ -134,13 +134,10 @@ function MainPrincipal() {
             <div className="max-w-6xl mx-auto">
               <MenuCategoria 
                 categories={[
-                  'BOLOS DOCES ESPECIAIS',
-                  'DOCES INDIVIDUAIS',
-                  'PAES DOCES',
-                  'PAES SALGADOS ESPECIAIS',
-                  'ROSCAS PAES ESPECIAIS',
-                  'SALGADOS ASSADOS LANCHES',
-                  'SOBREMESAS TORTAS',
+                  { id: "doces", nome: "Doces & Sobremesas", icon: "🍰" },
+                  { id: "paes", nome: "Pães & Especiais", icon: "🥖" },
+                  { id: "salgados", nome: "Salgados & Lanches", icon: "🥐" },
+                  { id: "bebidas", nome: "Bebidas", icon: "🥤" },
                 ]}
                 variant="button"
                 onCategoryClick={handleCategoriaClick}

@@ -3,16 +3,7 @@ import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
-// Mapeamento das coleções antigas
-const MAPEAMENTO_COLECOES = {
-  "paes-doces": "Pães Doces",
-  "bolos-doces-especiais": "Bolos, Doces e Especiais", 
-  "doces-individuais": "Doces Individuais",
-  "paes-salgados-especiais": "Pães Salgados Especiais",
-  "roscas-paes-especiais": "Roscas, Pães Especiais",
-  "salgados-assados-lanches": "Salgados Assados e Lanches",
-  "sobremesas-tortas": "Sobremesas e Tortas"
-};
+// Usar apenas a coleção unificada "produtos"
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -28,11 +19,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const db = client.db("paraiba");
 
     if (method === "PUT") {
-      const { id, colecaoOrigem, nome, valor, vtipo, ingredientes, img } = req.body;
+      const { id, nome, valor, vtipo, ingredientes, img } = req.body;
 
       // Validações
-      if (!id || !colecaoOrigem || !nome || !valor) {
-        return res.status(400).json({ error: "ID, coleção, nome e valor são obrigatórios" });
+      if (!id || !nome || !valor) {
+        return res.status(400).json({ error: "ID, nome e valor são obrigatórios" });
       }
 
       if (valor <= 0) {
@@ -44,34 +35,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "ID inválido" });
       }
 
-      const updateData: Record<string, string | number | Date> = {
+      const updateData: Record<string, any> = {
         nome,
-        valor: parseFloat(valor),
-        dataAtualizacao: new Date()
+        preco: {
+          valor: parseFloat(valor),
+          tipo: vtipo || "UN"
+        },
+        atualizadoEm: new Date()
       };
 
       // Adicionar campos opcionais se fornecidos
-      if (vtipo) updateData.vtipo = vtipo;
       if (ingredientes) updateData.ingredientes = ingredientes;
-      if (img) updateData.img = img;
+      if (img) updateData.imagem = { href: img, alt: nome };
 
-      let result;
-
-      if (colecaoOrigem === "produtos") {
-        // Atualizar na nova coleção unificada
-        result = await db.collection("produtos").updateOne(
-          { _id: new ObjectId(id) },
-          { $set: updateData }
-        );
-      } else if (MAPEAMENTO_COLECOES[colecaoOrigem as keyof typeof MAPEAMENTO_COLECOES]) {
-        // Atualizar na coleção antiga
-        result = await db.collection(colecaoOrigem).updateOne(
-          { _id: new ObjectId(id) },
-          { $set: updateData }
-        );
-      } else {
-        return res.status(400).json({ error: "Coleção de origem inválida" });
-      }
+      // Atualizar na coleção unificada
+      const result = await db.collection("produtos").updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updateData }
+      );
 
       if (result.matchedCount === 0) {
         return res.status(404).json({ error: "Produto não encontrado" });
@@ -85,60 +66,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (method === "PATCH") {
       // Método para atualizar apenas o status do produto (pausar/ativar)
-      const { id, colecaoOrigem, status } = req.body;
+      const { id, status } = req.body;
 
-      if (!id || !colecaoOrigem) {
-        return res.status(400).json({ error: "ID e coleção de origem são obrigatórios" });
+      if (!id) {
+        return res.status(400).json({ error: "ID é obrigatório" });
       }
 
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: "ID inválido" });
       }
 
-      const updateData: Record<string, string | Date> = {
-        dataAtualizacao: new Date()
-      };
-
-      // Se status for "pause", adiciona; se for "active", remove o campo status
-      if (status === "pause") {
-        updateData.status = "pause";
-      }
-
       let result;
 
-      if (colecaoOrigem === "produtos") {
-        if (status === "active") {
-          // Remover o campo status se ativar
-          result = await db.collection("produtos").updateOne(
-            { _id: new ObjectId(id) },
-            { 
-              $set: { dataAtualizacao: new Date() },
-              $unset: { status: "" }
-            }
-          );
-        } else {
-          result = await db.collection("produtos").updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-          );
-        }
-      } else if (MAPEAMENTO_COLECOES[colecaoOrigem as keyof typeof MAPEAMENTO_COLECOES]) {
-        if (status === "active") {
-          result = await db.collection(colecaoOrigem).updateOne(
-            { _id: new ObjectId(id) },
-            { 
-              $set: { dataAtualizacao: new Date() },
-              $unset: { status: "" }
-            }
-          );
-        } else {
-          result = await db.collection(colecaoOrigem).updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-          );
-        }
+      if (status === "active") {
+        // Remover o campo status se ativar
+        result = await db.collection("produtos").updateOne(
+          { _id: new ObjectId(id) },
+          { 
+            $set: { atualizadoEm: new Date() },
+            $unset: { status: "" }
+          }
+        );
       } else {
-        return res.status(400).json({ error: "Coleção de origem inválida" });
+        result = await db.collection("produtos").updateOne(
+          { _id: new ObjectId(id) },
+          { 
+            $set: { 
+              status: "pause",
+              atualizadoEm: new Date()
+            }
+          }
+        );
       }
 
       if (result.matchedCount === 0) {
@@ -178,27 +136,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (method === "DELETE") {
-      const { id, colecaoOrigem } = req.body;
+      const { id } = req.body;
 
-      if (!id || !colecaoOrigem) {
-        return res.status(400).json({ error: "ID e coleção de origem são obrigatórios" });
+      if (!id) {
+        return res.status(400).json({ error: "ID é obrigatório" });
       }
 
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: "ID inválido" });
       }
 
-      let deleteResult;
-
-      if (colecaoOrigem === "produtos") {
-        // Excluir permanentemente da nova coleção unificada
-        deleteResult = await db.collection("produtos").deleteOne({ _id: new ObjectId(id) });
-      } else if (MAPEAMENTO_COLECOES[colecaoOrigem as keyof typeof MAPEAMENTO_COLECOES]) {
-        // Excluir permanentemente da coleção antiga (HARD DELETE)
-        deleteResult = await db.collection(colecaoOrigem).deleteOne({ _id: new ObjectId(id) });
-      } else {
-        return res.status(400).json({ error: "Coleção de origem inválida" });
-      }
+      // Excluir permanentemente da coleção unificada
+      const deleteResult = await db.collection("produtos").deleteOne({ _id: new ObjectId(id) });
 
       if (deleteResult.deletedCount === 0) {
         return res.status(404).json({ error: "Produto não encontrado" });

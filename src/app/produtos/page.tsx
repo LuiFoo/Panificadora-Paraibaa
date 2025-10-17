@@ -12,25 +12,63 @@ import OptimizedImage from "@/components/OptimizedImage";
 interface ItemCardapio {
   _id: string;
   nome: string;
-  valor: number;
-  img: string;
-  subc: string;
-  vtipo: string;
-  mediaAvaliacao?: number;
-  totalAvaliacoes?: number;
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+    };
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: string;
 }
 
-const categoriasMenu: string[] = [
-  "BOLOS DOCES ESPECIAIS",
-  "DOCES INDIVIDUAIS",
-  "PAES DOCES",
-  "PAES SALGADOS ESPECIAIS",
-  "ROSCAS PAES ESPECIAIS",
-  "SALGADOS ASSADOS LANCHES",
-  "SOBREMESAS TORTAS",
+// Categorias simplificadas e agrupadas de forma lógica
+const categoriasMenu = [
+  { 
+    id: "doces", 
+    nome: "Doces & Sobremesas", 
+    icon: "🍰",
+    subcategorias: ["bolos-doces-especiais", "doces-individuais", "paes-doces", "sobremesas-tortas"]
+  },
+  { 
+    id: "paes", 
+    nome: "Pães & Especiais", 
+    icon: "🥖",
+    subcategorias: ["paes-salgados-especiais", "roscas-paes-especiais"]
+  },
+  { 
+    id: "salgados", 
+    nome: "Salgados & Lanches", 
+    icon: "🥐",
+    subcategorias: ["salgados-assados-lanches"]
+  },
+  { 
+    id: "bebidas", 
+    nome: "Bebidas", 
+    icon: "🥤",
+    subcategorias: ["bebidas"]
+  },
 ];
 
-const categoriaPadrao = categoriasMenu[0];
+const categoriaPadrao = categoriasMenu[0].id;
 
 export default function CardapioPage() {
   const [categoriaAtual, setCategoriaAtual] = useState<string>(categoriaPadrao);
@@ -72,10 +110,7 @@ export default function CardapioPage() {
   }, []);
 
   // Cache de produtos por categoria
-  const categoriaUrl = useMemo(() => 
-    categoriaAtual.toLowerCase().replace(/\s+/g, "-"), 
-    [categoriaAtual]
-  );
+  const categoriaUrl = useMemo(() => categoriaAtual, [categoriaAtual]);
 
   const [produtosCache, setProdutosCache] = useState<ItemCardapio[]>([]);
   const [cacheLoading, setCacheLoading] = useState(false);
@@ -85,22 +120,11 @@ export default function CardapioPage() {
     const fetchProdutos = async () => {
       setCacheLoading(true);
       try {
-        const response = await fetch(`/api/${categoriaUrl}`);
+        const response = await fetch(`/api/produtos-unificados`);
         if (!response.ok) throw new Error("Falha ao buscar produtos");
         const data = await response.json();
         
-        const chavesAPI: { [key: string]: string } = {
-          "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
-          "DOCES INDIVIDUAIS": "docesIndividuais",
-          "PAES DOCES": "paesDoces",
-          "PAES SALGADOS ESPECIAIS": "paesSalgadosEspeciais",
-          "ROSCAS PAES ESPECIAIS": "roscasPaesEspeciais",
-          "SALGADOS ASSADOS LANCHES": "salgadosAssadosLanches",
-          "SOBREMESAS TORTAS": "sobremesasTortas",
-        };
-        
-        const chave = chavesAPI[categoriaAtual] || Object.keys(data)[0];
-        setProdutosCache(data[chave] || []);
+        setProdutosCache(data[categoriaAtual] || []);
       } catch (error) {
         console.error("Erro ao buscar produtos:", error);
         setProdutosCache([]);
@@ -110,7 +134,7 @@ export default function CardapioPage() {
     };
 
     fetchProdutos();
-  }, [categoriaUrl, categoriaAtual]);
+  }, [categoriaAtual]);
 
   // Atualiza a categoria atual da URL ou define a padrão
   useEffect(() => {
@@ -118,7 +142,8 @@ export default function CardapioPage() {
     const params = new URLSearchParams(window.location.search);
     const categoriaParam = params.get("categoria");
 
-    if (categoriaParam && categoriasMenu.includes(categoriaParam)) {
+    const categoriaEncontrada = categoriasMenu.find(cat => cat.id === categoriaParam);
+    if (categoriaParam && categoriaEncontrada) {
       setCategoriaAtual(categoriaParam);
     } else {
       setCategoriaAtual(categoriaPadrao);
@@ -139,33 +164,11 @@ export default function CardapioPage() {
     setLoading(true);
 
     try {
-      // Buscar todas as avaliações de uma vez (otimizado)
-      const produtoIds = itensData.map(item => item._id).join(',');
-      let avaliacoesMap: Record<string, { media: number; total: number }> = {};
-      
-      if (produtoIds) {
-        try {
-          const avaliacoesRes = await fetch(`/api/avaliacoes?produtoIds=${produtoIds}`);
-          const avaliacoesData = await avaliacoesRes.json();
-          
-          if (avaliacoesData.avaliacoes) {
-            avaliacoesMap = avaliacoesData.avaliacoes;
-          }
-        } catch (error) {
-          console.error("Erro ao buscar avaliações:", error);
-        }
-      }
-      
-      // Adicionar avaliações aos itens
-      const itensComAvaliacoes = itensData.map((item) => ({
-        ...item,
-        mediaAvaliacao: avaliacoesMap[item._id]?.media || 0,
-        totalAvaliacoes: avaliacoesMap[item._id]?.total || 0
-      }));
-      
-      setItens(itensComAvaliacoes);
+      // Com a nova estrutura, as avaliações já vêm integradas nos produtos
+      // Apenas atualizar o estado diretamente
+      setItens(itensData);
     } catch (error) {
-      console.error("Erro ao buscar avaliações:", error);
+      console.error("Erro ao processar produtos:", error);
       setItens(itensData);
     } finally {
       setLoading(false);
@@ -188,7 +191,9 @@ export default function CardapioPage() {
   // Filtrar itens com base na busca
   const filteredItems = itens.filter((item) =>
     item.nome.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    item.subc.toLowerCase().includes(debouncedSearch.toLowerCase())
+    item.descricao.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    item.subcategoria.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    item.tags.some(tag => tag.toLowerCase().includes(debouncedSearch.toLowerCase()))
   );
 
   return (
@@ -266,10 +271,18 @@ export default function CardapioPage() {
           <div className="max-w-7xl mx-auto">
             {categoriaAtual && (
               <div className="text-center mb-8 md:mb-12">
-                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[var(--color-fonte-100)]">
-                  {categoriaAtual}
-                </h2>
-                <div className="w-24 h-1 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] mx-auto mt-4 rounded-full"></div>
+                {(() => {
+                  const categoria = categoriasMenu.find(cat => cat.id === categoriaAtual);
+                  return categoria ? (
+                    <>
+                      <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[var(--color-fonte-100)] flex items-center justify-center gap-3">
+                        <span className="text-3xl md:text-4xl">{categoria.icon}</span>
+                        {categoria.nome}
+                      </h2>
+                      <div className="w-24 h-1 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] mx-auto mt-4 rounded-full"></div>
+                    </>
+                  ) : null;
+                })()}
               </div>
             )}
 
@@ -289,8 +302,8 @@ export default function CardapioPage() {
                     >
                       <div className="relative overflow-hidden">
                         <OptimizedImage
-                          src={item.img}
-                          alt={item.nome}
+                          src={item.imagem.href}
+                          alt={item.imagem.alt}
                           width={300}
                           height={300}
                           className="object-cover w-full h-64 group-hover:scale-110 transition-transform duration-300"
@@ -298,9 +311,14 @@ export default function CardapioPage() {
                         />
                         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
                           <span className="text-xs font-bold text-[var(--color-avocado-600)]">
-                            {item.subc}
+                            {item.subcategoria}
                           </span>
                         </div>
+                        {item.destaque && (
+                          <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            ⭐ Destaque
+                          </div>
+                        )}
                       </div>
                       
                       <div className="p-5">
@@ -308,32 +326,52 @@ export default function CardapioPage() {
                           {item.nome}
                         </h3>
                         
+                        {/* Descrição */}
+                        {item.descricao && (
+                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                            {item.descricao}
+                          </p>
+                        )}
+
                         {/* Avaliações */}
                         <div className="mb-3 flex items-center gap-2">
                           <StarRating 
-                            rating={item.mediaAvaliacao || 0} 
-                            total={item.totalAvaliacoes || 0}
+                            rating={item.avaliacao.media || 0} 
+                            total={item.avaliacao.quantidade || 0}
                             size="sm"
                             showNumber={false}
                           />
-                          {item.totalAvaliacoes && item.totalAvaliacoes > 0 && (
+                          {item.avaliacao.quantidade && item.avaliacao.quantidade > 0 && (
                             <span className="text-xs text-gray-500">
-                              ({item.totalAvaliacoes})
+                              ({item.avaliacao.quantidade})
                             </span>
                           )}
                         </div>
                         
                         <div className="flex items-center justify-between mb-4">
-                          <p className="text-2xl font-bold text-[var(--color-avocado-600)]">
-                            R${item.valor.toFixed(2).replace(".", ",")}
-                          </p>
+                          <div className="flex flex-col">
+                            {item.preco.promocao?.ativo ? (
+                              <>
+                                <p className="text-lg font-bold text-[var(--color-avocado-600)]">
+                                  R${item.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")}
+                                </p>
+                                <p className="text-sm text-gray-400 line-through">
+                                  R${item.preco.valor.toFixed(2).replace(".", ",")}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-2xl font-bold text-[var(--color-avocado-600)]">
+                                R${item.preco.valor.toFixed(2).replace(".", ",")}
+                              </p>
+                            )}
+                          </div>
                           <span className="text-sm text-gray-500 font-medium">
-                            {item.vtipo}
+                            {item.preco.tipo}
                           </span>
                         </div>
                         
                         <Link
-                          href={`/produtos/${item._id}`}
+                          href={`/produtos/${item.slug}`}
                           className="block w-full text-center font-semibold bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
                         >
                           Ver Detalhes

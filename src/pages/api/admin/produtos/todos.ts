@@ -10,7 +10,8 @@ const MAPEAMENTO_COLECOES = {
   "paes-salgados-especiais": "PAES SALGADOS ESPECIAIS",
   "roscas-paes-especiais": "ROSCAS PAES ESPECIAIS",
   "salgados-assados-lanches": "SALGADOS ASSADOS LANCHES",
-  "sobremesas-tortas": "SOBREMESAS TORTAS"
+  "sobremesas-tortas": "SOBREMESAS TORTAS",
+  "bebidas": "BEBIDAS"
 };
 
 // Subcategorias válidas (apenas estas)
@@ -21,7 +22,8 @@ const SUBCATEGORIAS_VALIDAS = [
   "PAES SALGADOS ESPECIAIS",
   "ROSCAS PAES ESPECIAIS",
   "SALGADOS ASSADOS LANCHES",
-  "SOBREMESAS TORTAS"
+  "SOBREMESAS TORTAS",
+  "BEBIDAS"
 ];
 
 interface ProdutoExistente {
@@ -57,55 +59,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const todosProdutos: ProdutoExistente[] = [];
 
-    // Buscar produtos da nova coleção unificada
+    // Buscar produtos apenas da coleção unificada "produtos"
     console.log("📦 Buscando produtos da coleção 'produtos'...");
-    const produtosNovos = await db.collection("produtos")
+    const produtos = await db.collection("produtos")
       .find({})
-      .sort({ dataCriacao: -1 })
+      .sort({ criadoEm: -1, dataCriacao: -1 })
       .toArray();
-    console.log(`📦 Encontrados ${produtosNovos.length} produtos na coleção 'produtos'`);
+    console.log(`📦 Encontrados ${produtos.length} produtos na coleção 'produtos'`);
 
-    // Adicionar produtos da nova coleção
-    for (const produto of produtosNovos) {
+    // Adicionar produtos da coleção unificada
+    for (const produto of produtos) {
       todosProdutos.push({
         _id: produto._id.toString(),
         nome: produto.nome,
-        valor: produto.valor,
-        vtipo: produto.vtipo,
-        ingredientes: produto.ingredientes,
-        img: produto.img,
+        valor: produto.preco?.valor || produto.valor || 0,
+        vtipo: produto.preco?.tipo || produto.vtipo || "UN",
+        ingredientes: produto.ingredientes || produto.descricao || "Ingredientes não especificados",
+        img: produto.imagem?.href || produto.img || "https://via.placeholder.com/300x200?text=Sem+Imagem",
         colecaoOrigem: "produtos",
-        subcategoria: produto.subc,
-        status: produto.status, // Incluir status
-        dataCriacao: produto.dataCriacao,
-        dataAtualizacao: produto.dataAtualizacao
+        subcategoria: produto.subcategoria || produto.subc || "Categoria",
+        status: produto.status,
+        dataCriacao: produto.criadoEm || produto.dataCriacao,
+        dataAtualizacao: produto.atualizadoEm || produto.dataAtualizacao
       });
-    }
-
-    // Buscar produtos das coleções antigas
-    console.log("📂 Buscando produtos das coleções antigas...");
-    for (const [colecaoAntiga, subcategoria] of Object.entries(MAPEAMENTO_COLECOES)) {
-      console.log(`📂 Buscando na coleção: ${colecaoAntiga}`);
-      const produtosAntigos = await db.collection(colecaoAntiga)
-        .find({ deleted: { $ne: true } })
-        .toArray();
-      console.log(`📂 Encontrados ${produtosAntigos.length} produtos na coleção '${colecaoAntiga}'`);
-
-      for (const produto of produtosAntigos) {
-        todosProdutos.push({
-          _id: produto._id.toString(),
-          nome: produto.nome || "Produto sem nome",
-          valor: produto.valor || 0,
-          vtipo: produto.vtipo || "UN",
-          ingredientes: produto.ingredientes || produto.descricao || "Ingredientes não especificados",
-          img: produto.img || "https://via.placeholder.com/300x200?text=Sem+Imagem",
-          colecaoOrigem: colecaoAntiga,
-          subcategoria: subcategoria, // SEMPRE usar a subcategoria mapeada da coleção
-          status: produto.status, // Incluir status
-          dataCriacao: produto.dataCriacao,
-          dataAtualizacao: produto.dataAtualizacao
-        });
-      }
     }
 
     // Ordenar por data de criação (mais recentes primeiro)
@@ -127,7 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       produtos: todosProdutos,
       total: todosProdutos.length,
       subcategorias: subcategoriasUnicas,
-      colecoes: Object.keys(MAPEAMENTO_COLECOES).concat(["produtos"])
+      colecoes: ["produtos"]
     };
 
     console.log("📤 Retornando resposta:", { 

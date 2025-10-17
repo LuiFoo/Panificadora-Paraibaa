@@ -5,7 +5,32 @@ import { useEffect, useState } from "react";
 interface Bolo {
   _id: string;
   nome: string;
-  valor: string; // O valor será uma string devido ao Decimal128
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+    };
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: string;
 }
 
 export default function BolosDocesEspeciaisPage() {
@@ -17,12 +42,13 @@ export default function BolosDocesEspeciaisPage() {
     setIsClient(true); // 🔹 Indica que está no client
     async function fetchBolosDoces() {
       try {
-        const response = await fetch("/api/bolos-doces-especiais");
+        const response = await fetch("/api/produtos-unificados");
         if (!response.ok) {
           throw new Error("Falha ao buscar os bolos e doces especiais");
         }
         const data = await response.json();
-        setBolosDoces(data.bolosDocesEspeciais); // Ajuste aqui para corresponder à chave da API
+        // Filtrar apenas produtos da categoria doces
+        setBolosDoces(data.doces || []);
       } catch (error) {
         console.error("Erro ao buscar bolos e doces especiais:", error);
       } finally {
@@ -42,7 +68,12 @@ export default function BolosDocesEspeciaisPage() {
       {bolosDoces.length > 0 ? (
         bolosDoces.map((bolo) => (
           <li key={bolo._id}>
-            {bolo.nome} - R${parseFloat(bolo.valor).toFixed(2)} {/* Converte o valor para float e formata com 2 casas decimais */}
+            {bolo.nome} - R${bolo.preco.valor.toFixed(2).replace(".", ",")}
+            {bolo.preco.promocao?.ativo && (
+              <span className="text-red-500 ml-2">
+                (Promoção: R${bolo.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")})
+              </span>
+            )}
           </li>
         ))
       ) : (

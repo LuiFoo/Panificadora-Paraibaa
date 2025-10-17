@@ -3,36 +3,10 @@ import clientPromise from "@/modules/mongodb";
 import { ObjectId, Db } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
-// Mapeamento das coleções antigas
-const MAPEAMENTO_COLECOES = {
-  "BOLOS DOCES ESPECIAIS": "bolos-doces-especiais",
-  "DOCES INDIVIDUAIS": "doces-individuais",
-  "PAES DOCES": "paes-doces",
-  "PAES SALGADOS ESPECIAIS": "paes-salgados-especiais",
-  "ROSCAS PAES ESPECIAIS": "roscas-paes-especiais",
-  "SALGADOS ASSADOS LANCHES": "salgados-assados-lanches",
-  "SOBREMESAS TORTAS": "sobremesas-tortas"
-};
-
-// Função para buscar produto em todas as coleções
-async function buscarProdutoEmTodasColecoes(db: Db, id: string) {
-  // Primeiro, tentar na coleção "produtos"
-  let produto = await db.collection("produtos").findOne({ _id: new ObjectId(id) });
-  
-  if (produto) {
-    return { produto, colecao: "produtos" };
-  }
-
-  // Se não encontrou, buscar nas coleções antigas
-  const colecoes = Object.values(MAPEAMENTO_COLECOES);
-  for (const nomeColecao of colecoes) {
-    produto = await db.collection(nomeColecao).findOne({ _id: new ObjectId(id) });
-    if (produto) {
-      return { produto, colecao: nomeColecao };
-    }
-  }
-
-  return { produto: null, colecao: null };
+// Função para buscar produto na coleção unificada
+async function buscarProduto(db: Db, id: string) {
+  const produto = await db.collection("produtos").findOne({ _id: new ObjectId(id) });
+  return { produto, colecao: "produtos" };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -59,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const db = client.db("paraiba");
 
     if (method === "GET") {
-      const { produto, colecao } = await buscarProdutoEmTodasColecoes(db, id);
+      const { produto, colecao } = await buscarProduto(db, id);
 
       if (!produto) {
         return res.status(404).json({ error: "Produto não encontrado" });
@@ -86,76 +60,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Valor deve ser maior que zero" });
       }
 
-      // Primeiro, encontrar em qual coleção o produto está
-      const { produto: produtoExistente, colecao: colecaoAtual } = await buscarProdutoEmTodasColecoes(db, id);
+      // Verificar se o produto existe
+      const { produto: produtoExistente } = await buscarProduto(db, id);
       
       if (!produtoExistente) {
         return res.status(404).json({ error: "Produto não encontrado" });
       }
 
-      // Determinar a nova coleção baseada na subcategoria
-      const novaColecao = MAPEAMENTO_COLECOES[subc as keyof typeof MAPEAMENTO_COLECOES];
-      
-      if (!novaColecao) {
-        return res.status(400).json({ error: "Subcategoria inválida" });
-      }
-
-      // Verificar se já existe outro produto com o mesmo nome na nova coleção
-      const produtoComMesmoNome = await db.collection(novaColecao).findOne({ 
+      // Verificar se já existe outro produto com o mesmo nome
+      const produtoComMesmoNome = await db.collection("produtos").findOne({ 
         nome, 
         _id: { $ne: new ObjectId(id) } 
       });
       if (produtoComMesmoNome) {
-        return res.status(400).json({ error: "Já existe outro produto com este nome nesta categoria" });
+        return res.status(400).json({ error: "Já existe outro produto com este nome" });
       }
 
-      // Se o produto está mudando de coleção, deletar da coleção antiga e inserir na nova
-      if (colecaoAtual !== novaColecao) {
-        console.log(`📦 Movendo produto da coleção ${colecaoAtual} para ${novaColecao}`);
-        
-        // Deletar da coleção antiga
-        await db.collection(colecaoAtual).deleteOne({ _id: new ObjectId(id) });
-        
-        // Inserir na nova coleção
-        const novoProduto = {
-          _id: new ObjectId(id),
-          subc,
-          nome,
+      // Atualizar na coleção unificada
+      const updateData: Record<string, unknown> = { 
+        subcategoria: subc,
+        nome,
+        preco: {
           valor: parseFloat(valor),
-          vtipo,
-          ingredientes,
-          img,
-          status: status || produtoExistente.status || "active",
-          dataCriacao: produtoExistente.dataCriacao || new Date(),
-          dataAtualizacao: new Date()
-        };
-        
-        await db.collection(novaColecao).insertOne(novoProduto);
-      } else {
-        // Atualizar na mesma coleção
-        const updateData: Record<string, unknown> = { 
-          subc,
-          nome,
-          valor: parseFloat(valor),
-          vtipo,
-          ingredientes,
-          img,
-          dataAtualizacao: new Date()
-        };
+          tipo: vtipo
+        },
+        ingredientes,
+        imagem: {
+          href: img,
+          alt: nome
+        },
+        atualizadoEm: new Date()
+      };
 
-        // Incluir status se fornecido
-        if (status !== undefined) {
-          updateData.status = status;
-        }
+      // Incluir status se fornecido
+      if (status !== undefined) {
+        updateData.status = status;
+      }
 
-        const result = await db.collection(novaColecao).updateOne(
-          { _id: new ObjectId(id) },
-          { $set: updateData }
-        );
+      const result = await db.collection("produtos").updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updateData }
+      );
 
-        if (result.matchedCount === 0) {
-          return res.status(404).json({ error: "Produto não encontrado" });
-        }
+      if (result.matchedCount === 0) {
+        return res.status(404).json({ error: "Produto não encontrado" });
       }
 
       return res.status(200).json({ 
@@ -165,15 +113,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (method === "DELETE") {
-      // Encontrar em qual coleção o produto está
-      const { produto, colecao } = await buscarProdutoEmTodasColecoes(db, id);
+      // Verificar se o produto existe
+      const { produto } = await buscarProduto(db, id);
       
       if (!produto) {
         return res.status(404).json({ error: "Produto não encontrado" });
       }
 
-      // Deletar da coleção correta
-      const result = await db.collection(colecao).deleteOne({ _id: new ObjectId(id) });
+      // Deletar da coleção unificada
+      const result = await db.collection("produtos").deleteOne({ _id: new ObjectId(id) });
 
       if (result.deletedCount === 0) {
         return res.status(404).json({ error: "Produto não encontrado" });

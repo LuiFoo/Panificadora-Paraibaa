@@ -2,10 +2,35 @@
 
 import { useEffect, useState } from "react";
 
-interface RoscaPaoEspecial {
+interface Produto {
   _id: string;
   nome: string;
-  valor: string; // O valor será uma string devido ao Decimal128
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+    };
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: string;
 }
 
 export default function RoscasPaesEspeciaisPage() {
@@ -17,12 +42,13 @@ export default function RoscasPaesEspeciaisPage() {
     setIsClient(true); // 🔹 Indica que está no client
     async function fetchRoscasPaesEspeciais() {
       try {
-        const response = await fetch("/api/roscas-paes-especiais");
+        const response = await fetch("/api/produtos-unificados");
         if (!response.ok) {
           throw new Error("Falha ao buscar as roscas e pães especiais");
         }
         const data = await response.json();
-        setRoscasPaesEspeciais(data.roscasPaesEspeciais); // A chave deve ser a mesma que a API retorna
+        // Filtrar apenas produtos da categoria paes
+        setRoscasPaesEspeciais(data.paes || []);
       } catch (error) {
         console.error("Erro ao buscar roscas e pães especiais:", error);
       } finally {
@@ -42,7 +68,7 @@ export default function RoscasPaesEspeciaisPage() {
       {roscasPaesEspeciais.length > 0 ? (
         roscasPaesEspeciais.map((roscaPao) => (
           <li key={roscaPao._id}>
-            {roscaPao.nome} - R${parseFloat(roscaPao.valor).toFixed(2)} {/* Converte o valor para float e formata com 2 casas decimais */}
+            {roscaPao.nome} - R${roscaPao.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
           </li>
         ))
       ) : (

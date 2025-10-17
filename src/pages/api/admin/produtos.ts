@@ -42,52 +42,91 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Valor deve ser um número maior que zero" });
       }
 
-      // Mapear subcategoria para nome da coleção
-      const mapeamentoColecoes: { [key: string]: string } = {
-        "BOLOS DOCES ESPECIAIS": "bolos-doces-especiais",
-        "DOCES INDIVIDUAIS": "doces-individuais",
-        "PAES DOCES": "paes-doces",
-        "PAES SALGADOS ESPECIAIS": "paes-salgados-especiais",
-        "ROSCAS PAES ESPECIAIS": "roscas-paes-especiais",
-        "SALGADOS ASSADOS LANCHES": "salgados-assados-lanches",
-        "SOBREMESAS TORTAS": "sobremesas-tortas"
-      };
+      // Categorias disponíveis para a nova estrutura
+      const categoriasDisponiveis = [
+        "BOLOS DOCES ESPECIAIS",
+        "DOCES INDIVIDUAIS", 
+        "PAES DOCES",
+        "PAES SALGADOS ESPECIAIS",
+        "ROSCAS PAES ESPECIAIS",
+        "SALGADOS ASSADOS LANCHES",
+        "SOBREMESAS TORTAS",
+        "BEBIDAS"
+      ];
 
-      const nomeColecao = mapeamentoColecoes[subc];
-      
-      if (!nomeColecao) {
+      if (!categoriasDisponiveis.includes(subc)) {
         console.log("❌ Subcategoria inválida:", subc);
         return res.status(400).json({ error: "Subcategoria inválida" });
       }
 
-      console.log(`📂 Salvando na coleção: ${nomeColecao}`);
+      // Gerar slug único
+      const slugBase = nome.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .trim();
+      
+      let slug = slugBase;
+      let counter = 1;
 
-      // Verificar se já existe produto com o mesmo nome na coleção específica
-      const produtoExistente = await db.collection(nomeColecao).findOne({ nome });
+      while (await db.collection("produtos").findOne({ slug })) {
+        slug = `${slugBase}-${counter}`;
+        counter++;
+      }
+
+      console.log(`📂 Salvando na coleção unificada: produtos`);
+
+      // Verificar se já existe produto com o mesmo nome
+      const produtoExistente = await db.collection("produtos").findOne({ nome });
       if (produtoExistente) {
         console.log("❌ Produto já existe com nome:", nome);
-        return res.status(400).json({ error: "Já existe um produto com este nome nesta categoria" });
+        return res.status(400).json({ error: "Já existe um produto com este nome" });
       }
 
       const novoProduto = {
-        subc,
         nome,
-        valor: valorNumerico,
-        vtipo,
-        ingredientes,
-        img,
-        dataCriacao: new Date(),
-        dataAtualizacao: new Date()
+        slug,
+        descricao: ingredientes || "",
+        categoria: {
+          nome: subc,
+          slug: subc.toLowerCase().replace(/\s+/g, "-")
+        },
+        subcategoria: "Padrão",
+        preco: {
+          valor: valorNumerico,
+          tipo: vtipo
+        },
+        estoque: {
+          disponivel: true,
+          unidadeMedida: vtipo
+        },
+        imagem: {
+          href: img,
+          alt: nome
+        },
+        ingredientes: ingredientes ? ingredientes.split(',').map(i => i.trim()) : [],
+        alergicos: [],
+        avaliacao: {
+          media: 0,
+          quantidade: 0,
+          usuarios: []
+        },
+        destaque: false,
+        tags: [],
+        status: "ativo",
+        criadoEm: new Date(),
+        atualizadoEm: new Date()
       };
 
       console.log("✅ Inserindo produto no MongoDB...");
-      const result = await db.collection(nomeColecao).insertOne(novoProduto);
-      console.log(`✅ Produto inserido na coleção ${nomeColecao} com ID:`, result.insertedId);
+      const result = await db.collection("produtos").insertOne(novoProduto);
+      console.log(`✅ Produto inserido na coleção produtos com ID:`, result.insertedId);
 
       return res.status(201).json({ 
         success: true,
         produtoId: result.insertedId,
-        colecao: nomeColecao,
+        colecao: "produtos",
         message: "Produto criado com sucesso"
       });
     }

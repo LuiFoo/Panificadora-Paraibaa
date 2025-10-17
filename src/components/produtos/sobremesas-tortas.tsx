@@ -2,10 +2,35 @@
 
 import { useEffect, useState } from "react";
 
-interface SobremesaTorta {
+interface Produto {
   _id: string;
   nome: string;
-  valor: string; // O valor será uma string devido ao Decimal128
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+    };
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: string;
 }
 
 export default function SobremesasTortasPage() {
@@ -17,12 +42,13 @@ export default function SobremesasTortasPage() {
     setIsClient(true); // 🔹 Indica que está no client
     async function fetchSobremesasTortas() {
       try {
-        const response = await fetch("/api/sobremesas-tortas");
+        const response = await fetch("/api/produtos-unificados");
         if (!response.ok) {
           throw new Error("Falha ao buscar as sobremesas e tortas");
         }
         const data = await response.json();
-        setSobremesasTortas(data.sobremesasTortas); // A chave deve ser a mesma que a API retorna
+        // Filtrar apenas produtos da categoria doces
+        setSobremesasTortas(data.doces || []);
       } catch (error) {
         console.error("Erro ao buscar sobremesas e tortas:", error);
       } finally {
@@ -42,7 +68,7 @@ export default function SobremesasTortasPage() {
       {sobremesasTortas.length > 0 ? (
         sobremesasTortas.map((sobremesa) => (
           <li key={sobremesa._id}>
-            {sobremesa.nome} - R${parseFloat(sobremesa.valor).toFixed(2)} {/* Converte o valor para float e formata com 2 casas decimais */}
+            {sobremesa.nome} - R${sobremesa.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
           </li>
         ))
       ) : (

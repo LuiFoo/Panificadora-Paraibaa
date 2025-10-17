@@ -3,36 +3,10 @@ import clientPromise from "@/modules/mongodb";
 import { ObjectId, Db } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
-// Mapeamento das coleções antigas
-const MAPEAMENTO_COLECOES = {
-  "BOLOS DOCES ESPECIAIS": "bolos-doces-especiais",
-  "DOCES INDIVIDUAIS": "doces-individuais",
-  "PAES DOCES": "paes-doces",
-  "PAES SALGADOS ESPECIAIS": "paes-salgados-especiais",
-  "ROSCAS PAES ESPECIAIS": "roscas-paes-especiais",
-  "SALGADOS ASSADOS LANCHES": "salgados-assados-lanches",
-  "SOBREMESAS TORTAS": "sobremesas-tortas"
-};
-
-// Função para buscar produto em todas as coleções
-async function buscarProdutoEmTodasColecoes(db: Db, id: string) {
-  // Primeiro, tentar na coleção "produtos"
-  let produto = await db.collection("produtos").findOne({ _id: new ObjectId(id) });
-  
-  if (produto) {
-    return { produto, colecao: "produtos" };
-  }
-
-  // Se não encontrou, buscar nas coleções antigas
-  const colecoes = Object.values(MAPEAMENTO_COLECOES);
-  for (const nomeColecao of colecoes) {
-    produto = await db.collection(nomeColecao).findOne({ _id: new ObjectId(id) });
-    if (produto) {
-      return { produto, colecao: nomeColecao };
-    }
-  }
-
-  return { produto: null, colecao: null };
+// Função para buscar produto na coleção unificada
+async function buscarProduto(db: Db, id: string) {
+  const produto = await db.collection("produtos").findOne({ _id: new ObjectId(id) });
+  return { produto, colecao: "produtos" };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -65,20 +39,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const client = await clientPromise;
     const db = client.db("paraiba");
 
-    // Encontrar em qual coleção o produto está
-    const { produto, colecao } = await buscarProdutoEmTodasColecoes(db, id);
+    // Verificar se o produto existe
+    const { produto } = await buscarProduto(db, id);
     
     if (!produto) {
       return res.status(404).json({ error: "Produto não encontrado" });
     }
 
-    // Atualizar o status na coleção correta
-    const result = await db.collection(colecao).updateOne(
+    // Atualizar o status na coleção unificada
+    const result = await db.collection("produtos").updateOne(
       { _id: new ObjectId(id) },
       { 
         $set: { 
           status,
-          dataAtualizacao: new Date()
+          atualizadoEm: new Date()
         } 
       }
     );

@@ -15,22 +15,42 @@ import OptimizedImage from "@/components/OptimizedImage";
 interface ItemCardapio {
   _id: string;
   nome: string;
-  valor: number;
-  img: string;
-  subc: string;
-  vtipo: string;
-  ingredientes?: string;
-  categoria?: string;
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+    };
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  ingredientes: string[];
+  alergicos: string[];
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: string;
 }
 
-const categoriasMenu: string[] = [
-  "BOLOS DOCES ESPECIAIS",
-  "DOCES INDIVIDUAIS",
-  "PAES DOCES",
-  "PAES SALGADOS ESPECIAIS",
-  "ROSCAS PAES ESPECIAIS",
-  "SALGADOS ASSADOS LANCHES",
-  "SOBREMESAS TORTAS",
+// Categorias simplificadas
+const categoriasMenu = [
+  { id: "doces", nome: "Doces & Sobremesas", subcategorias: ["bolos-doces-especiais", "doces-individuais", "paes-doces", "sobremesas-tortas"] },
+  { id: "paes", nome: "Pães & Especiais", subcategorias: ["paes-salgados-especiais", "roscas-paes-especiais"] },
+  { id: "salgados", nome: "Salgados & Lanches", subcategorias: ["salgados-assados-lanches"] },
+  { id: "bebidas", nome: "Bebidas", subcategorias: ["bebidas"] },
 ];
 
 export default function ProdutoDetalhePage() {
@@ -109,37 +129,56 @@ export default function ProdutoDetalhePage() {
     setError(null);
 
     try {
-      const chavesAPI: { [key: string]: string } = {
-        "BOLOS DOCES ESPECIAIS": "bolosDocesEspeciais",
-        "DOCES INDIVIDUAIS": "docesIndividuais",
-        "PAES DOCES": "paesDoces",
-        "PAES SALGADOS ESPECIAIS": "paesSalgadosEspeciais",
-        "ROSCAS PAES ESPECIAIS": "roscasPaesEspeciais",
-        "SALGADOS ASSADOS LANCHES": "salgadosAssadosLanches",
-        "SOBREMESAS TORTAS": "sobremesasTortas",
-      };
+      // Primeiro, tentar buscar por slug (nova estrutura)
+      const response = await fetch(`/api/produtos/slug/${id}`);
+      
+      if (response.ok) {
+        const produtoEncontrado = await response.json();
+        setProduto(produtoEncontrado);
+        
+        // Buscar produtos relacionados da mesma categoria
+        const categoriaResponse = await fetch(`/api/produtos/categoria/${produtoEncontrado.categoria.slug}`);
+        if (categoriaResponse.ok) {
+          const data = await categoriaResponse.json();
+          const relacionados = data.produtos.filter((item: ItemCardapio) => item._id !== produtoEncontrado._id).slice(0, 4);
+          setProdutosRelacionados(relacionados);
+        }
+        
+        // As avaliações já vêm integradas no produto
+        setMediaAvaliacao(produtoEncontrado.avaliacao.media);
+        setTotalAvaliacoes(produtoEncontrado.avaliacao.quantidade);
+        
+        setLoading(false);
+        return;
+      }
 
-      for (const categoria of categoriasMenu) {
-        const categoriaUrl = categoria.toLowerCase().replace(/\s+/g, "-");
-        const response = await fetch(`/api/${categoriaUrl}`);
-
-        if (response.ok) {
-          const data = await response.json();
-          const chave = chavesAPI[categoria] || Object.keys(data)[0];
-          const itens: ItemCardapio[] = data[chave] || [];
-
-          const produtoEncontrado = itens.find((item) => item._id === id);
-          if (produtoEncontrado) {
-            setProduto(produtoEncontrado);
-            const relacionados = itens.filter((item) => item._id !== id).slice(0, 4);
+      // Se não encontrou por slug, tentar buscar por ID (compatibilidade com sistema antigo)
+      const responseUnificados = await fetch('/api/produtos-unificados');
+      if (responseUnificados.ok) {
+        const data = await responseUnificados.json();
+        const todosProdutos = [...data.doces, ...data.paes, ...data.salgados, ...data.bebidas];
+        
+        const produtoEncontrado = todosProdutos.find((item: ItemCardapio) => item._id === id);
+        if (produtoEncontrado) {
+          setProduto(produtoEncontrado);
+          
+          // Buscar produtos relacionados da mesma categoria
+          const categoria = categoriasMenu.find(cat => 
+            cat.subcategorias.includes(produtoEncontrado.categoria.slug)
+          );
+          
+          if (categoria) {
+            const relacionados = todosProdutos.filter((item: ItemCardapio) => 
+              item._id !== id && categoria.subcategorias.includes(item.categoria.slug)
+            ).slice(0, 4);
             setProdutosRelacionados(relacionados);
-            
-            // Buscar avaliações do produto
-            buscarAvaliacoes(id);
-            
-            setLoading(false);
-            return;
           }
+          
+          setMediaAvaliacao(produtoEncontrado.avaliacao.media);
+          setTotalAvaliacoes(produtoEncontrado.avaliacao.quantidade);
+          
+          setLoading(false);
+          return;
         }
       }
 
@@ -216,12 +255,12 @@ export default function ProdutoDetalhePage() {
       return;
     }
 
-    const resultado = await addItem({
+    const resultado = await     addItem({
       id: produto._id,
       nome: produto.nome,
-      valor: produto.valor,
+      valor: produto.preco.promocao?.ativo ? produto.preco.promocao.valorPromocional : produto.preco.valor,
       quantidade,
-      img: produto.img,
+      img: produto.imagem.href,
     });
 
     // Mostrar mensagem de sucesso ou erro retornada
@@ -292,8 +331,8 @@ export default function ProdutoDetalhePage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] rounded-3xl blur-2xl opacity-20 group-hover:opacity-30 transition-opacity"></div>
                   <div className="relative rounded-3xl overflow-hidden shadow-2xl">
             <OptimizedImage 
-              src={produto.img} 
-              alt={produto.nome} 
+              src={produto.imagem.href} 
+              alt={produto.imagem.alt} 
               width={600} 
               height={600} 
                       className="w-full h-auto object-cover"
@@ -331,11 +370,22 @@ export default function ProdutoDetalhePage() {
 
                   {/* Preço */}
                   <div className="mb-6 p-4 bg-gradient-to-r from-[var(--color-avocado-50)] to-green-50 rounded-2xl">
-                    <p className="text-3xl md:text-4xl font-bold text-[var(--color-avocado-600)]">
-                      R$ {produto.valor.toFixed(2).replace(".", ",")}
-                    </p>
+                    {produto.preco.promocao?.ativo ? (
+                      <>
+                        <p className="text-3xl md:text-4xl font-bold text-[var(--color-avocado-600)]">
+                          R$ {produto.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")}
+                        </p>
+                        <p className="text-lg text-gray-400 line-through">
+                          R$ {produto.preco.valor.toFixed(2).replace(".", ",")}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-3xl md:text-4xl font-bold text-[var(--color-avocado-600)]">
+                        R$ {produto.preco.valor.toFixed(2).replace(".", ",")}
+                      </p>
+                    )}
                     <p className="text-sm md:text-base text-gray-600 font-medium mt-1">
-                      {produto.vtipo}
+                      {produto.preco.tipo}
                     </p>
                   </div>
 

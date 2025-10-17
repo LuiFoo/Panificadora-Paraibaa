@@ -2,10 +2,35 @@
 
 import { useEffect, useState } from "react";
 
-interface PaoDoce {
+interface Produto {
   _id: string;
   nome: string;
-  valor: string; // O valor será uma string devido ao Decimal128
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+    };
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: string;
 }
 
 export default function PaesDocesPage() {
@@ -17,12 +42,13 @@ export default function PaesDocesPage() {
     setIsClient(true); // 🔹 Indica que está no client
     async function fetchPaesDoces() {
       try {
-        const response = await fetch("/api/paes-doces");
+        const response = await fetch("/api/produtos-unificados");
         if (!response.ok) {
           throw new Error("Falha ao buscar os pães e doces");
         }
         const data = await response.json();
-        setPaesDoces(data.paesDoces); // A chave deve ser a mesma que a API retorna
+        // Filtrar apenas produtos da categoria doces
+        setPaesDoces(data.doces || []);
       } catch (error) {
         console.error("Erro ao buscar pães e doces:", error);
       } finally {
@@ -42,7 +68,7 @@ export default function PaesDocesPage() {
       {paesDoces.length > 0 ? (
         paesDoces.map((paoDoce) => (
           <li key={paoDoce._id}>
-            {paoDoce.nome} - R${parseFloat(paoDoce.valor).toFixed(2)} {/* Converte o valor para float e formata com 2 casas decimais */}
+            {paoDoce.nome} - R${paoDoce.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
           </li>
         ))
       ) : (

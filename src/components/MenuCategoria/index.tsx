@@ -4,8 +4,15 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 // Interface for category menu props
+interface Category {
+  id: string;
+  nome: string;
+  icon: string;
+  subcategorias?: string[];
+}
+
 interface CategoryNavProps {
-  categories: string[];
+  categories: Category[];
   activeCategory?: string | null;
   variant?: "button" | "link";
   onCategoryClick?: (category: string) => void;
@@ -27,9 +34,9 @@ function MenuCategoria({
     }
   }, [containerRef, categories]);
 
-  const handleItemClick = (category: string) => {
+  const handleItemClick = (categoryId: string) => {
     if (onCategoryClick) {
-      onCategoryClick(category);
+      onCategoryClick(categoryId);
     }
   };
 
@@ -59,9 +66,9 @@ function MenuCategoria({
       >
         <ul className="flex gap-3 md:gap-4 whitespace-nowrap px-4 py-2">
           {categories.map((category, index) => {
-            const isActive = activeCategory === category;
+            const isActive = activeCategory === category.id;
             const commonClasses = `
-              block px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105
+              flex items-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105
               ${isActive
                 ? 'bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] text-white shadow-lg scale-105'
                 : 'bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]'
@@ -73,17 +80,19 @@ function MenuCategoria({
               <li key={index} className="flex-shrink-0">
                 {variant === "button" ? (
                   <button
-                    onClick={() => handleItemClick(category)}
+                    onClick={() => handleItemClick(category.id)}
                     className={commonClasses}
                   >
-                    {category}
+                    <span className="text-base md:text-lg">{category.icon}</span>
+                    <span>{category.nome}</span>
                   </button>
                 ) : (
                   <Link
-                    href={`/produtos?categoria=${encodeURIComponent(category)}`}
+                    href={`/produtos?categoria=${encodeURIComponent(category.id)}`}
                     className={commonClasses}
                   >
-                    {category}
+                    <span className="text-base md:text-lg">{category.icon}</span>
+                    <span>{category.nome}</span>
                   </Link>
                 )}
               </li>
