@@ -47,20 +47,26 @@ export default function ClienteProfilePage() {
   const loadProfileData = useCallback(async () => {
     if (!userId) return;
     
+    console.log("🔍 Carregando dados do perfil para userId:", userId);
     setLoading(true);
     setError("");
     
     try {
       const response = await fetch(`/api/user/get-profile?userId=${userId}`);
+      console.log("🔍 Response status:", response.status);
+      
       const data = await response.json();
+      console.log("🔍 Response data:", data);
 
       if (data.ok) {
         setProfileData(data.profile);
+        console.log("✅ Perfil carregado com sucesso");
       } else {
+        console.log("❌ Erro na resposta da API:", data.msg);
         setError(data.msg || "Erro ao carregar dados do cliente");
       }
     } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
+      console.error("❌ Erro ao carregar perfil:", error);
       setError("Erro interno. Tente novamente.");
     } finally {
       setLoading(false);

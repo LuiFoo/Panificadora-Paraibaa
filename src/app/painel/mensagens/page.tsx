@@ -330,8 +330,8 @@ export default function MensagensAdminPage() {
 
   // Função para abrir perfil do cliente
   const handleAbrirPerfilCliente = (userId: string) => {
-    // Navegar para a página do perfil do cliente
-    window.location.href = `/painel/cliente/${userId}`;
+    // Navegar para a página do perfil do cliente usando Next.js router
+    router.push(`/painel/cliente/${userId}`);
   };
 
   const handleSelecionarUsuario = (usuario: Usuario) => {

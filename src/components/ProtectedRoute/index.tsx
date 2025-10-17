@@ -37,7 +37,10 @@ export default function ProtectedRoute({
 
       // Verifica a permissão
       if (requiredPermission === "administrador" && user.permissao !== "administrador") {
-        console.log("Acesso negado! Você precisa ser um administrador para acessar esta página.");
+        console.log("❌ Acesso negado! Você precisa ser um administrador para acessar esta página.");
+        console.log("🔍 User:", user);
+        console.log("🔍 User.permissao:", user.permissao);
+        console.log("🔍 Required permission:", requiredPermission);
         router.push("/");
         return;
       }
