@@ -127,9 +127,9 @@ export async function protegerApiAdmin(req: NextApiRequest): Promise<{ isAdmin: 
 /**
  * Verifica se o usuário está autenticado (admin ou usuário normal)
  * @param req - Requisição Next.js
- * @returns Promise<{ isAuthenticated: boolean, isAdmin: boolean, user?: any, error?: string }>
+ * @returns Promise<{ isAuthenticated: boolean, isAdmin: boolean, user?: { email: string; name: string; login: string; permissao: string }, error?: string }>
  */
-export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAuthenticated: boolean, isAdmin: boolean, user?: any, error?: string }> {
+export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAuthenticated: boolean, isAdmin: boolean, user?: { email: string; name: string; login: string; permissao: string }, error?: string }> {
   try {
     console.log("🔍 === INICIANDO VERIFICAÇÃO DE AUTENTICAÇÃO ===");
     console.log("📝 Método da requisição:", req.method);

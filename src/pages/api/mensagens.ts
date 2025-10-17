@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
-import { protegerApiAdmin, verificarAutenticacao } from "@/lib/adminAuth";
+import { verificarAutenticacao } from "@/lib/adminAuth";
 
 interface Conversa {
   userId: string;
