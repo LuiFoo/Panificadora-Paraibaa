@@ -1075,12 +1075,35 @@ export default function ProdutosPage() {
                       setProdutoEditando(null);
                       setFormData({
                         nome: "",
-                        valor: "",
-                        vtipo: "UN",
-                        ingredientes: [],
-                        img: "",
+                        descricao: "",
+                        categoria: "doces",
                         subcategoria: "",
-                        status: "active"
+                        preco: {
+                          valor: "",
+                          tipo: "UN",
+                          custoProducao: "",
+                          promocao: {
+                            ativo: false,
+                            valorPromocional: "",
+                            inicio: "",
+                            fim: ""
+                          }
+                        },
+                        estoque: {
+                          disponivel: true,
+                          quantidade: "",
+                          minimo: "",
+                          unidadeMedida: "UN"
+                        },
+                        imagem: {
+                          href: "",
+                          alt: ""
+                        },
+                        ingredientes: [],
+                        alergicos: [],
+                        destaque: false,
+                        tags: [],
+                        status: "ativo"
                       });
                     try { localStorage.removeItem("painel_produto_draft"); } catch {}
                     }}
