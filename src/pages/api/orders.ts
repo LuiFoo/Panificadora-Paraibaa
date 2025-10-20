@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 interface ProdutoPedido {
   produtoId: string;
@@ -29,7 +30,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const db = client.db("paraiba");
 
     // Verificar se usuário existe via login/id da sessão
-    const user = await db.collection("users").findOne({ $or: [ { login: userLogin }, { _id: userLogin }, { email: session.user.email } ] });
+    const query: any = { $or: [ { login: userLogin }, { email: session.user.email } ] };
+    
+    // Só adicionar _id se userLogin for um ObjectId válido
+    if (userLogin && ObjectId.isValid(userLogin)) {
+      query.$or.push({ _id: new ObjectId(userLogin) });
+    }
+    
+    const user = await db.collection("users").findOne(query);
     if (!user) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
