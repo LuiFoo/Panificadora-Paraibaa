@@ -17,8 +17,14 @@ function gerarSlug(nome: string): string {
     .trim();
 }
 
+// Interface para o mapeamento de categorias
+interface CategoriaMap {
+  nome: string;
+  slug: string;
+}
+
 // Mapeamento das coleções antigas para as novas categorias
-const MAPEAMENTO_COLECOES = {
+const MAPEAMENTO_COLECOES: Record<string, CategoriaMap> = {
   "bolos-doces-especiais": {
     nome: "BOLOS DOCES ESPECIAIS",
     slug: "bolos-doces-especiais"
@@ -74,7 +80,12 @@ async function migrarProdutos() {
       const colecao = db.collection(nomeColecao);
       const produtos = await colecao.find({}).toArray();
       
-      const categoria = MAPEAMENTO_COLECOES[nomeColecao as keyof typeof MAPEAMENTO_COLECOES];
+      const categoria = MAPEAMENTO_COLECOES[nomeColecao];
+      
+      if (!categoria) {
+        console.log(`⚠️ Categoria não encontrada para: ${nomeColecao}`);
+        continue;
+      }
       
       for (const produto of produtos) {
         // Gerar slug único
@@ -111,7 +122,7 @@ async function migrarProdutos() {
             alt: produto.nome
           },
           ingredientes: produto.ingredientes ? 
-            (Array.isArray(produto.ingredientes) ? produto.ingredientes : produto.ingredientes.split(',').map(i => i.trim())) : 
+            (Array.isArray(produto.ingredientes) ? produto.ingredientes : produto.ingredientes.split(',').map((i: string) => i.trim())) : 
             [],
           alergicos: produto.alergicos || [],
           avaliacao: {
