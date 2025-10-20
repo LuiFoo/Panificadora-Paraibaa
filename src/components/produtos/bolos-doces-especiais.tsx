@@ -2,39 +2,39 @@
 
 import { useEffect, useState } from "react";
 
-interface Bolo {
-  _id: string;
-  nome: string;
-  slug: string;
-  descricao: string;
-  categoria: {
-    nome: string;
-    slug: string;
-  };
-  subcategoria: string;
-  preco: {
-    valor: number;
-    tipo: string;
-    promocao?: {
-      ativo: boolean;
-      valorPromocional: number;
-    };
-  };
-  imagem: {
-    href: string;
-    alt: string;
-  };
-  avaliacao: {
-    media: number;
-    quantidade: number;
-  };
-  destaque: boolean;
-  tags: string[];
-  status: string;
-}
+// interface Bolo {
+//   _id: string;
+//   nome: string;
+//   slug: string;
+//   descricao: string;
+//   categoria: {
+//     nome: string;
+//     slug: string;
+//   };
+//   subcategoria: string;
+//   preco: {
+//     valor: number;
+//     tipo: string;
+//     promocao?: {
+//       ativo: boolean;
+//       valorPromocional: number;
+//     };
+//   };
+//   imagem: {
+//     href: string;
+//     alt: string;
+//   };
+//   avaliacao: {
+//     media: number;
+//     quantidade: number;
+//   };
+//   destaque: boolean;
+//   tags: string[];
+//   status: string;
+// }
 
 export default function BolosDocesEspeciaisPage() {
-  const [bolosDoces, setBolosDoces] = useState<any[]>([]);
+  const [bolosDoces, setBolosDoces] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 

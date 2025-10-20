@@ -34,7 +34,7 @@ import { useEffect, useState } from "react";
 // }
 
 export default function PaesSalgadosEspeciaisPage() {
-  const [paesSalgadosEspeciais, setPaesSalgadosEspeciais] = useState<any[]>([]);
+  const [paesSalgadosEspeciais, setPaesSalgadosEspeciais] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 

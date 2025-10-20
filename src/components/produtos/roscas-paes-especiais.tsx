@@ -34,7 +34,7 @@ import { useEffect, useState } from "react";
 // }
 
 export default function RoscasPaesEspeciaisPage() {
-  const [roscasPaesEspeciais, setRoscasPaesEspeciais] = useState<any[]>([]);
+  const [roscasPaesEspeciais, setRoscasPaesEspeciais] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 

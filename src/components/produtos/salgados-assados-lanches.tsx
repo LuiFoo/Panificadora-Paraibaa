@@ -34,7 +34,7 @@ import { useEffect, useState } from "react";
 // }
 
 export default function SalgadosAssadosLanchesPage() {
-  const [salgadosAssadosLanches, setSalgadosAssadosLanches] = useState<any[]>([]);
+  const [salgadosAssadosLanches, setSalgadosAssadosLanches] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 
