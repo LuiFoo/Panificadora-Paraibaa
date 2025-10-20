@@ -1,40 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-// interface Produto {
-//   _id: string;
-//   nome: string;
-//   slug: string;
-//   descricao: string;
-//   categoria: {
-//     nome: string;
-//     slug: string;
-//   };
-//   subcategoria: string;
-//   preco: {
-//     valor: number;
-//     tipo: string;
-//     promocao?: {
-//       ativo: boolean;
-//       valorPromocional: number;
-//     };
-//   };
-//   imagem: {
-//     href: string;
-//     alt: string;
-//   };
-//   avaliacao: {
-//     media: number;
-//     quantidade: number;
-//   };
-//   destaque: boolean;
-//   tags: string[];
-//   status: string;
-// }
+import { Produto } from "@/types/Produto";
 
 export default function SobremesasTortasPage() {
-  const [sobremesasTortas, setSobremesasTortas] = useState<unknown[]>([]);
+  const [sobremesasTortas, setSobremesasTortas] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 
@@ -66,18 +36,11 @@ export default function SobremesasTortasPage() {
   return (
     <ul className="bg-blue-700">
       {sobremesasTortas.length > 0 ? (
-        sobremesasTortas.map((sobremesa) => {
-          const sobremesaData = sobremesa as {
-            _id: string;
-            nome: string;
-            preco: { valor: number };
-          };
-          return (
-            <li key={sobremesaData._id}>
-              {sobremesaData.nome} - R${sobremesaData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-            </li>
-          );
-        })
+        sobremesasTortas.map((sobremesa) => (
+          <li key={sobremesa._id}>
+            {sobremesa.nome} - R${sobremesa.preco.valor.toFixed(2).replace(".", ",")}
+          </li>
+        ))
       ) : (
         <p>Nenhuma sobremesa ou torta encontrada.</p>
       )}

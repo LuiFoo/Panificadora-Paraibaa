@@ -1,40 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-// interface Doce {
-//   _id: string;
-//   nome: string;
-//   slug: string;
-//   descricao: string;
-//   categoria: {
-//     nome: string;
-//     slug: string;
-//   };
-//   subcategoria: string;
-//   preco: {
-//     valor: number;
-//     tipo: string;
-//     promocao?: {
-//       ativo: boolean;
-//       valorPromocional: number;
-//     };
-//   };
-//   imagem: {
-//     href: string;
-//     alt: string;
-//   };
-//   avaliacao: {
-//     media: number;
-//     quantidade: number;
-//   };
-//   destaque: boolean;
-//   tags: string[];
-//   status: string;
-// }
+import { Produto } from "@/types/Produto";
 
 export default function DocesIndividuaisPage() {
-  const [docesIndividuais, setDocesIndividuais] = useState<unknown[]>([]);
+  const [docesIndividuais, setDocesIndividuais] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 

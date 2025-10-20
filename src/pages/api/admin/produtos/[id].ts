@@ -13,6 +13,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { method } = req;
   const { id } = req.query;
 
+  // Validar método HTTP
+  if (!['GET', 'PUT', 'DELETE'].includes(method || '')) {
+    return res.status(405).json({ error: "Método não permitido" });
+  }
+
   if (!id || typeof id !== "string") {
     return res.status(400).json({ error: "ID do produto é obrigatório" });
   }

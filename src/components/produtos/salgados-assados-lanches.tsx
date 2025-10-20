@@ -1,40 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-// interface Produto {
-//   _id: string;
-//   nome: string;
-//   slug: string;
-//   descricao: string;
-//   categoria: {
-//     nome: string;
-//     slug: string;
-//   };
-//   subcategoria: string;
-//   preco: {
-//     valor: number;
-//     tipo: string;
-//     promocao?: {
-//       ativo: boolean;
-//       valorPromocional: number;
-//     };
-//   };
-//   imagem: {
-//     href: string;
-//     alt: string;
-//   };
-//   avaliacao: {
-//     media: number;
-//     quantidade: number;
-//   };
-//   destaque: boolean;
-//   tags: string[];
-//   status: string;
-// }
+import { Produto } from "@/types/Produto";
 
 export default function SalgadosAssadosLanchesPage() {
-  const [salgadosAssadosLanches, setSalgadosAssadosLanches] = useState<unknown[]>([]);
+  const [salgadosAssadosLanches, setSalgadosAssadosLanches] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 
@@ -66,14 +36,11 @@ export default function SalgadosAssadosLanchesPage() {
   return (
     <ul className="bg-blue-700">
       {salgadosAssadosLanches.length > 0 ? (
-        salgadosAssadosLanches.map((salgado) => {
-          const salgadoData = salgado as { _id: string; nome: string; preco: { valor: number }; };
-          return (
-            <li key={salgadoData._id}>
-              {salgadoData.nome} - R${salgadoData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-            </li>
-          );
-        })
+        salgadosAssadosLanches.map((salgado) => (
+          <li key={salgado._id}>
+            {salgado.nome} - R${salgado.preco.valor.toFixed(2).replace(".", ",")}
+          </li>
+        ))
       ) : (
         <p>Nenhum salgado assado ou lanche encontrado.</p>
       )}

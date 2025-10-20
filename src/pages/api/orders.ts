@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 
 interface ProdutoPedido {
+  id: string;
   produtoId: string;
   nome: string;
   valor: number;
@@ -57,6 +58,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // 2. Validar dados do pedido
       if (!produtos || !Array.isArray(produtos) || produtos.length === 0) {
         return res.status(400).json({ error: "Carrinho vazio" });
+      }
+
+      // Validar estrutura dos produtos
+      for (const produto of produtos) {
+        if (!produto.id || !produto.nome || typeof produto.valor !== 'number' || typeof produto.quantidade !== 'number') {
+          return res.status(400).json({ error: "Estrutura de produto inválida" });
+        }
+        if (produto.valor <= 0 || produto.quantidade <= 0) {
+          return res.status(400).json({ error: "Valor e quantidade devem ser maiores que zero" });
+        }
+        // Validar se o ID é um ObjectId válido
+        if (!ObjectId.isValid(produto.id)) {
+          return res.status(400).json({ error: "ID de produto inválido" });
+        }
       }
 
       // 3. Limite total de itens por pedido removido

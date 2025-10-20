@@ -1,40 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-// interface Produto {
-//   _id: string;
-//   nome: string;
-//   slug: string;
-//   descricao: string;
-//   categoria: {
-//     nome: string;
-//     slug: string;
-//   };
-//   subcategoria: string;
-//   preco: {
-//     valor: number;
-//     tipo: string;
-//     promocao?: {
-//       ativo: boolean;
-//       valorPromocional: number;
-//     };
-//   };
-//   imagem: {
-//     href: string;
-//     alt: string;
-//   };
-//   avaliacao: {
-//     media: number;
-//     quantidade: number;
-//   };
-//   destaque: boolean;
-//   tags: string[];
-//   status: string;
-// }
+import { Produto } from "@/types/Produto";
 
 export default function PaesDocesPage() {
-  const [paesDoces, setPaesDoces] = useState<unknown[]>([]);
+  const [paesDoces, setPaesDoces] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 
@@ -66,14 +36,11 @@ export default function PaesDocesPage() {
   return (
     <ul className="bg-blue-700">
       {paesDoces.length > 0 ? (
-        paesDoces.map((paoDoce) => {
-          const paoDoceData = paoDoce as { _id: string; nome: string; preco: { valor: number }; };
-          return (
-            <li key={paoDoceData._id}>
-              {paoDoceData.nome} - R${paoDoceData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-            </li>
-          );
-        })
+        paesDoces.map((paoDoce) => (
+          <li key={paoDoce._id}>
+            {paoDoce.nome} - R${paoDoce.preco.valor.toFixed(2).replace(".", ",")}
+          </li>
+        ))
       ) : (
         <p>Nenhum pão ou doce encontrado.</p>
       )}

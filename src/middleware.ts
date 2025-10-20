@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-export async function middleware() {
-  // Removido o middleware NextAuth que estava causando conflito
-  // A autenticação agora é gerenciada apenas pelo UserContext e ProtectedRoute
+export async function middleware(request: NextRequest) {
+  // Middleware para proteção de rotas administrativas
+  const { pathname } = request.nextUrl;
+  
+  // Verificar se é uma rota administrativa
+  if (pathname.startsWith('/painel')) {
+    // A autenticação é gerenciada pelo ProtectedRoute component
+    // Este middleware apenas registra o acesso
+    console.log(`🔒 Acesso à rota administrativa: ${pathname}`);
+  }
+  
   return NextResponse.next()
 }
 
