@@ -590,7 +590,7 @@ export default function ProdutoDetalhePage() {
                         </h3>
                         <div className="mt-auto">
                           <p className="text-2xl font-bold text-[var(--color-avocado-600)] mb-3">
-                      R$ {item.valor.toFixed(2).replace(".", ",")}
+                      R$ {item.preco.valor.toFixed(2).replace(".", ",")}
                     </p>
                           <div className="w-full bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white text-center px-4 py-3 rounded-xl font-bold transition-all transform group-hover:scale-105 shadow-md hover:shadow-lg">
                       Ver Detalhes
