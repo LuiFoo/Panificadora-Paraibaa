@@ -168,7 +168,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           message: "Produto criado com sucesso"
         });
       } catch (e: unknown) {
-        if (e?.code === 11000 && e?.keyPattern?.slug) {
+        const error = e as { code?: number; keyPattern?: { slug?: boolean } };
+        if (error?.code === 11000 && error?.keyPattern?.slug) {
           return res.status(409).json({ error: "Slug já existe. Tente outro nome." });
         }
         throw e;
