@@ -10,7 +10,7 @@ import { useState, useTransition, useMemo } from "react";
 
 export default function NovoProdutoPage() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const CATEGORIAS_CANONICAS = useMemo(() => ([
@@ -116,7 +116,7 @@ export default function NovoProdutoPage() {
       } else {
         setError(data.error || 'Erro ao criar produto');
       }
-    } catch (err) {
+    } catch {
       setError('Erro ao conectar com o servidor');
     }
   };

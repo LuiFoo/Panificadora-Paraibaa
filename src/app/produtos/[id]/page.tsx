@@ -189,7 +189,6 @@ export default function ProdutoDetalhePage() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Função de busca do produto

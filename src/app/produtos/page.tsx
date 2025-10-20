@@ -3,7 +3,7 @@
 import Header from "@/components/Header";
 import MenuCategoria from "@/components/MenuCategoria";
 import StarRating from "@/components/StarRating";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import Loading, { LoadingSkeleton } from "@/components/Loading";

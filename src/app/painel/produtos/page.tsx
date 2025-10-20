@@ -107,7 +107,7 @@ export default function ProdutosPage() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [criandoExemplo, setCriandoExemplo] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -203,7 +203,7 @@ export default function ProdutosPage() {
         // Extrair subcategorias únicas dos produtos
         const subcats = [...new Set((data.produtos || []).map((p: Produto) => p.subcategoria || p.subc).filter(Boolean))] as string[];
         if (subcats.length > 0) {
-            setSubcategorias(prev => [...SUBCATEGORIAS_PADRAO, ...subcats.filter(sub => !SUBCATEGORIAS_PADRAO.includes(sub))]);
+            setSubcategorias([...SUBCATEGORIAS_PADRAO, ...subcats.filter(sub => !SUBCATEGORIAS_PADRAO.includes(sub))]);
         }
         });
       } else {
@@ -333,7 +333,7 @@ export default function ProdutosPage() {
         setMostrarFormulario(false);
         // Atualização otimista
         if (produtoEditando) {
-          setProdutos(prev => prev.map(p => p._id === produtoEditando._id ? { ...p, ...produtoData } as any : p));
+          setProdutos(prev => prev.map(p => p._id === produtoEditando._id ? { ...p, ...produtoData } as Produto : p));
         } else {
           setProdutos(prev => [{
             _id: data.produtoId,
@@ -341,7 +341,7 @@ export default function ProdutosPage() {
             avaliacao: { media: 0, quantidade: 0, usuarios: [] },
             criadoEm: new Date().toISOString(),
             atualizadoEm: new Date().toISOString()
-          } as any, ...prev]);
+          } as Produto, ...prev]);
         }
         setProdutoEditando(null);
         resetForm();

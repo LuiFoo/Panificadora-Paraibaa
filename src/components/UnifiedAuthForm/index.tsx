@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 // import { useToast } from "@/context/ToastContext"; // Toast desabilitado
-import { useUser } from "@/context/UserContext";
+// import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 interface UnifiedAuthFormProps {
   initialMode?: 'login' | 'register';
