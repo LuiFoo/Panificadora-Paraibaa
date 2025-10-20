@@ -1,5 +1,6 @@
 import type { NextApiRequest } from "next";
 import clientPromise from "@/modules/mongodb";
+import { getToken } from "next-auth/jwt";
 
 /**
  * Verifica se o usuário é um administrador válido
@@ -19,30 +20,16 @@ export async function verificarAdmin(req: NextApiRequest): Promise<boolean> {
       return false;
     }
 
-    // Buscar sessão do NextAuth
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const sessionUrl = `${baseUrl}/api/auth/session`;
-    
-    console.log("🔍 Verificando sessão em:", sessionUrl);
-    console.log("🍪 Cookies enviados:", req.headers.cookie.substring(0, 100) + "...");
-    
-    const response = await fetch(sessionUrl, {
-      headers: {
-        cookie: req.headers.cookie,
-      },
-    });
-    
-    console.log("📡 Status da resposta da sessão:", response.status, response.statusText);
-    
-    if (!response.ok) {
-      console.log("🔒 Falha ao verificar sessão:", response.status, response.statusText);
-      const errorText = await response.text();
-      console.log("📄 Resposta de erro:", errorText);
-      return false;
+    // Obter token JWT do NextAuth diretamente (não precisa de res)
+    const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET });
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🔍 Token recebido:", JSON.stringify(token, null, 2));
     }
-    
-    const session = await response.json();
-    console.log("🔍 Dados da sessão recebidos:", JSON.stringify(session, null, 2));
+
+    const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as any).permissao } } : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🔍 Sessão derivada do token:", JSON.stringify(session, null, 2));
+    }
     
     if (!session?.user?.email) {
       console.log("🔒 Sessão inválida - sem email");
@@ -145,30 +132,9 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
       };
     }
 
-    // Buscar sessão do NextAuth
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const sessionUrl = `${baseUrl}/api/auth/session`;
-    
-    console.log("🔍 Verificando sessão em:", sessionUrl);
-    
-    const response = await fetch(sessionUrl, {
-      headers: {
-        cookie: req.headers.cookie,
-      },
-    });
-    
-    console.log("📡 Status da resposta da sessão:", response.status, response.statusText);
-    
-    if (!response.ok) {
-      console.log("🔒 Falha ao verificar sessão:", response.status, response.statusText);
-      return {
-        isAuthenticated: false,
-        isAdmin: false,
-        error: "Acesso negado. Sessão inválida."
-      };
-    }
-    
-    const session = await response.json();
+    // Obter token JWT do NextAuth diretamente (não precisa de res)
+    const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET });
+    const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as any).permissao, login: (token as any).login } } : null;
     console.log("🔍 Dados da sessão recebidos:", JSON.stringify(session, null, 2));
     
     if (!session?.user?.email) {

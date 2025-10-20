@@ -65,7 +65,7 @@ export default function MeusPedidosPage() {
 
   const fetchPedidos = async () => {
     try {
-      const response = await fetch(`/api/orders?userId=${encodeURIComponent(user?.login || "")}`);
+      const response = await fetch(`/api/orders`);
       if (response.ok) {
         const data = await response.json();
         setPedidos(data.pedidos || []);

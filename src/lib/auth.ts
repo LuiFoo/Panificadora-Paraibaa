@@ -25,9 +25,11 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async signIn({ user, account }) {
-      console.log("=== CALLBACK SIGNIN ===");
-      console.log("User:", user.email);
-      console.log("Account provider:", account?.provider);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("=== CALLBACK SIGNIN ===");
+        console.log("User:", user.email);
+        console.log("Account provider:", account?.provider);
+      }
       
       // Permite login apenas com Google
       if (account?.provider === "google") {
@@ -38,9 +40,11 @@ export const authOptions: NextAuthOptions = {
       return false;
     },
     async session({ session, token }) {
-      console.log("=== CALLBACK SESSION ===");
-      console.log("Session user:", session.user?.email);
-      console.log("Token:", token);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("=== CALLBACK SESSION ===");
+        console.log("Session user:", session.user?.email);
+        console.log("Token:", token);
+      }
       
       // Adiciona informações extras do usuário na sessão
       if (token && session.user && token.sub && session.user.email) {
@@ -66,15 +70,19 @@ export const authOptions: NextAuthOptions = {
           session.user.permissao = (token as { permissao?: string }).permissao || "usuario";
         }
         
-        console.log("✅ Sessão configurada para:", session.user.email, "com permissão:", session.user.permissao);
+        if (process.env.NODE_ENV === 'development') {
+          console.log("✅ Sessão configurada para:", session.user.email, "com permissão:", session.user.permissao);
+        }
       }
       return session;
     },
     async jwt({ token, user, account }) {
-      console.log("=== CALLBACK JWT ===");
-      console.log("Token:", token);
-      console.log("User:", user?.email);
-      console.log("Account:", account?.provider);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("=== CALLBACK JWT ===");
+        console.log("Token:", token);
+        console.log("User:", user?.email);
+        console.log("Account:", account?.provider);
+      }
       
       if (user) {
         token.permissao = "usuario";
@@ -82,9 +90,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async redirect({ url, baseUrl }) {
-      console.log("=== CALLBACK REDIRECT ===");
-      console.log("URL:", url);
-      console.log("Base URL:", baseUrl);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("=== CALLBACK REDIRECT ===");
+        console.log("URL:", url);
+        console.log("Base URL:", baseUrl);
+      }
       
       // Se a URL é relativa, usa a base URL
       if (url.startsWith("/")) return `${baseUrl}${url}`;
@@ -103,17 +113,21 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async signIn({ user, account }) {
-      console.log("=== USUÁRIO FEZ LOGIN ===");
-      console.log("Email:", user.email);
-      console.log("Google ID:", user.id);
-      console.log("Nome:", user.name);
-      console.log("Provider:", account?.provider);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("=== USUÁRIO FEZ LOGIN ===");
+        console.log("Email:", user.email);
+        console.log("Google ID:", user.id);
+        console.log("Nome:", user.name);
+        console.log("Provider:", account?.provider);
+      }
       
       // O processamento do usuário será feito pelo useAuthSync
       // para evitar chamadas duplicadas
     },
     async session({ session }) {
-      console.log("Sessão criada para:", session.user?.email);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Sessão criada para:", session.user?.email);
+      }
     },
   },
 };

@@ -32,8 +32,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "ID do produto inválido" });
     }
 
-    if (!status || !["active", "pause"].includes(status)) {
-      return res.status(400).json({ error: "Status deve ser 'active' ou 'pause'" });
+    if (!status || typeof status !== "string") {
+      return res.status(400).json({ error: "Status é obrigatório" });
+    }
+
+    // Normalizar status para o padrão do banco: 'ativo' | 'inativo'
+    const statusLower = status.toLowerCase();
+    let normalizedStatus: "ativo" | "inativo" | null = null;
+    if (["ativo", "active"].includes(statusLower)) {
+      normalizedStatus = "ativo";
+    } else if (["inativo", "pause", "paused"].includes(statusLower)) {
+      normalizedStatus = "inativo";
+    }
+
+    if (!normalizedStatus) {
+      return res.status(400).json({ error: "Status deve ser 'ativo' ou 'inativo' (também aceitos: 'active' ou 'pause')" });
     }
 
     const client = await clientPromise;
@@ -51,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { _id: new ObjectId(id) },
       { 
         $set: { 
-          status,
+          status: normalizedStatus,
           atualizadoEm: new Date()
         } 
       }
@@ -63,8 +76,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({ 
       success: true,
-      message: `Produto ${status === "active" ? "ativado" : "pausado"} com sucesso`,
-      status
+      message: `Produto ${normalizedStatus === "ativo" ? "ativado" : "pausado"} com sucesso`,
+      status: normalizedStatus
     });
 
   } catch (error) {

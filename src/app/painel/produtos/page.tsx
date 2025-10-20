@@ -6,7 +6,7 @@ import Modal from "@/components/Modal";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useUser } from "@/context/UserContext";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useDeferredValue, useMemo, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -99,6 +99,7 @@ export default function ProdutosPage() {
   const { isAdmin, loading } = useUser();
   const router = useRouter();
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const deferredProdutos = useDeferredValue(produtos);
   const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
   const [filtroSubcategoria, setFiltroSubcategoria] = useState<string>("todos");
@@ -106,6 +107,7 @@ export default function ProdutosPage() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [criandoExemplo, setCriandoExemplo] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -140,6 +142,37 @@ export default function ProdutosPage() {
     status: "ativo"
   });
 
+  // Persistência de rascunho no localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("painel_produto_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Só aplica se não estiver editando um produto existente
+        if (!produtoEditando) {
+          setFormData((prev) => ({ ...prev, ...parsed }));
+        }
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (draftTimerRef.current) {
+      clearTimeout(draftTimerRef.current);
+    }
+    draftTimerRef.current = window.setTimeout(() => {
+      try {
+        localStorage.setItem("painel_produto_draft", JSON.stringify(formData));
+      } catch {}
+    }, 250);
+    return () => {
+      if (draftTimerRef.current) {
+        clearTimeout(draftTimerRef.current);
+      }
+    };
+  }, [formData]);
+
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -155,30 +188,24 @@ export default function ProdutosPage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const draftTimerRef = useRef<number | null>(null);
 
   const fetchProdutos = useCallback(async () => {
     setLoadingProdutos(true);
     setError("");
     try {
-      console.log("🔍 Fazendo requisição para /api/admin/produtos/todos...");
       const response = await fetch("/api/admin/produtos/todos");
-      console.log("📡 Resposta recebida:", response.status, response.statusText);
-      
       const data = await response.json();
-      console.log("📊 Dados recebidos:", { 
-        success: data.success, 
-        total: data.total, 
-        produtos: data.produtos?.length || 0 
-      });
       
       if (data.success) {
+        startTransition(() => {
         setProdutos(data.produtos || []);
-        
         // Extrair subcategorias únicas dos produtos
         const subcats = [...new Set((data.produtos || []).map((p: Produto) => p.subcategoria || p.subc).filter(Boolean))] as string[];
         if (subcats.length > 0) {
-          setSubcategorias([...SUBCATEGORIAS_PADRAO, ...subcats.filter(sub => !SUBCATEGORIAS_PADRAO.includes(sub))]);
+            setSubcategorias(prev => [...SUBCATEGORIAS_PADRAO, ...subcats.filter(sub => !SUBCATEGORIAS_PADRAO.includes(sub))]);
         }
+        });
       } else {
         console.error("❌ API retornou success: false:", data.error);
         setError(data.error || "Erro ao carregar produtos");
@@ -205,6 +232,7 @@ export default function ProdutosPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target;
     
+    startTransition(() => {
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData(prev => ({
@@ -220,6 +248,7 @@ export default function ProdutosPage() {
         [name]: type === 'checkbox' ? checked : value
       }));
     }
+    });
   };
 
   const handleArrayChange = (field: 'ingredientes' | 'alergicos' | 'tags', value: string) => {
@@ -302,9 +331,21 @@ export default function ProdutosPage() {
         setSuccess(produtoEditando ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!");
         setTimeout(() => setSuccess(""), 3000);
         setMostrarFormulario(false);
+        // Atualização otimista
+        if (produtoEditando) {
+          setProdutos(prev => prev.map(p => p._id === produtoEditando._id ? { ...p, ...produtoData } as any : p));
+        } else {
+          setProdutos(prev => [{
+            _id: data.produtoId,
+            ...produtoData,
+            avaliacao: { media: 0, quantidade: 0, usuarios: [] },
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString()
+          } as any, ...prev]);
+        }
         setProdutoEditando(null);
         resetForm();
-        fetchProdutos();
+        try { localStorage.removeItem("painel_produto_draft"); } catch {}
       } else {
         setError(data.error || "Erro ao salvar produto");
       }
@@ -510,20 +551,31 @@ export default function ProdutosPage() {
     }
   };
 
-  const produtosFiltrados = produtos.filter(produto => {
+  const produtosFiltrados = useMemo(() => {
+    return deferredProdutos.filter(produto => {
     const matchSubcategoria = filtroSubcategoria === "todos" || 
       (produto.subcategoria || produto.subc) === filtroSubcategoria;
-    
     const matchStatus = filtroStatus === "todos" || 
       (filtroStatus === "active" && (produto.status === "ativo" || !produto.status)) ||
       (filtroStatus === "pause" && produto.status === "inativo");
-
     return matchSubcategoria && matchStatus;
   });
+  }, [deferredProdutos, filtroSubcategoria, filtroStatus]);
 
-  const totalProdutos = produtos.length;
-  const produtosAtivos = produtos.filter(p => p.status === "ativo" || !p.status).length;
-  const produtosPausados = produtos.filter(p => p.status === "inativo").length;
+  const { totalProdutos, produtosAtivos, produtosPausados } = useMemo(() => {
+    const total = deferredProdutos.length;
+    let ativos = 0;
+    let pausados = 0;
+    for (const p of deferredProdutos) {
+      const s = (p.status || '').toLowerCase();
+      if (s === "inativo" || s === "pause" || s === "paused") {
+        pausados++;
+      } else {
+        ativos++;
+      }
+    }
+    return { totalProdutos: total, produtosAtivos: ativos, produtosPausados: pausados };
+  }, [deferredProdutos]);
 
   if (loading) {
     return (
@@ -553,12 +605,14 @@ export default function ProdutosPage() {
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
+      <main className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto">
         <BreadcrumbNav 
           items={[
             { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
             { label: "Produtos", icon: "🛍️", color: "orange" }
           ]}
+          className="mt-2"
         />
         
         <div className="bg-white rounded-lg shadow-md">
@@ -591,15 +645,15 @@ export default function ProdutosPage() {
                   </svg>
                   Voltar
                 </Link>
-                <button
-                  onClick={() => setMostrarFormulario(!mostrarFormulario)}
+                <Link
+                  href="/painel/produtos/novo-produto"
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  {mostrarFormulario ? 'Cancelar' : 'Novo Produto'}
-                </button>
+                  Novo Produto
+                </Link>
               </div>
             </div>
           </div>
@@ -1026,6 +1080,7 @@ export default function ProdutosPage() {
                         subcategoria: "",
                         status: "active"
                       });
+                    try { localStorage.removeItem("painel_produto_draft"); } catch {}
                     }}
                     className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium"
                   >
@@ -1195,6 +1250,7 @@ export default function ProdutosPage() {
           </div>
         </div>
       </div>
+      </main>
       <Footer showMap={false} />
 
       {/* Modal */}

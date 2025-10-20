@@ -19,36 +19,115 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const db = client.db("paraiba");
 
     if (method === "PUT") {
-      const { id, nome, valor, vtipo, ingredientes, img } = req.body;
+      // Aceita payload novo e antigo
+      const {
+        id,
+        // novo
+        nome,
+        descricao,
+        categoria,
+        subcategoria,
+        preco,
+        estoque,
+        imagem,
+        ingredientes,
+        alergicos,
+        destaque,
+        tags,
+        status,
+        // legado
+        valor,
+        vtipo,
+        img
+      } = req.body;
 
-      // Validações
-      if (!id || !nome || !valor) {
-        return res.status(400).json({ error: "ID, nome e valor são obrigatórios" });
-      }
-
-      if (valor <= 0) {
-        return res.status(400).json({ error: "Valor deve ser maior que zero" });
-      }
-
-      // Validar se o ID é válido
-      if (!ObjectId.isValid(id)) {
+      if (!id || !ObjectId.isValid(id)) {
         return res.status(400).json({ error: "ID inválido" });
+      }
+      if (!nome) {
+        return res.status(400).json({ error: "Nome é obrigatório" });
       }
 
       const updateData: Record<string, any> = {
         nome,
-        preco: {
-          valor: parseFloat(valor),
-          tipo: vtipo || "UN"
-        },
         atualizadoEm: new Date()
       };
 
-      // Adicionar campos opcionais se fornecidos
-      if (ingredientes) updateData.ingredientes = ingredientes;
-      if (img) updateData.imagem = { href: img, alt: nome };
+      // Categoria
+      if (categoria?.nome || categoria?.slug) {
+        const catNome = categoria?.nome || categoria?.slug;
+        const catSlug = (categoria?.slug || catNome).toString().toLowerCase().replace(/\s+/g, "-");
+        updateData.categoria = { nome: catNome, slug: catSlug };
+      }
+      if (typeof subcategoria === 'string') {
+        updateData.subcategoria = subcategoria;
+      }
 
-      // Atualizar na coleção unificada
+      // Preço (novo ou legado)
+      const precoValor = preco?.valor ?? (valor !== undefined ? parseFloat(valor) : undefined);
+      const precoTipo = preco?.tipo || vtipo;
+      const precoCusto = preco?.custoProducao;
+      const prom = preco?.promocao;
+      if (precoValor !== undefined || precoTipo || precoCusto !== undefined || prom) {
+        updateData.preco = {
+          ...(precoValor !== undefined ? { valor: Number(precoValor) } : {}),
+          ...(precoTipo ? { tipo: precoTipo } : {}),
+          ...(precoCusto !== undefined ? { custoProducao: Number(precoCusto) } : {}),
+          ...(prom ? {
+            promocao: {
+              ativo: !!prom.ativo,
+              ...(prom.valorPromocional !== undefined ? { valorPromocional: Number(prom.valorPromocional) } : {}),
+              ...(prom.inicio ? { inicio: new Date(prom.inicio) } : {}),
+              ...(prom.fim ? { fim: new Date(prom.fim) } : {})
+            }
+          } : {})
+        };
+      }
+
+      // Estoque
+      if (estoque) {
+        updateData.estoque = {
+          ...(estoque.disponivel !== undefined ? { disponivel: !!estoque.disponivel } : {}),
+          ...(estoque.quantidade !== undefined ? { quantidade: Number(estoque.quantidade) } : {}),
+          ...(estoque.minimo !== undefined ? { minimo: Number(estoque.minimo) } : {}),
+          ...(estoque.unidadeMedida ? { unidadeMedida: estoque.unidadeMedida } : {})
+        };
+      }
+
+      // Imagem (novo ou legado)
+      if (imagem?.href || img) {
+        updateData.imagem = {
+          href: imagem?.href || img,
+          alt: imagem?.alt || nome,
+          galeria: Array.isArray(imagem?.galeria) ? imagem!.galeria : undefined
+        };
+      }
+
+      // Descrição
+      if (typeof descricao === 'string') {
+        updateData.descricao = descricao;
+      }
+
+      // Ingredientes / Alérgicos / Tags / Destaque
+      if (ingredientes !== undefined) {
+        updateData.ingredientes = Array.isArray(ingredientes)
+          ? ingredientes
+          : (typeof ingredientes === 'string' ? ingredientes.split(',').map((i: string) => i.trim()) : []);
+      }
+      if (alergicos !== undefined) {
+        updateData.alergicos = Array.isArray(alergicos) ? alergicos : [];
+      }
+      if (tags !== undefined) {
+        updateData.tags = Array.isArray(tags) ? tags : [];
+      }
+      if (destaque !== undefined) {
+        updateData.destaque = !!destaque;
+      }
+      if (status) {
+        const s = String(status).toLowerCase();
+        updateData.status = (s === 'inativo' || s === 'pause' || s === 'paused') ? 'inativo' : 'ativo';
+      }
+
       const result = await db.collection("produtos").updateOne(
         { _id: new ObjectId(id) },
         { $set: updateData }
@@ -58,10 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Produto não encontrado" });
       }
 
-      return res.status(200).json({ 
-        success: true,
-        message: "Produto atualizado com sucesso"
-      });
+      return res.status(200).json({ success: true, message: "Produto atualizado com sucesso" });
     }
 
     if (method === "PATCH") {
@@ -76,35 +152,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "ID inválido" });
       }
 
-      let result;
-
-      if (status === "active") {
-        // Remover o campo status se ativar
-        result = await db.collection("produtos").updateOne(
-          { _id: new ObjectId(id) },
-          { 
-            $set: { atualizadoEm: new Date() },
-            $unset: { status: "" }
-          }
-        );
-      } else {
-        result = await db.collection("produtos").updateOne(
-          { _id: new ObjectId(id) },
-          { 
-            $set: { 
-              status: "pause",
-              atualizadoEm: new Date()
-            }
-          }
-        );
-      }
+      const statusLower = String(status || '').toLowerCase();
+      const normalized = (statusLower === 'ativo' || statusLower === 'active') ? 'ativo' : 'inativo';
+      const result = await db.collection("produtos").updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { status: normalized, atualizadoEm: new Date() } }
+      );
 
       if (result.matchedCount === 0) {
         return res.status(404).json({ error: "Produto não encontrado" });
       }
 
       // Se o produto foi pausado, remover de todos os carrinhos
-      if (status === "pause") {
+      if (normalized === "inativo") {
         try {
           // Remover o produto de todos os carrinhos dos usuários
           const updateOperation = {
@@ -129,10 +189,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      return res.status(200).json({ 
-        success: true, 
-        message: `Produto ${status === "pause" ? "pausado" : "ativado"} com sucesso` 
-      });
+      return res.status(200).json({ success: true, message: `Produto ${normalized === 'inativo' ? 'pausado' : 'ativado'} com sucesso` });
     }
 
     if (method === "DELETE") {

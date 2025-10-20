@@ -255,30 +255,38 @@ export default function Header() {
           <div className="relative user-menu">
           <button
             onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex items-center gap-2 p-1 md:p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 h-10"
+              className="flex items-center gap-2 p-1 md:p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 h-10 relative"
             >
-              {user.picture ? (
-                <Image
-                  src={user.picture}
-                  alt={user.name}
-                  width={32}
-                  height={32}
-                  className="rounded-full border-2 border-gray-300"
-                  onError={(e) => {
-                    console.log("Erro ao carregar foto do header:", user.picture);
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  onLoad={() => {
-                    console.log("Foto do header carregada:", user.picture);
-                  }}
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-gray-200 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
+              <div className="relative">
+                {user.picture ? (
+                  <Image
+                    src={user.picture}
+                    alt={user.name}
+                    width={32}
+                    height={32}
+                    className="rounded-full border-2 border-gray-300"
+                    onError={(e) => {
+                      console.log("Erro ao carregar foto do header:", user.picture);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      console.log("Foto do header carregada:", user.picture);
+                    }}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-gray-200 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+                {/* Badge do carrinho na foto de perfil */}
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold animate-pulse shadow-lg">
+                    {totalItems}
+                  </span>
+                )}
+              </div>
               <span className="text-sm font-medium text-gray-700 hidden md:block">{user.name}</span>
               <svg
                 className={`w-4 h-4 text-gray-500 transition-transform ${

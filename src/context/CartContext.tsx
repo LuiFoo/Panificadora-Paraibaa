@@ -50,51 +50,55 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const produtosPausados: string[] = [];
     const produtosComPrecoAtualizado: string[] = [];
 
-    for (const item of items) {
-      try {
-        // Verificar se o produto ainda está ativo em todas as coleções
-        const colecoes = [
-          'produtos', 'bolos-doces-especiais', 'paes-doces', 'paes-salgados-especiais',
-          'roscas-paes-especiais', 'salgados-assados-lanches', 'sobremesas-tortas', 'doces-individuais'
-        ];
+    // Se não há itens, retornar array vazio
+    if (items.length === 0) {
+      return produtosValidos;
+    }
+
+    try {
+      // Usar a API unificada de produtos com IDs específicos
+      const ids = items.map(item => item.id).join(',');
+      const response = await fetch(`/api/produtos?ids=${ids}`);
+      
+      if (!response.ok) {
+        console.error("Erro ao buscar produtos:", response.status);
+        // Em caso de erro na API, manter todos os produtos
+        return items;
+      }
+
+      const data = await response.json();
+      const produtos = data.produtos || [];
+
+      for (const item of items) {
+        const produto = produtos.find((p: { _id: string; status?: string; preco?: { valor: number } }) => p._id === item.id);
         
-        let produtoEncontrado = false;
-        let novoValor = item.valor;
-        
-        for (const colecao of colecoes) {
-          const response = await fetch(`/api/${colecao}`);
-          if (response.ok) {
-            const data = await response.json();
-            const produtos = data[colecao] || data.bolosDocesEspeciais || data.paesDoces || 
-                           data.paesSalgadosEspeciais || data.roscasPaesEspeciais || 
-                           data.salgadosAssadosLanches || data.sobremesasTortas || data.docesIndividuais || [];
-            
-            const produto = produtos.find((p: { _id: string; status?: string; valor?: number }) => p._id === item.id);
-            if (produto && !produto.status) {
-              produtoEncontrado = true;
-              // Verificar se o preço mudou
-              if (produto.valor !== undefined && produto.valor !== item.valor) {
-                novoValor = produto.valor;
-                produtosComPrecoAtualizado.push(`${item.nome} (R$ ${item.valor.toFixed(2)} → R$ ${novoValor.toFixed(2)})`);
-              }
-              break;
-            }
+        if (produto) {
+          // Verificar se o produto está ativo
+          const status = produto.status || 'ativo';
+          if (status === 'inativo' || status === 'pause' || status === 'paused') {
+            produtosPausados.push(item.nome);
+            continue; // Pular produto pausado
           }
-        }
-        
-        if (produtoEncontrado) {
+
+          // Verificar se o preço mudou
+          const novoValor = produto.preco?.valor || item.valor;
+          if (novoValor !== item.valor) {
+            produtosComPrecoAtualizado.push(`${item.nome} (R$ ${item.valor.toFixed(2)} → R$ ${novoValor.toFixed(2)})`);
+          }
+
           produtosValidos.push({
             ...item,
             valor: novoValor
           });
         } else {
+          // Produto não encontrado - pode ter sido deletado
           produtosPausados.push(item.nome);
         }
-      } catch (error) {
-        console.error(`Erro ao verificar produto ${item.nome}:`, error);
-        // Em caso de erro, manter o produto no carrinho
-        produtosValidos.push(item);
       }
+    } catch (error) {
+      console.error("Erro ao verificar produtos:", error);
+      // Em caso de erro, manter todos os produtos
+      return items;
     }
 
     // Se há produtos pausados ou com preço atualizado, atualizar o carrinho
@@ -173,76 +177,79 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [login, verificarProdutosPausados]);
 
   // Atualização automática de preços e verificação de produtos pausados
-  useEffect(() => {
-    if (cartItems.length === 0) return;
+  // TEMPORARIAMENTE DESABILITADO para evitar que produtos sumam
+  // useEffect(() => {
+  //   if (cartItems.length === 0) return;
 
-    // Verificação mais frequente para detectar mudanças rapidamente
-    const interval = setInterval(async () => {
-      try {
-        const produtosValidos = await verificarProdutosPausados(cartItems);
+  //   // Verificação mais frequente para detectar mudanças rapidamente
+  //   const interval = setInterval(async () => {
+  //     try {
+  //       const produtosValidos = await verificarProdutosPausados(cartItems);
         
-        // Verificar se houve mudanças
-        const mudancas = produtosValidos.length !== cartItems.length || 
-          produtosValidos.some((novo, index) => {
-            const antigo = cartItems[index];
-            return antigo && (novo.valor !== antigo.valor || novo.nome !== antigo.nome);
-          });
+  //       // Verificar se houve mudanças
+  //       const mudancas = produtosValidos.length !== cartItems.length || 
+  //         produtosValidos.some((novo, index) => {
+  //           const antigo = cartItems[index];
+  //           return antigo && (novo.valor !== antigo.valor || novo.nome !== antigo.nome);
+  //         });
 
-        if (mudancas) {
-          setCartItems(produtosValidos);
-          console.log("🔄 Carrinho atualizado automaticamente");
-        }
-      } catch (error) {
-        console.error("Erro na atualização automática de preços:", error);
-      }
-    }, 5000); // 5 segundos para verificação ainda mais rápida
+  //       if (mudancas) {
+  //         setCartItems(produtosValidos);
+  //         console.log("🔄 Carrinho atualizado automaticamente");
+  //       }
+  //     } catch (error) {
+  //       console.error("Erro na atualização automática de preços:", error);
+  //     }
+  //   }, 30000); // 30 segundos para verificação menos agressiva
 
-    return () => clearInterval(interval);
-  }, [cartItems, verificarProdutosPausados]);
+  //   return () => clearInterval(interval);
+  // }, [cartItems, verificarProdutosPausados]);
 
   // Verificação adicional quando a página ganha foco (usuário volta à aba)
-  useEffect(() => {
-    const handleFocus = async () => {
-      if (cartItems.length === 0) return;
+  // TEMPORARIAMENTE DESABILITADO para evitar que produtos sumam
+  // useEffect(() => {
+  //   const handleFocus = async () => {
+  //     if (cartItems.length === 0) return;
       
-      try {
-        const produtosValidos = await verificarProdutosPausados(cartItems);
-        setCartItems(produtosValidos);
-        console.log("🔄 Carrinho verificado ao retornar à página");
-      } catch (error) {
-        console.error("Erro na verificação ao retornar:", error);
-      }
-    };
+  //     try {
+  //       const produtosValidos = await verificarProdutosPausados(cartItems);
+  //       setCartItems(produtosValidos);
+  //       console.log("🔄 Carrinho verificado ao retornar à página");
+  //     } catch (error) {
+  //       console.error("Erro na verificação ao retornar:", error);
+  //     }
+  //   };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [cartItems, verificarProdutosPausados]);
+  //   window.addEventListener('focus', handleFocus);
+  //   return () => window.removeEventListener('focus', handleFocus);
+  // }, [cartItems, verificarProdutosPausados]);
 
   // Listener para eventos de atualização de produtos (quando admin edita)
-  useEffect(() => {
-    const handleProdutoEditado = async () => {
-      if (cartItems.length === 0) return;
+  // TEMPORARIAMENTE DESABILITADO para evitar que produtos sumam
+  // useEffect(() => {
+  //   const handleProdutoEditado = async () => {
+  //     if (cartItems.length === 0) return;
       
-      try {
-        console.log("🔄 Produto editado detectado - verificando carrinho...");
-        const produtosValidos = await verificarProdutosPausados(cartItems);
-        setCartItems(produtosValidos);
-      } catch (error) {
-        console.error("Erro na verificação após edição:", error);
-      }
-    };
+  //     try {
+  //       console.log("🔄 Produto editado detectado - verificando carrinho...");
+  //       const produtosValidos = await verificarProdutosPausados(cartItems);
+  //       setCartItems(produtosValidos);
+  //     } catch (error) {
+  //       console.error("Erro na verificação após edição:", error);
+  //     }
+  //   };
 
-    // Escutar eventos customizados de atualização de produtos
-    window.addEventListener('produtoEditado', handleProdutoEditado);
-    window.addEventListener('produtoPausado', handleProdutoEditado);
-    window.addEventListener('produtoAtivado', handleProdutoEditado);
+  //   // Escutar eventos customizados de atualização de produtos
+  //   window.addEventListener('produtoEditado', handleProdutoEditado);
+  //   window.addEventListener('produtoPausado', handleProdutoEditado);
+  //   window.addEventListener('produtoAtivado', handleProdutoEditado);
     
-    return () => {
-      window.removeEventListener('produtoEditado', handleProdutoEditado);
-      window.removeEventListener('produtoPausado', handleProdutoEditado);
-      window.removeEventListener('produtoAtivado', handleProdutoEditado);
-    };
-  }, [cartItems, verificarProdutosPausados]);
+  //   return () => {
+  //     window.removeEventListener('produtoEditado', handleProdutoEditado);
+  //     window.removeEventListener('produtoPausado', handleProdutoEditado);
+  //     window.removeEventListener('produtoAtivado', handleProdutoEditado);
+  //   };
+  // }, [cartItems, verificarProdutosPausados]);
 
   // Total de itens no carrinho
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantidade, 0);

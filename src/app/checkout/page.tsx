@@ -344,7 +344,7 @@ export default function CheckoutPage() {
       // Limite de valor removido - clientes podem fazer pedidos de qualquer valor
 
       // Enviar pedido
-      const response = await fetch(`/api/orders?userId=${encodeURIComponent(user?.login || "")}`, {
+      const response = await fetch(`/api/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

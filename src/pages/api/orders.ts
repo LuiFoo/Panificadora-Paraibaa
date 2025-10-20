@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 interface ProdutoPedido {
   produtoId: string;
@@ -14,18 +16,20 @@ interface ProdutoPedido {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
-  const userId = req.query.userId as string;
 
-  if (!userId || userId === "guest") {
-    return res.status(401).json({ error: "Usuário deve estar logado para fazer pedidos" });
+  // Autenticação via sessão NextAuth
+  const session = await getServerSession(req, res, authOptions);
+  if (!session || !session.user || !session.user.id) {
+    return res.status(401).json({ error: "Não autenticado" });
   }
+  const userLogin = (session.user as any).login || session.user.id;
 
   try {
     const client = await clientPromise;
     const db = client.db("paraiba");
 
-    // Verificar se usuário existe
-    const user = await db.collection("users").findOne({ login: userId });
+    // Verificar se usuário existe via login/id da sessão
+    const user = await db.collection("users").findOne({ $or: [ { login: userLogin }, { _id: userLogin }, { email: session.user.email } ] });
     if (!user) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
@@ -85,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Criar pedido
       const dataAtual = new Date();
       const novoPedido = {
-        userId,
+        userId: user.login || userLogin,
         produtos,
         total,
         status: 'pendente',
@@ -110,7 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Limpar carrinho do usuário
       await db.collection("users").updateOne(
-        { login: userId },
+        { login: user.login || userLogin },
         { 
           $set: { 
             "carrinho.produtos": [],
@@ -129,7 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (method === "GET") {
       // Buscar pedidos do usuário
       const pedidos = await db.collection("pedidos")
-        .find({ userId })
+        .find({ userId: user.login || userLogin })
         .sort({ dataPedido: -1 })
         .limit(10)
         .toArray();

@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -12,131 +15,167 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (method === "GET") {
       const { produtoId, produtoIds } = req.query;
 
-      // Se produtoIds for fornecido, buscar avaliações de múltiplos produtos
+      const db = (await clientPromise).db("paraiba");
+      const produtosCol = db.collection("produtos");
+
+      // Se produtoIds for fornecido, buscar avaliações de múltiplos produtos (embutidas)
       if (produtoIds) {
-        const ids = (produtoIds as string).split(',');
-        const avaliacoes = await avaliacoesCollection
-          .find({ produtoId: { $in: ids } })
+        const ids = (produtoIds as string).split(',').filter(Boolean);
+        const objectIds = ids
+          .map((id) => (ObjectId.isValid(id) ? new ObjectId(id) : null))
+          .filter((id): id is ObjectId => !!id);
+
+        const produtos = await produtosCol
+          .find({ _id: { $in: objectIds } }, { projection: { avaliacao: 1 } })
           .toArray();
 
-        // Agrupar por produtoId
         const avaliacoesPorProduto: Record<string, { media: number; total: number }> = {};
-        
-        ids.forEach(id => {
-          const avaliacoesDoProduto = avaliacoes.filter(av => av.produtoId === id);
-          
-          if (avaliacoesDoProduto.length > 0) {
-            const soma = avaliacoesDoProduto.reduce((acc, av) => acc + av.nota, 0);
-            const media = soma / avaliacoesDoProduto.length;
-            
-            avaliacoesPorProduto[id] = {
-              media: Number(media.toFixed(1)),
-              total: avaliacoesDoProduto.length
-            };
+
+        ids.forEach((id) => {
+          const prod = produtos.find((p) => p._id?.toString() === id);
+          const usuarios = prod?.avaliacao?.usuarios || [];
+          if (usuarios.length > 0) {
+            const soma = usuarios.reduce((acc: number, av: any) => acc + (Number(av.nota) || 0), 0);
+            const media = soma / usuarios.length;
+            avaliacoesPorProduto[id] = { media: Number(media.toFixed(1)), total: usuarios.length };
           } else {
-            avaliacoesPorProduto[id] = {
-              media: 0,
-              total: 0
-            };
+            avaliacoesPorProduto[id] = { media: 0, total: 0 };
           }
         });
 
-        return res.status(200).json({
-          success: true,
-          avaliacoes: avaliacoesPorProduto
-        });
+        return res.status(200).json({ success: true, avaliacoes: avaliacoesPorProduto });
       }
 
-      // Buscar média de avaliações de um produto (comportamento original)
+      // Buscar média de avaliações de um produto (embutida, com fallback)
       if (!produtoId) {
         return res.status(400).json({ error: "produtoId ou produtoIds é obrigatório" });
       }
 
-      const avaliacoes = await avaliacoesCollection
-        .find({ produtoId: produtoId as string })
-        .toArray();
-
-      if (avaliacoes.length === 0) {
-        return res.status(200).json({
-          success: true,
-          media: 0,
-          total: 0
-        });
+      if (!ObjectId.isValid(produtoId as string)) {
+        return res.status(400).json({ error: "produtoId inválido" });
       }
 
-      const soma = avaliacoes.reduce((acc, av) => acc + av.nota, 0);
-      const media = soma / avaliacoes.length;
+      const produto = await produtosCol.findOne(
+        { _id: new ObjectId(produtoId as string) },
+        { projection: { avaliacao: 1 } }
+      );
 
-      return res.status(200).json({
-        success: true,
-        media: Number(media.toFixed(1)),
-        total: avaliacoes.length
-      });
+      const usuariosEmb = produto?.avaliacao?.usuarios || [];
+      if (usuariosEmb.length > 0) {
+        const soma = usuariosEmb.reduce((acc: number, av: any) => acc + (Number(av.nota) || 0), 0);
+        const media = soma / usuariosEmb.length;
+        return res.status(200).json({ success: true, media: Number(media.toFixed(1)), total: usuariosEmb.length });
+      }
+
+      // Fallback para coleção antiga, se não houver embutido
+      const avals = await avaliacoesCollection.find({ produtoId: produtoId as string }).toArray();
+      if (avals.length === 0) {
+        return res.status(200).json({ success: true, media: 0, total: 0 });
+      }
+      const soma = avals.reduce((acc, av) => acc + av.nota, 0);
+      const media = soma / avals.length;
+      return res.status(200).json({ success: true, media: Number(media.toFixed(1)), total: avals.length });
     }
 
     if (method === "POST") {
-      // Criar nova avaliação
-      const { produtoId, userId, nota } = req.body;
+      const session = await getServerSession(req, res, authOptions);
+      if (!session || !session.user) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+      // Criar/atualizar avaliação embutida
+      const { produtoId, nota } = req.body;
+      const userId = (session.user as any).login || session.user.id || session.user.email;
 
       if (!produtoId || !userId || !nota) {
         return res.status(400).json({ error: "produtoId, userId e nota são obrigatórios" });
       }
-
+      if (!ObjectId.isValid(produtoId)) {
+        return res.status(400).json({ error: "produtoId inválido" });
+      }
       if (nota < 1 || nota > 5) {
         return res.status(400).json({ error: "Nota deve ser entre 1 e 5" });
       }
 
-      // Verificar se usuário já avaliou este produto
-      const avaliacaoExistente = await avaliacoesCollection.findOne({
-        produtoId,
-        userId
-      });
+      const db = (await clientPromise).db("paraiba");
+      const produtosCol = db.collection("produtos");
+      const _id = new ObjectId(produtoId);
 
-      if (avaliacaoExistente) {
-        // Atualizar avaliação existente
-        await avaliacoesCollection.updateOne(
-          { produtoId, userId },
-          {
-            $set: {
-              nota,
-              dataAtualizacao: new Date()
-            }
-          }
-        );
+      const produto = await produtosCol.findOne({ _id }, { projection: { avaliacao: 1 } });
+      const usuarios: any[] = produto?.avaliacao?.usuarios || [];
+      const agora = new Date();
 
-        return res.status(200).json({
-          success: true,
-          message: "Avaliação atualizada com sucesso"
-        });
+      const idx = usuarios.findIndex((u: any) => u.userId === userId);
+      if (idx >= 0) {
+        usuarios[idx].nota = nota;
+        usuarios[idx].dataAtualizacao = agora;
+      } else {
+        usuarios.push({ userId, nota, dataCriacao: agora, dataAtualizacao: agora });
       }
 
-      // Criar nova avaliação
-      await avaliacoesCollection.insertOne({
-        produtoId,
-        userId,
-        nota,
-        dataCriacao: new Date()
-      });
+      const soma = usuarios.reduce((acc, av) => acc + (Number(av.nota) || 0), 0);
+      const media = usuarios.length > 0 ? Number((soma / usuarios.length).toFixed(1)) : 0;
 
-      return res.status(201).json({
+      await produtosCol.updateOne(
+        { _id },
+        {
+          $set: {
+            "avaliacao.media": media,
+            "avaliacao.quantidade": usuarios.length,
+            "avaliacao.usuarios": usuarios
+          }
+        }
+      );
+
+      return res.status(idx >= 0 ? 200 : 201).json({
         success: true,
-        message: "Avaliação criada com sucesso"
+        message: idx >= 0 ? "Avaliação atualizada com sucesso" : "Avaliação criada com sucesso",
+        media,
+        total: usuarios.length
       });
     }
 
     if (method === "DELETE") {
-      // Remover avaliação
-      const { produtoId, userId } = req.body;
+      const session = await getServerSession(req, res, authOptions);
+      if (!session || !session.user) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+      // Remover avaliação embutida
+      const { produtoId } = req.body;
+      const userId = (session.user as any).login || session.user.id || session.user.email;
 
       if (!produtoId || !userId) {
         return res.status(400).json({ error: "produtoId e userId são obrigatórios" });
       }
+      if (!ObjectId.isValid(produtoId)) {
+        return res.status(400).json({ error: "produtoId inválido" });
+      }
 
-      await avaliacoesCollection.deleteOne({ produtoId, userId });
+      const db = (await clientPromise).db("paraiba");
+      const produtosCol = db.collection("produtos");
+      const _id = new ObjectId(produtoId);
+
+      const produto = await produtosCol.findOne({ _id }, { projection: { avaliacao: 1 } });
+      const usuarios: any[] = produto?.avaliacao?.usuarios || [];
+      const novosUsuarios = usuarios.filter((u: any) => u.userId !== userId);
+      const soma = novosUsuarios.reduce((acc, av) => acc + (Number(av.nota) || 0), 0);
+      const media = novosUsuarios.length > 0 ? Number((soma / novosUsuarios.length).toFixed(1)) : 0;
+
+      await produtosCol.updateOne(
+        { _id },
+        {
+          $set: {
+            "avaliacao.media": media,
+            "avaliacao.quantidade": novosUsuarios.length,
+            "avaliacao.usuarios": novosUsuarios
+          }
+        }
+      );
 
       return res.status(200).json({
         success: true,
-        message: "Avaliação removida com sucesso"
+        message: "Avaliação removida com sucesso",
+        media,
+        total: novosUsuarios.length
       });
     }
 

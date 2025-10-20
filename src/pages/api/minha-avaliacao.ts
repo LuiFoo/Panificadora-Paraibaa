@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { ObjectId } from "mongodb";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET") {
@@ -15,12 +16,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const client = await clientPromise;
     const db = client.db("paraiba");
-    const avaliacoesCollection = db.collection("avaliacoes");
+    const produtosCol = db.collection("produtos");
+    if (!ObjectId.isValid(produtoId as string)) {
+      return res.status(400).json({ error: "produtoId inválido" });
+    }
 
-    const minhaAvaliacao = await avaliacoesCollection.findOne({
-      produtoId: produtoId as string,
-      userId: userId as string
-    });
+    const produto = await produtosCol.findOne(
+      { _id: new ObjectId(produtoId as string) },
+      { projection: { avaliacao: 1 } }
+    );
+
+    const usuarios = produto?.avaliacao?.usuarios || [];
+    const minhaAvaliacao = usuarios.find((u: any) => u.userId === (userId as string));
 
     if (!minhaAvaliacao) {
       return res.status(200).json({

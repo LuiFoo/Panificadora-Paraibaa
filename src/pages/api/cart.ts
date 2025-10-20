@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb"; // Conexão com MongoDB
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 interface ProdutoCarrinho {
   produtoId: string;
@@ -11,7 +13,35 @@ interface ProdutoCarrinho {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
-  const login = req.query.userId as string;
+  // Autenticar e extrair login do usuário
+  const session = await getServerSession(req, res, authOptions);
+  if (!session || !session.user) {
+    return res.status(401).json({ error: "Não autenticado" });
+  }
+  
+  // Tentar diferentes formas de obter o login
+  let login = (session.user as any).login;
+  
+  // Se não tem login na sessão, buscar no banco pelo email
+  if (!login) {
+    try {
+      const client = await clientPromise;
+      const db = client.db("paraiba");
+      const user = await db.collection("users").findOne({ 
+        email: session.user.email 
+      });
+      if (user) {
+        login = user.login;
+      }
+    } catch (error) {
+      console.error("Erro ao buscar login do usuário:", error);
+    }
+  }
+  
+  // Fallback para email se ainda não tem login
+  if (!login) {
+    login = session.user.email;
+  }
 
   console.log("Login recebido:", login);
   console.log("Método:", method);
@@ -22,8 +52,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const client = await clientPromise;
     const db = client.db("paraiba");
 
-    const user = await db.collection("users").findOne({ login });
+    // Buscar usuário por login ou email
+    let user = await db.collection("users").findOne({ login });
     if (!user) {
+      // Se não encontrou por login, tentar por email
+      user = await db.collection("users").findOne({ email: session.user.email });
+    }
+    
+    if (!user) {
+      console.error("Usuário não encontrado. Login:", login, "Email:", session.user.email);
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
@@ -65,7 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       await db.collection("users").updateOne(
-        { login },
+        { _id: user._id },
         { 
           $set: { 
             "carrinho.produtos": user.carrinho.produtos,
@@ -89,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (produtos && Array.isArray(produtos)) {
         console.log("Atualizando carrinho completo com produtos:", produtos);
         await db.collection("users").updateOne(
-          { login },
+          { _id: user._id },
           { 
             $set: { 
               "carrinho.produtos": produtos,
@@ -115,7 +152,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("Carrinho após atualização:", updatedCarrinho);
 
       await db.collection("users").updateOne(
-        { login },
+        { _id: user._id },
         { 
           $set: { 
             "carrinho.produtos": updatedCarrinho,
@@ -133,7 +170,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("Carrinho antes da limpeza:", user.carrinho.produtos);
       
       const updateResult = await db.collection("users").updateOne(
-        { login },
+        { _id: user._id },
         { 
           $set: { 
             "carrinho.produtos": [],
@@ -162,7 +199,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       );
 
       await db.collection("users").updateOne(
-        { login },
+        { _id: user._id },
         { 
           $set: { 
             "carrinho.produtos": updatedCarrinho,

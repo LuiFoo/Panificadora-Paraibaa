@@ -26,37 +26,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (method === "POST") {
-      const { subc, nome, valor, vtipo, ingredientes, img } = req.body;
+      // Suporte a payload antigo e novo
+      const {
+        // antigo
+        subc,
+        valor,
+        vtipo,
+        ingredientes,
+        img,
+        // novo
+        nome,
+        descricao,
+        categoria,
+        subcategoria,
+        preco,
+        estoque,
+        imagem,
+        alergicos,
+        destaque,
+        tags,
+        status
+      } = req.body;
 
-      console.log("📦 Tentando criar produto:", { subc, nome, valor, vtipo, ingredientes, img });
+      console.log("📦 Tentando criar produto:", { nome });
 
-      // Validações
-      if (!subc || !nome || !valor || !vtipo || !ingredientes || !img) {
-        console.log("❌ Validação falhou - campos obrigatórios faltando");
-        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
-      }
-
-      const valorNumerico = parseFloat(valor);
-      if (isNaN(valorNumerico) || valorNumerico <= 0) {
-        console.log("❌ Validação falhou - valor inválido");
-        return res.status(400).json({ error: "Valor deve ser um número maior que zero" });
-      }
-
-      // Categorias disponíveis para a nova estrutura
-      const categoriasDisponiveis = [
-        "BOLOS DOCES ESPECIAIS",
-        "DOCES INDIVIDUAIS", 
-        "PAES DOCES",
-        "PAES SALGADOS ESPECIAIS",
-        "ROSCAS PAES ESPECIAIS",
-        "SALGADOS ASSADOS LANCHES",
-        "SOBREMESAS TORTAS",
-        "BEBIDAS"
-      ];
-
-      if (!categoriasDisponiveis.includes(subc)) {
-        console.log("❌ Subcategoria inválida:", subc);
-        return res.status(400).json({ error: "Subcategoria inválida" });
+      // Validação mínima
+      if (!nome) {
+        return res.status(400).json({ error: "Nome é obrigatório" });
       }
 
       // Gerar slug único
@@ -77,58 +73,106 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log(`📂 Salvando na coleção unificada: produtos`);
 
-      // Verificar se já existe produto com o mesmo nome
-      const produtoExistente = await db.collection("produtos").findOne({ nome });
-      if (produtoExistente) {
-        console.log("❌ Produto já existe com nome:", nome);
-        return res.status(400).json({ error: "Já existe um produto com este nome" });
+      // Normalizações a partir do payload
+      const categoriaNome = categoria?.nome || subc || "Categoria";
+      const categoriaSlug = (categoria?.slug || categoriaNome)
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+
+      const precoValor = preco?.valor ?? (valor !== undefined ? parseFloat(valor) : 0);
+      const precoTipo = preco?.tipo || vtipo || "UN";
+      const precoCusto = preco?.custoProducao !== undefined ? Number(preco.custoProducao) : undefined;
+      const promocaoAtiva = !!preco?.promocao?.ativo;
+      const promocaoValor = preco?.promocao?.valorPromocional !== undefined ? Number(preco?.promocao?.valorPromocional) : undefined;
+      const promocaoInicio = preco?.promocao?.inicio ? new Date(preco.promocao.inicio) : undefined;
+      const promocaoFim = preco?.promocao?.fim ? new Date(preco.promocao.fim) : undefined;
+
+      const estoqueDisponivel = estoque?.disponivel !== undefined ? !!estoque.disponivel : true;
+      const estoqueQtd = estoque?.quantidade !== undefined ? Number(estoque.quantidade) : undefined;
+      const estoqueMin = estoque?.minimo !== undefined ? Number(estoque.minimo) : undefined;
+      const unidadeMedida = estoque?.unidadeMedida || precoTipo;
+
+      const imagemHref = imagem?.href || img;
+      const imagemAlt = imagem?.alt || nome;
+      const imagemGaleria: string[] = Array.isArray(imagem?.galeria) ? imagem!.galeria : [];
+
+      const ingredientesArr: string[] = Array.isArray(ingredientes)
+        ? ingredientes
+        : (typeof ingredientes === 'string' ? ingredientes.split(',').map((i: string) => i.trim()) : []);
+      const alergicosArr: string[] = Array.isArray(alergicos) ? alergicos : [];
+      const tagsArr: string[] = Array.isArray(tags) ? tags : [];
+
+      if (!precoValor || isNaN(precoValor) || precoValor <= 0) {
+        return res.status(400).json({ error: "Preço 'valor' deve ser numérico e maior que zero" });
+      }
+      if (!imagemHref) {
+        return res.status(400).json({ error: "Imagem 'href' é obrigatória" });
       }
 
       const novoProduto = {
         nome,
         slug,
-        descricao: ingredientes || "",
+        descricao: descricao || (ingredientesArr.length ? ingredientesArr.join(', ') : ""),
         categoria: {
-          nome: subc,
-          slug: subc.toLowerCase().replace(/\s+/g, "-")
+          nome: categoriaNome,
+          slug: categoriaSlug
         },
-        subcategoria: "Padrão",
+        subcategoria: subcategoria || "Tradicional",
         preco: {
-          valor: valorNumerico,
-          tipo: vtipo
+          valor: Number(precoValor),
+          tipo: precoTipo,
+          ...(precoCusto !== undefined ? { custoProducao: precoCusto } : {}),
+          ...(promocaoAtiva && promocaoValor !== undefined ? {
+            promocao: {
+              ativo: true,
+              valorPromocional: promocaoValor,
+              ...(promocaoInicio ? { inicio: promocaoInicio } : {}),
+              ...(promocaoFim ? { fim: promocaoFim } : {})
+            }
+          } : { promocao: { ativo: false, valorPromocional: undefined, inicio: undefined, fim: undefined } })
         },
         estoque: {
-          disponivel: true,
-          unidadeMedida: vtipo
+          disponivel: estoqueDisponivel,
+          ...(estoqueQtd !== undefined ? { quantidade: estoqueQtd } : {}),
+          ...(estoqueMin !== undefined ? { minimo: estoqueMin } : {}),
+          unidadeMedida
         },
         imagem: {
-          href: img,
-          alt: nome
+          href: imagemHref,
+          alt: imagemAlt,
+          galeria: imagemGaleria
         },
-        ingredientes: ingredientes ? ingredientes.split(',').map(i => i.trim()) : [],
-        alergicos: [],
+        ingredientes: ingredientesArr,
+        alergicos: alergicosArr,
         avaliacao: {
           media: 0,
           quantidade: 0,
-          usuarios: []
+          usuarios: [] as any[]
         },
-        destaque: false,
-        tags: [],
-        status: "ativo",
+        destaque: !!destaque,
+        tags: tagsArr,
+        status: status === 'inativo' ? 'inativo' : 'ativo',
         criadoEm: new Date(),
         atualizadoEm: new Date()
       };
 
       console.log("✅ Inserindo produto no MongoDB...");
-      const result = await db.collection("produtos").insertOne(novoProduto);
-      console.log(`✅ Produto inserido na coleção produtos com ID:`, result.insertedId);
-
-      return res.status(201).json({ 
-        success: true,
-        produtoId: result.insertedId,
-        colecao: "produtos",
-        message: "Produto criado com sucesso"
-      });
+      try {
+        const result = await db.collection("produtos").insertOne(novoProduto);
+        console.log(`✅ Produto inserido na coleção produtos com ID:`, result.insertedId);
+        return res.status(201).json({ 
+          success: true,
+          produtoId: result.insertedId,
+          colecao: "produtos",
+          message: "Produto criado com sucesso"
+        });
+      } catch (e: any) {
+        if (e?.code === 11000 && e?.keyPattern?.slug) {
+          return res.status(409).json({ error: "Slug já existe. Tente outro nome." });
+        }
+        throw e;
+      }
     }
 
     return res.status(405).json({ error: "Método não permitido" });
