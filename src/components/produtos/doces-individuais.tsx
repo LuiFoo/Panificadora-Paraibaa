@@ -66,16 +66,29 @@ export default function DocesIndividuaisPage() {
   return (
     <ul className="bg-blue-700">
       {docesIndividuais.length > 0 ? (
-        docesIndividuais.map((doce) => (
-          <li key={doce._id}>
-            {doce.nome} - R${doce.preco.valor.toFixed(2).replace(".", ",")}
-            {doce.preco.promocao?.ativo && (
-              <span className="text-red-500 ml-2">
-                (Promoção: R${doce.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")})
-              </span>
-            )}
-          </li>
-        ))
+        docesIndividuais.map((doce) => {
+          const doceData = doce as {
+            _id: string;
+            nome: string;
+            preco: {
+              valor: number;
+              promocao?: {
+                ativo: boolean;
+                valorPromocional: number;
+              };
+            };
+          };
+          return (
+            <li key={doceData._id}>
+              {doceData.nome} - R${doceData.preco.valor.toFixed(2).replace(".", ",")}
+              {doceData.preco.promocao?.ativo && (
+                <span className="text-red-500 ml-2">
+                  (Promoção: R${doceData.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")})
+                </span>
+              )}
+            </li>
+          );
+        })
       ) : (
         <p>Nenhum doce individual encontrado.</p>
       )}

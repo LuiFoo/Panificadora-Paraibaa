@@ -66,11 +66,18 @@ export default function SobremesasTortasPage() {
   return (
     <ul className="bg-blue-700">
       {sobremesasTortas.length > 0 ? (
-        sobremesasTortas.map((sobremesa) => (
-          <li key={sobremesa._id}>
-            {sobremesa.nome} - R${sobremesa.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-          </li>
-        ))
+        sobremesasTortas.map((sobremesa) => {
+          const sobremesaData = sobremesa as {
+            _id: string;
+            nome: string;
+            preco: { valor: number };
+          };
+          return (
+            <li key={sobremesaData._id}>
+              {sobremesaData.nome} - R${sobremesaData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
+            </li>
+          );
+        })
       ) : (
         <p>Nenhuma sobremesa ou torta encontrada.</p>
       )}

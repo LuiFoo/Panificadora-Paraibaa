@@ -66,11 +66,14 @@ export default function PaesDocesPage() {
   return (
     <ul className="bg-blue-700">
       {paesDoces.length > 0 ? (
-        paesDoces.map((paoDoce) => (
-          <li key={paoDoce._id}>
-            {paoDoce.nome} - R${paoDoce.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-          </li>
-        ))
+        paesDoces.map((paoDoce) => {
+          const paoDoceData = paoDoce as { _id: string; nome: string; preco: { valor: number }; };
+          return (
+            <li key={paoDoceData._id}>
+              {paoDoceData.nome} - R${paoDoceData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
+            </li>
+          );
+        })
       ) : (
         <p>Nenhum pão ou doce encontrado.</p>
       )}

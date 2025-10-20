@@ -66,11 +66,14 @@ export default function SalgadosAssadosLanchesPage() {
   return (
     <ul className="bg-blue-700">
       {salgadosAssadosLanches.length > 0 ? (
-        salgadosAssadosLanches.map((salgado) => (
-          <li key={salgado._id}>
-            {salgado.nome} - R${salgado.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-          </li>
-        ))
+        salgadosAssadosLanches.map((salgado) => {
+          const salgadoData = salgado as { _id: string; nome: string; preco: { valor: number }; };
+          return (
+            <li key={salgadoData._id}>
+              {salgadoData.nome} - R${salgadoData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
+            </li>
+          );
+        })
       ) : (
         <p>Nenhum salgado assado ou lanche encontrado.</p>
       )}

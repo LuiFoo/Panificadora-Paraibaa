@@ -66,11 +66,14 @@ export default function PaesSalgadosEspeciaisPage() {
   return (
     <ul className="bg-blue-700">
       {paesSalgadosEspeciais.length > 0 ? (
-        paesSalgadosEspeciais.map((paoSalgado) => (
-          <li key={paoSalgado._id}>
-            {paoSalgado.nome} - R${paoSalgado.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-          </li>
-        ))
+        paesSalgadosEspeciais.map((paoSalgado) => {
+          const paoSalgadoData = paoSalgado as { _id: string; nome: string; preco: { valor: number }; };
+          return (
+            <li key={paoSalgadoData._id}>
+              {paoSalgadoData.nome} - R${paoSalgadoData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
+            </li>
+          );
+        })
       ) : (
         <p>Nenhum pão salgado especial encontrado.</p>
       )}

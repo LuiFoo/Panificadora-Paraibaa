@@ -66,16 +66,29 @@ export default function BolosDocesEspeciaisPage() {
   return (
     <ul className="bg-blue-700">
       {bolosDoces.length > 0 ? (
-        bolosDoces.map((bolo) => (
-          <li key={bolo._id}>
-            {bolo.nome} - R${bolo.preco.valor.toFixed(2).replace(".", ",")}
-            {bolo.preco.promocao?.ativo && (
-              <span className="text-red-500 ml-2">
-                (Promoção: R${bolo.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")})
-              </span>
-            )}
-          </li>
-        ))
+        bolosDoces.map((bolo) => {
+          const boloData = bolo as {
+            _id: string;
+            nome: string;
+            preco: {
+              valor: number;
+              promocao?: {
+                ativo: boolean;
+                valorPromocional: number;
+              };
+            };
+          };
+          return (
+            <li key={boloData._id}>
+              {boloData.nome} - R${boloData.preco.valor.toFixed(2).replace(".", ",")}
+              {boloData.preco.promocao?.ativo && (
+                <span className="text-red-500 ml-2">
+                  (Promoção: R${boloData.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")})
+                </span>
+              )}
+            </li>
+          );
+        })
       ) : (
         <p>Nenhum bolo ou doce especial encontrado.</p>
       )}

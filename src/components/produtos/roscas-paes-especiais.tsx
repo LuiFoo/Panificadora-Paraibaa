@@ -66,11 +66,14 @@ export default function RoscasPaesEspeciaisPage() {
   return (
     <ul className="bg-blue-700">
       {roscasPaesEspeciais.length > 0 ? (
-        roscasPaesEspeciais.map((roscaPao) => (
-          <li key={roscaPao._id}>
-            {roscaPao.nome} - R${roscaPao.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
-          </li>
-        ))
+        roscasPaesEspeciais.map((roscaPao) => {
+          const roscaPaoData = roscaPao as { _id: string; nome: string; preco: { valor: number }; };
+          return (
+            <li key={roscaPaoData._id}>
+              {roscaPaoData.nome} - R${roscaPaoData.preco.valor.toFixed(2).replace(".", ",")} {/* Converte o valor para float e formata com 2 casas decimais */}
+            </li>
+          );
+        })
       ) : (
         <p>Nenhuma rosca ou pão especial encontrado.</p>
       )}
