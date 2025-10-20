@@ -74,7 +74,7 @@ async function migrarProdutos() {
       const colecao = db.collection(nomeColecao);
       const produtos = await colecao.find({}).toArray();
       
-      const categoria = MAPEAMENTO_COLECOES[nomeColecao];
+      const categoria = MAPEAMENTO_COLECOES[nomeColecao as keyof typeof MAPEAMENTO_COLECOES];
       
       for (const produto of produtos) {
         // Gerar slug único
