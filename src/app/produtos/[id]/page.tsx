@@ -357,7 +357,7 @@ export default function ProdutoDetalhePage() {
               </span>
               {produto.categoria && (
                       <span className="inline-block bg-gradient-to-r from-green-100 to-green-200 text-green-800 text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-md">
-                  {produto.categoria}
+                  {produto.categoria.nome}
                 </span>
               )}
             </div>
