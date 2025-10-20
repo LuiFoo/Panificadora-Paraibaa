@@ -280,6 +280,7 @@ export default function ProdutosPage() {
     try {
       const produtoData = {
         nome: formData.nome,
+        slug: formData.nome.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         descricao: formData.descricao,
         categoria: {
           nome: CATEGORIAS.find(c => c.slug === formData.categoria)?.nome || "Doces & Sobremesas",
