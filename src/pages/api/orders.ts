@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!session || !session.user || !session.user.id) {
     return res.status(401).json({ error: "Não autenticado" });
   }
-  const userLogin = (session.user as any).login || session.user.id;
+  const userLogin = (session.user as { login?: string }).login || session.user.id;
 
   try {
     const client = await clientPromise;

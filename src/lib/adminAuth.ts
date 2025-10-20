@@ -21,12 +21,12 @@ export async function verificarAdmin(req: NextApiRequest): Promise<boolean> {
     }
 
     // Obter token JWT do NextAuth diretamente (não precisa de res)
-    const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET });
+    const token = await getToken({ req: req as NextApiRequest, secret: process.env.NEXTAUTH_SECRET });
     if (process.env.NODE_ENV === 'development') {
       console.log("🔍 Token recebido:", JSON.stringify(token, null, 2));
     }
 
-    const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as any).permissao } } : null;
+    const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as { permissao?: string }).permissao } } : null;
     if (process.env.NODE_ENV === 'development') {
       console.log("🔍 Sessão derivada do token:", JSON.stringify(session, null, 2));
     }
@@ -133,8 +133,8 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
     }
 
     // Obter token JWT do NextAuth diretamente (não precisa de res)
-    const token = await getToken({ req: req as any, secret: process.env.NEXTAUTH_SECRET });
-    const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as any).permissao, login: (token as any).login } } : null;
+    const token = await getToken({ req: req as NextApiRequest, secret: process.env.NEXTAUTH_SECRET });
+    const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as { permissao?: string; login?: string }).permissao, login: (token as { permissao?: string; login?: string }).login } } : null;
     console.log("🔍 Dados da sessão recebidos:", JSON.stringify(session, null, 2));
     
     if (!session?.user?.email) {

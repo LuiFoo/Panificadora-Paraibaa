@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   
   // Tentar diferentes formas de obter o login
-  let login = (session.user as any).login;
+  let login = (session.user as { login?: string }).login;
   
   // Se não tem login na sessão, buscar no banco pelo email
   if (!login) {

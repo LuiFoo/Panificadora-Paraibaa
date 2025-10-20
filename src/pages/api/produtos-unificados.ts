@@ -95,6 +95,7 @@ export default async function handler(
     console.log(`Encontrados ${produtos.length} produtos na coleção unificada`);
 
     // Processar produtos e agrupar por categoria
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     produtos.forEach((produto: any) => {
       let categoriaSlug: string;
       let grupoPrincipal: string;

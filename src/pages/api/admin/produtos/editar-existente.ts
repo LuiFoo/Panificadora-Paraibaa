@@ -179,7 +179,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           await db.collection("users").updateMany(
             { "carrinho.produtos.produtoId": id },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            updateOperation as any
+            updateOperation as Record<string, unknown>
           );
           
           console.log(`Produto ${id} removido de todos os carrinhos após ser pausado`);

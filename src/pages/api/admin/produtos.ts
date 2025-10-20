@@ -148,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         avaliacao: {
           media: 0,
           quantidade: 0,
-          usuarios: [] as any[]
+          usuarios: [] as { userId: string; nota: number; dataCriacao: Date; dataAtualizacao: Date }[]
         },
         destaque: !!destaque,
         tags: tagsArr,
@@ -167,7 +167,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           colecao: "produtos",
           message: "Produto criado com sucesso"
         });
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (e?.code === 11000 && e?.keyPattern?.slug) {
           return res.status(409).json({ error: "Slug já existe. Tente outro nome." });
         }

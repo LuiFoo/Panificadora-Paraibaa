@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const prod = produtos.find((p) => p._id?.toString() === id);
           const usuarios = prod?.avaliacao?.usuarios || [];
           if (usuarios.length > 0) {
-            const soma = usuarios.reduce((acc: number, av: any) => acc + (Number(av.nota) || 0), 0);
+            const soma = usuarios.reduce((acc: number, av: { nota: number }) => acc + (Number(av.nota) || 0), 0);
             const media = soma / usuarios.length;
             avaliacoesPorProduto[id] = { media: Number(media.toFixed(1)), total: usuarios.length };
           } else {
@@ -62,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const usuariosEmb = produto?.avaliacao?.usuarios || [];
       if (usuariosEmb.length > 0) {
-        const soma = usuariosEmb.reduce((acc: number, av: any) => acc + (Number(av.nota) || 0), 0);
+        const soma = usuariosEmb.reduce((acc: number, av: { nota: number }) => acc + (Number(av.nota) || 0), 0);
         const media = soma / usuariosEmb.length;
         return res.status(200).json({ success: true, media: Number(media.toFixed(1)), total: usuariosEmb.length });
       }
@@ -84,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       // Criar/atualizar avaliação embutida
       const { produtoId, nota } = req.body;
-      const userId = (session.user as any).login || session.user.id || session.user.email;
+      const userId = (session.user as { login?: string }).login || session.user.id || session.user.email;
 
       if (!produtoId || !userId || !nota) {
         return res.status(400).json({ error: "produtoId, userId e nota são obrigatórios" });
@@ -101,10 +101,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const _id = new ObjectId(produtoId);
 
       const produto = await produtosCol.findOne({ _id }, { projection: { avaliacao: 1 } });
-      const usuarios: any[] = produto?.avaliacao?.usuarios || [];
+      const usuarios: { userId: string; nota: number }[] = produto?.avaliacao?.usuarios || [];
       const agora = new Date();
 
-      const idx = usuarios.findIndex((u: any) => u.userId === userId);
+      const idx = usuarios.findIndex((u: { userId: string }) => u.userId === userId);
       if (idx >= 0) {
         usuarios[idx].nota = nota;
         usuarios[idx].dataAtualizacao = agora;
@@ -141,7 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       // Remover avaliação embutida
       const { produtoId } = req.body;
-      const userId = (session.user as any).login || session.user.id || session.user.email;
+      const userId = (session.user as { login?: string }).login || session.user.id || session.user.email;
 
       if (!produtoId || !userId) {
         return res.status(400).json({ error: "produtoId e userId são obrigatórios" });
@@ -155,8 +155,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const _id = new ObjectId(produtoId);
 
       const produto = await produtosCol.findOne({ _id }, { projection: { avaliacao: 1 } });
-      const usuarios: any[] = produto?.avaliacao?.usuarios || [];
-      const novosUsuarios = usuarios.filter((u: any) => u.userId !== userId);
+      const usuarios: { userId: string; nota: number }[] = produto?.avaliacao?.usuarios || [];
+      const novosUsuarios = usuarios.filter((u: { userId: string }) => u.userId !== userId);
       const soma = novosUsuarios.reduce((acc, av) => acc + (Number(av.nota) || 0), 0);
       const media = novosUsuarios.length > 0 ? Number((soma / novosUsuarios.length).toFixed(1)) : 0;
 

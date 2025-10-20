@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     const usuarios = produto?.avaliacao?.usuarios || [];
-    const minhaAvaliacao = usuarios.find((u: any) => u.userId === (userId as string));
+    const minhaAvaliacao = usuarios.find((u: { userId: string }) => u.userId === (userId as string));
 
     if (!minhaAvaliacao) {
       return res.status(200).json({
