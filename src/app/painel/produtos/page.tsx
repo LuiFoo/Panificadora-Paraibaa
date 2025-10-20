@@ -1077,7 +1077,7 @@ export default function ProdutosPage() {
                         nome: "",
                         valor: "",
                         vtipo: "UN",
-                        ingredientes: "",
+                        ingredientes: [],
                         img: "",
                         subcategoria: "",
                         status: "active"
