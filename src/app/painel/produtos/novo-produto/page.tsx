@@ -45,7 +45,9 @@ export default function NovoProdutoPage() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = 'checked' in e.target ? e.target.checked : false;
+    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
       setFormData(prev => ({
@@ -190,7 +192,7 @@ export default function NovoProdutoPage() {
 
                   <div className="mt-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <input type="checkbox" checked={formData.preco.promocao.ativo} onChange={(e) => setFormData(p => ({ ...p, preco: { ...p.preco, promocao: { ...p.preco.promocao, ativo: e.target.checked }}}))} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                      <input type="checkbox" checked={formData.preco.promocao.ativo} onChange={(e) => setFormData(p => ({ ...p, preco: { ...p.preco, promocao: { ...p.preco.promocao, ativo: (e.target as HTMLInputElement).checked }}}))} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
                       <label className="text-sm font-medium text-gray-700">Ativar Promoção</label>
                     </div>
                     {formData.preco.promocao.ativo && (

@@ -996,7 +996,7 @@ export default function CheckoutPage() {
                   <input
                     type="checkbox"
                     checked={salvarDados}
-                    onChange={(e) => setSalvarDados(e.target.checked)}
+                    onChange={(e) => setSalvarDados((e.target as HTMLInputElement).checked)}
                     className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                   <div className="flex-1">

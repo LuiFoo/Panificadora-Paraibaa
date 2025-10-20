@@ -230,7 +230,8 @@ export default function ProdutosPage() {
   }, [isAdmin, loading, router, fetchProdutos]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = 'checked' in e.target ? e.target.checked : false;
     
     startTransition(() => {
     if (name.includes('.')) {
@@ -831,7 +832,7 @@ export default function ProdutosPage() {
                       <input
                         type="checkbox"
                         checked={formData.preco.promocao.ativo}
-                        onChange={(e) => handlePromocaoChange('ativo', e.target.checked)}
+                        onChange={(e) => handlePromocaoChange('ativo', (e.target as HTMLInputElement).checked)}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
                       <label className="text-sm font-medium text-gray-700">Ativar Promoção</label>

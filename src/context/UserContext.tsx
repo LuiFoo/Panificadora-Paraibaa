@@ -93,9 +93,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     // Função para verificar o usuário no servidor
     const validateUser = async () => {
-      // Evitar validações muito frequentes (cache de 30 segundos)
+      // Evitar validações muito frequentes (cache de 60 segundos para Google)
       const now = Date.now();
-      if (now - lastValidation < 30000) {
+      const cacheTime = parsedUser.password === 'google-auth' ? 60000 : 30000; // 1 min para Google, 30s para outros
+      
+      if (now - lastValidation < cacheTime) {
         console.log("🔍 UserContext: Validação recente, pulando");
         setLoading(false);
         return;
@@ -113,43 +115,69 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }
       
       try {
-        // Se é usuário Google, usar get-user-data
+        // Se é usuário Google, usar get-user-data com retry
         if (parsedUser.password === 'google-auth' && parsedUser.googleId) {
           console.log("🔍 UserContext: Validando usuário Google");
-          const res = await fetch("/api/auth/get-user-data", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ googleId: parsedUser.googleId }),
-          });
+          
+          let retryCount = 0;
+          const maxRetries = 2;
+          let success = false;
+          
+          while (retryCount < maxRetries && !success) {
+            try {
+              const res = await fetch("/api/auth/get-user-data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ googleId: parsedUser.googleId }),
+              });
 
-          const data = await res.json();
-          console.log("🔍 UserContext: Resposta get-user-data:", { ok: data.ok, hasUser: !!data.user });
+              const data = await res.json();
+              console.log("🔍 UserContext: Resposta get-user-data:", { ok: data.ok, hasUser: !!data.user, attempt: retryCount + 1 });
 
-          if (data.ok && data.user) {
-            // Usuário válido no servidor
-            const validUser: User = {
-              _id: data.user._id,
-              login: data.user.login,
-              name: data.user.name,
-              permissao: data.user.permissao,
-              password: parsedUser.password,
-              email: data.user.email,
-              picture: data.user.picture,
-              googleId: data.user.googleId,
-            };
+              if (data.ok && data.user) {
+                // Usuário válido no servidor
+                const validUser: User = {
+                  _id: data.user._id,
+                  login: data.user.login,
+                  name: data.user.name,
+                  permissao: data.user.permissao,
+                  password: parsedUser.password,
+                  email: data.user.email,
+                  picture: data.user.picture,
+                  googleId: data.user.googleId,
+                };
 
-            console.log("✅ UserContext: Usuário Google válido", {
-              name: validUser.name,
-              email: validUser.email,
-              picture: validUser.picture
-            });
-            setUser(validUser);
-            localStorage.setItem("usuario", JSON.stringify(validUser));
-          } else {
-            // Usuário não válido, limpando localStorage
-            console.log("❌ UserContext: Usuário Google inválido, limpando localStorage");
-            localStorage.removeItem("usuario");
-            setUser(null);
+                console.log("✅ UserContext: Usuário Google válido", {
+                  name: validUser.name,
+                  email: validUser.email,
+                  picture: validUser.picture
+                });
+                setUser(validUser);
+                localStorage.setItem("usuario", JSON.stringify(validUser));
+                success = true;
+              } else if (retryCount < maxRetries - 1) {
+                console.log(`🔄 UserContext: Tentativa ${retryCount + 1} falhou, tentando novamente...`);
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Aguardar 1 segundo
+              } else {
+                // Usuário não válido após todas as tentativas, limpando localStorage
+                console.log("❌ UserContext: Usuário Google inválido após todas as tentativas, limpando localStorage");
+                localStorage.removeItem("usuario");
+                setUser(null);
+                success = true; // Para sair do loop
+              }
+            } catch (error) {
+              console.error("❌ UserContext: Erro na validação Google:", error);
+              if (retryCount < maxRetries - 1) {
+                retryCount++;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } else {
+                console.log("❌ UserContext: Falha na validação após todas as tentativas");
+                localStorage.removeItem("usuario");
+                setUser(null);
+                success = true;
+              }
+            }
           }
         } else {
           // Para usuários com senha tradicional, usar verificar-admin

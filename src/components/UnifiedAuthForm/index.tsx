@@ -28,19 +28,65 @@ export default function UnifiedAuthForm({
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    try {
-      const result = await signIn("google", { 
-        callbackUrl: "/",
-        redirect: false
-      });
-      
-      if (result?.error) {
-        console.error("Erro no Google Auth:", result.error);
-        console.log("Erro ao conectar com Google");
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const attemptLogin = async (): Promise<boolean> => {
+      try {
+        console.log(`🔄 Tentativa de login Google ${retryCount + 1}/${maxRetries}`);
+        
+        const result = await signIn("google", { 
+          callbackUrl: "/",
+          redirect: false
+        });
+        
+        if (result?.error) {
+          console.error("❌ Erro no Google Auth:", result.error);
+          
+          // Se for erro de rede ou timeout, tentar novamente
+          if (result.error.includes('network') || result.error.includes('timeout') || result.error.includes('fetch')) {
+            if (retryCount < maxRetries - 1) {
+              retryCount++;
+              console.log(`🔄 Tentando novamente em 1 segundo... (${retryCount}/${maxRetries})`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              return await attemptLogin();
+            }
+          }
+          
+          console.log("❌ Falha no login Google após todas as tentativas");
+          return false;
+        }
+        
+        if (result?.ok) {
+          console.log("✅ Login Google bem-sucedido");
+          // Aguardar um pouco para garantir que a sessão seja processada
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return true;
+        }
+        
+        return false;
+      } catch (error) {
+        console.error("❌ Erro Google Auth:", error);
+        
+        if (retryCount < maxRetries - 1) {
+          retryCount++;
+          console.log(`🔄 Tentando novamente em 1 segundo... (${retryCount}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return await attemptLogin();
+        }
+        
+        return false;
       }
-    } catch (error) {
-      console.error("Erro Google Auth:", error);
-      console.log("Erro ao conectar com Google");
+    };
+    
+    try {
+      const success = await attemptLogin();
+      
+      if (!success) {
+        console.log("❌ Falha no login após todas as tentativas");
+        // Aqui você pode adicionar um toast ou feedback visual
+        alert("Falha no login. Tente novamente em alguns segundos.");
+      }
     } finally {
       setIsLoading(false);
     }
