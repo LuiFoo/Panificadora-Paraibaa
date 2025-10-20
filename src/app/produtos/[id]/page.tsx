@@ -353,7 +353,7 @@ export default function ProdutoDetalhePage() {
                   {/* Badges */}
             <div className="mb-4 flex gap-2 flex-wrap">
                     <span className="inline-block bg-gradient-to-r from-[var(--color-avocado-100)] to-[var(--color-avocado-200)] text-[var(--color-avocado-800)] text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-md">
-                {produto.subc}
+                {produto.subcategoria}
               </span>
               {produto.categoria && (
                       <span className="inline-block bg-gradient-to-r from-green-100 to-green-200 text-green-800 text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full shadow-md">
