@@ -119,8 +119,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           href: imagem,
           alt: nome
         },
-        ingredientes: Array.isArray(ingredientes) ? ingredientes : ingredientes.split(',').map(i => i.trim()),
-        alergicos: Array.isArray(alergicos) ? alergicos : (alergicos ? alergicos.split(',').map(i => i.trim()) : []),
+        ingredientes: Array.isArray(ingredientes) ? ingredientes : ingredientes.split(',').map((i: string) => i.trim()),
+        alergicos: Array.isArray(alergicos) ? alergicos : (alergicos ? alergicos.split(',').map((i: string) => i.trim()) : []),
         avaliacao: {
           media: 0,
           quantidade: 0,
