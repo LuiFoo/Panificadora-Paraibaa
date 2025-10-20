@@ -570,7 +570,7 @@ export default function ProdutoDetalhePage() {
                     <div className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 h-full flex flex-col">
                       <div className="relative overflow-hidden">
                     <OptimizedImage 
-                      src={item.img} 
+                      src={item.imagem.href} 
                       alt={item.nome} 
                           width={300} 
                           height={300} 
