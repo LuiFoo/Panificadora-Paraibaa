@@ -34,7 +34,7 @@ interface Bolo {
 }
 
 export default function BolosDocesEspeciaisPage() {
-  const [bolosDoces, setBolosDoces] = useState<Bolo[]>([]);
+  const [bolosDoces, setBolosDoces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 

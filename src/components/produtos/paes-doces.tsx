@@ -34,7 +34,7 @@ import { useEffect, useState } from "react";
 // }
 
 export default function PaesDocesPage() {
-  const [paesDoces, setPaesDoces] = useState<PaoDoce[]>([]);
+  const [paesDoces, setPaesDoces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 

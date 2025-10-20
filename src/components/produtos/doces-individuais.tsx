@@ -34,7 +34,7 @@ interface Doce {
 }
 
 export default function DocesIndividuaisPage() {
-  const [docesIndividuais, setDocesIndividuais] = useState<Doce[]>([]);
+  const [docesIndividuais, setDocesIndividuais] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 

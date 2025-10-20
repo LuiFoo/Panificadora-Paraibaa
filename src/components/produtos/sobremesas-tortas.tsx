@@ -34,7 +34,7 @@ import { useEffect, useState } from "react";
 // }
 
 export default function SobremesasTortasPage() {
-  const [sobremesasTortas, setSobremesasTortas] = useState<SobremesaTorta[]>([]);
+  const [sobremesasTortas, setSobremesasTortas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false); // 🔹 Estado para verificar se está no client
 
