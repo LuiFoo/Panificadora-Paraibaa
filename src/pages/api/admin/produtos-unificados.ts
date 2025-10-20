@@ -127,7 +127,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           usuarios: []
         },
         destaque: Boolean(destaque),
-        tags: Array.isArray(tags) ? tags : (tags ? tags.split(',').map(t => t.trim()) : []),
+        tags: Array.isArray(tags) ? tags : (tags ? tags.split(',').map((t: string) => t.trim()) : []),
         status: "ativo",
         criadoEm: new Date(),
         atualizadoEm: new Date()
