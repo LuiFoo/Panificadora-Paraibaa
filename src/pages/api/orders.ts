@@ -30,11 +30,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const db = client.db("paraiba");
 
     // Verificar se usuário existe via login/id da sessão
-    const query: any = { $or: [ { login: userLogin }, { email: session.user.email } ] };
+    const query: Record<string, unknown> = { 
+      $or: [ 
+        { login: userLogin }, 
+        { email: session.user.email } 
+      ] 
+    };
     
     // Só adicionar _id se userLogin for um ObjectId válido
     if (userLogin && ObjectId.isValid(userLogin)) {
-      query.$or.push({ _id: new ObjectId(userLogin) });
+      (query.$or as Record<string, unknown>[]).push({ _id: new ObjectId(userLogin) });
     }
     
     const user = await db.collection("users").findOne(query);
