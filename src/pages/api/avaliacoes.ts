@@ -101,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const _id = new ObjectId(produtoId);
 
       const produto = await produtosCol.findOne({ _id }, { projection: { avaliacao: 1 } });
-      const usuarios: { userId: string; nota: number }[] = produto?.avaliacao?.usuarios || [];
+      const usuarios: { userId: string; nota: number; dataCriacao?: Date; dataAtualizacao?: Date }[] = produto?.avaliacao?.usuarios || [];
       const agora = new Date();
 
       const idx = usuarios.findIndex((u: { userId: string }) => u.userId === userId);
@@ -155,7 +155,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const _id = new ObjectId(produtoId);
 
       const produto = await produtosCol.findOne({ _id }, { projection: { avaliacao: 1 } });
-      const usuarios: { userId: string; nota: number }[] = produto?.avaliacao?.usuarios || [];
+      const usuarios: { userId: string; nota: number; dataCriacao?: Date; dataAtualizacao?: Date }[] = produto?.avaliacao?.usuarios || [];
       const novosUsuarios = usuarios.filter((u: { userId: string }) => u.userId !== userId);
       const soma = novosUsuarios.reduce((acc, av) => acc + (Number(av.nota) || 0), 0);
       const media = novosUsuarios.length > 0 ? Number((soma / novosUsuarios.length).toFixed(1)) : 0;
