@@ -52,8 +52,10 @@ export default function NovoProdutoPage() {
       const [parent, child] = name.split('.');
       setFormData(prev => ({
         ...prev,
-        // @ts-expect-error dynamic
-        [parent]: { ...prev[parent], [child]: type === 'checkbox' ? checked : value }
+        [parent]: {
+          ...(prev[parent as keyof typeof prev] as Record<string, unknown> || {}),
+          [child]: type === 'checkbox' ? checked : value
+        }
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));

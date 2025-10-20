@@ -239,7 +239,7 @@ export default function ProdutosPage() {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof typeof prev],
+          ...(prev[parent as keyof typeof prev] as Record<string, unknown> || {}),
           [child]: type === 'checkbox' ? checked : value
         }
       }));
