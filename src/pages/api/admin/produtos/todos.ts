@@ -4,14 +4,14 @@ import { protegerApiAdmin } from "@/lib/adminAuth";
 
 // Mapeamento das coleções antigas para as novas subcategorias
 // const MAPEAMENTO_COLECOES = {
-  "bolos-doces-especiais": "BOLOS DOCES ESPECIAIS",
-  "doces-individuais": "DOCES INDIVIDUAIS",
-  "paes-doces": "PAES DOCES",
-  "paes-salgados-especiais": "PAES SALGADOS ESPECIAIS",
-  "roscas-paes-especiais": "ROSCAS PAES ESPECIAIS",
-  "salgados-assados-lanches": "SALGADOS ASSADOS LANCHES",
-  "sobremesas-tortas": "SOBREMESAS TORTAS",
-  "bebidas": "BEBIDAS"
+//   "bolos-doces-especiais": "BOLOS DOCES ESPECIAIS",
+//   "doces-individuais": "DOCES INDIVIDUAIS",
+//   "paes-doces": "PAES DOCES",
+//   "paes-salgados-especiais": "PAES SALGADOS ESPECIAIS",
+//   "roscas-paes-especiais": "ROSCAS PAES ESPECIAIS",
+//   "salgados-assados-lanches": "SALGADOS ASSADOS LANCHES",
+//   "sobremesas-tortas": "SOBREMESAS TORTAS",
+//   "bebidas": "BEBIDAS"
 // };
 
 // Subcategorias válidas (apenas estas)

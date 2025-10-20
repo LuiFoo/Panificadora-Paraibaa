@@ -3,13 +3,13 @@
 
 // Mapeamento das APIs antigas para as novas
 // const mapeamentoAPIs = {
-  'bolos-doces-especiais': 'bolos-doces-especiais',
-  'doces-individuais': 'doces-individuais',
-  'paes-doces': 'paes-doces',
-  'paes-salgados-especiais': 'paes-salgados-especiais',
-  'roscas-paes-especiais': 'roscas-paes-especiais',
-  'salgados-assados-lanches': 'salgados-assados-lanches',
-  'sobremesas-tortas': 'sobremesas-tortas'
+//   'bolos-doces-especiais': 'bolos-doces-especiais',
+//   'doces-individuais': 'doces-individuais',
+//   'paes-doces': 'paes-doces',
+//   'paes-salgados-especiais': 'paes-salgados-especiais',
+//   'roscas-paes-especiais': 'roscas-paes-especiais',
+//   'salgados-assados-lanches': 'salgados-assados-lanches',
+//   'sobremesas-tortas': 'sobremesas-tortas'
 // };
 
 // Interface unificada para todos os produtos

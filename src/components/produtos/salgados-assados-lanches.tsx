@@ -3,34 +3,34 @@
 import { useEffect, useState } from "react";
 
 // interface Produto {
-  _id: string;
-  nome: string;
-  slug: string;
-  descricao: string;
-  categoria: {
-    nome: string;
-    slug: string;
-  };
-  subcategoria: string;
-  preco: {
-    valor: number;
-    tipo: string;
-    promocao?: {
-      ativo: boolean;
-      valorPromocional: number;
-    };
-  };
-  imagem: {
-    href: string;
-    alt: string;
-  };
-  avaliacao: {
-    media: number;
-    quantidade: number;
-  };
-  destaque: boolean;
-  tags: string[];
-  status: string;
+//   _id: string;
+//   nome: string;
+//   slug: string;
+//   descricao: string;
+//   categoria: {
+//     nome: string;
+//     slug: string;
+//   };
+//   subcategoria: string;
+//   preco: {
+//     valor: number;
+//     tipo: string;
+//     promocao?: {
+//       ativo: boolean;
+//       valorPromocional: number;
+//     };
+//   };
+//   imagem: {
+//     href: string;
+//     alt: string;
+//   };
+//   avaliacao: {
+//     media: number;
+//     quantidade: number;
+//   };
+//   destaque: boolean;
+//   tags: string[];
+//   status: string;
 // }
 
 export default function SalgadosAssadosLanchesPage() {
