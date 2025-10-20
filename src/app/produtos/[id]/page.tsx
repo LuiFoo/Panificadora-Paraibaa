@@ -579,7 +579,7 @@ export default function ProdutoDetalhePage() {
                     />
                         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
                           <span className="text-xs font-bold text-[var(--color-avocado-600)]">
-                            {item.subc}
+                            {item.subcategoria}
                           </span>
                         </div>
                       </div>
