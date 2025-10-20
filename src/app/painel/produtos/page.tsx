@@ -341,8 +341,8 @@ export default function ProdutosPage() {
             _id: data.produtoId,
             ...produtoData,
             avaliacao: { media: 0, quantidade: 0, usuarios: [] },
-            criadoEm: new Date().toISOString(),
-            atualizadoEm: new Date().toISOString()
+            criadoEm: new Date(),
+            atualizadoEm: new Date()
           } as Produto, ...prev]);
         }
         setProdutoEditando(null);
