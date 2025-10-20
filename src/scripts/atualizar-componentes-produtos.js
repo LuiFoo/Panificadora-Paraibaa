@@ -1,8 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+// const fs = require('fs');
+// const path = require('path');
 
 // Mapeamento das APIs antigas para as novas
-const mapeamentoAPIs = {
+// const mapeamentoAPIs = {
   'bolos-doces-especiais': 'bolos-doces-especiais',
   'doces-individuais': 'doces-individuais',
   'paes-doces': 'paes-doces',
@@ -10,7 +10,7 @@ const mapeamentoAPIs = {
   'roscas-paes-especiais': 'roscas-paes-especiais',
   'salgados-assados-lanches': 'salgados-assados-lanches',
   'sobremesas-tortas': 'sobremesas-tortas'
-};
+// };
 
 // Interface unificada para todos os produtos
 const interfaceUnificada = `interface Produto {

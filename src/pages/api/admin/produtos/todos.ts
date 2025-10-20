@@ -3,7 +3,7 @@ import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
 // Mapeamento das coleções antigas para as novas subcategorias
-const MAPEAMENTO_COLECOES = {
+// const MAPEAMENTO_COLECOES = {
   "bolos-doces-especiais": "BOLOS DOCES ESPECIAIS",
   "doces-individuais": "DOCES INDIVIDUAIS",
   "paes-doces": "PAES DOCES",
@@ -12,7 +12,7 @@ const MAPEAMENTO_COLECOES = {
   "salgados-assados-lanches": "SALGADOS ASSADOS LANCHES",
   "sobremesas-tortas": "SOBREMESAS TORTAS",
   "bebidas": "BEBIDAS"
-};
+// };
 
 // Subcategorias válidas (apenas estas)
 const SUBCATEGORIAS_VALIDAS = [

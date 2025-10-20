@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext";
-import Image from "next/image";
+// import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Loading from "@/components/Loading";

@@ -1,4 +1,4 @@
-const { MongoClient } = require("mongodb");
+// const { MongoClient } = require("mongodb");
 
 async function run() {
   const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/paraiba";

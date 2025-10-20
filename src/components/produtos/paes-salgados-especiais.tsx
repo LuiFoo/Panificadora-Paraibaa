@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-interface Produto {
+// interface Produto {
   _id: string;
   nome: string;
   slug: string;
@@ -31,7 +31,7 @@ interface Produto {
   destaque: boolean;
   tags: string[];
   status: string;
-}
+// }
 
 export default function PaesSalgadosEspeciaisPage() {
   const [paesSalgadosEspeciais, setPaesSalgadosEspeciais] = useState<PaoSalgadoEspecial[]>([]);

@@ -110,7 +110,7 @@ export default function CardapioPage() {
   }, []);
 
   // Cache de produtos por categoria
-  const categoriaUrl = useMemo(() => categoriaAtual, [categoriaAtual]);
+  // const categoriaUrl = useMemo(() => categoriaAtual, [categoriaAtual]);
 
   const [produtosCache, setProdutosCache] = useState<ItemCardapio[]>([]);
   const [cacheLoading, setCacheLoading] = useState(false);
