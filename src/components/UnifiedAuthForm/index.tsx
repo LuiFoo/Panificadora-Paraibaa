@@ -21,22 +21,10 @@ export default function UnifiedAuthForm({
 }: UnifiedAuthFormProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
   
   // const { showToast } = useToast(); // Toast desabilitado
   const { setUser } = useUser();
   const router = useRouter();
-
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
-  };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -58,57 +46,6 @@ export default function UnifiedAuthForm({
     }
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/auth/email-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.ok && data.user) {
-        const userData = {
-          _id: data.user._id,
-          login: data.user.login,
-          password: 'email-auth', // Não armazenamos a senha real
-          name: data.user.name,
-          email: data.user.email,
-          permissao: data.user.permissao,
-          googleId: data.user.googleId,
-          picture: data.user.picture,
-        };
-        localStorage.setItem("usuario", JSON.stringify(userData));
-        setUser(userData);
-        console.log("Login realizado com sucesso!");
-        
-        // Redirecionar baseado na permissão com delay para evitar conflitos
-        setTimeout(() => {
-          if (data.user.permissao === "administrador") {
-            console.log("Administrador logado, redirecionando para painel");
-            router.push('/painel');
-          } else {
-            console.log("Usuário comum logado, redirecionando para página inicial");
-            router.push('/');
-          }
-        }, 200);
-      } else {
-        console.log(data.msg || "Erro ao fazer login");
-      }
-    } catch (error) {
-      console.error("Erro no login:", error);
-      console.log("Erro ao fazer login");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
 
   const getTitle = () => {
@@ -121,7 +58,7 @@ export default function UnifiedAuthForm({
 
   const getSubtitle = () => {
     switch (mode) {
-      case 'login': return 'Entre com Google ou use seu email e senha';
+      case 'login': return 'Entre com sua conta Google';
       case 'register': return 'Faça login com Google para criar sua conta';
       default: return '';
     }
@@ -159,63 +96,6 @@ export default function UnifiedAuthForm({
                 </p>
               </div>
 
-            {/* Formulário de Login com Email/Senha */}
-            {(mode === 'login') && (
-              <form onSubmit={handleEmailLogin} className="mb-6">
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="seu@email.com"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                      Senha
-                    </label>
-                    <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      placeholder="Sua senha"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full mt-4 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Entrando...' : 'Entrar'}
-                </button>
-              </form>
-            )}
-
-
-            {/* Divisor */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">ou</span>
-              </div>
-            </div>
 
             {/* Botão Google */}
             <div className="mb-6">
@@ -253,7 +133,7 @@ export default function UnifiedAuthForm({
                 onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
                 className="inline-flex items-center gap-2 w-full justify-center border-2 border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200"
               >
-                {mode === 'login' ? 'Criar conta gratuita' : 'Fazer login'}
+                {mode === 'login' ? 'Criar conta com Google' : 'Fazer login com Google'}
               </button>
             </div>
 

@@ -410,7 +410,7 @@ export default function Header() {
             href="/login"
             className="py-[0.6rem] px-5 rounded-lg font-bold bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-500)] h-10 flex items-center transition-all duration-300"
           >
-            Entre / Cadastre-se
+            Entrar com Google
           </Link>
         )}
       </div>

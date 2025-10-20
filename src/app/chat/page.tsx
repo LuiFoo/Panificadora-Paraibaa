@@ -270,6 +270,7 @@ function ChatContent() {
                   </svg>
                   Criar Conta
                 </Link>
+
               </div>
 
               {/* Alternativas de contato */}
