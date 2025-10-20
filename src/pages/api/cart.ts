@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   // Fallback para email se ainda não tem login
   if (!login) {
-    login = session.user.email;
+    login = session.user.email || undefined;
   }
 
   console.log("Login recebido:", login);
