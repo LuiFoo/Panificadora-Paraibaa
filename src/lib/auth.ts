@@ -23,13 +23,14 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
   callbacks: {
     async signIn({ user, account }) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log("=== CALLBACK SIGNIN ===");
-        console.log("User:", user.email);
-        console.log("Account provider:", account?.provider);
-      }
+      console.log("=== CALLBACK SIGNIN ===");
+      console.log("User:", user.email);
+      console.log("Account provider:", account?.provider);
+      console.log("User ID:", user.id);
+      console.log("User name:", user.name);
       
       // Permite login apenas com Google
       if (account?.provider === "google") {
@@ -107,6 +108,17 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
     error: "/login",
+  },
+  logger: {
+    error: (code, metadata) => {
+      console.error("❌ NextAuth Error:", code, metadata);
+    },
+    warn: (code) => {
+      console.warn("⚠️ NextAuth Warning:", code);
+    },
+    debug: (code, metadata) => {
+      console.log("🔍 NextAuth Debug:", code, metadata);
+    },
   },
   session: {
     strategy: "jwt",

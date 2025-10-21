@@ -492,14 +492,29 @@ export default function CheckoutPage() {
 
             {/* Mensagem principal */}
             <h2 className="text-3xl font-bold text-gray-800 mb-4">
-              Pedido Realizado com Sucesso! 🎉
+              🎉 Pedido Feito com Sucesso! 🎉
             </h2>
             <p className="text-lg text-gray-600 mb-2">
-              Seu pedido foi enviado e será processado em breve.
+              ✅ Seu pedido foi registrado e está sendo processado!
             </p>
             <p className="text-gray-500 mb-4">
-              Você receberá uma confirmação assim que seu pedido for aprovado.
+              📱 Você receberá uma confirmação assim que seu pedido for aprovado.
             </p>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500 rounded-full p-2">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-green-900 font-semibold">Pedido Confirmado!</p>
+                  <p className="text-green-700 text-sm">
+                    Obrigado pela sua compra! Seu pedido está sendo preparado.
+                  </p>
+                </div>
+              </div>
+            </div>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-500 rounded-full p-2">
@@ -508,9 +523,9 @@ export default function CheckoutPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-blue-900 font-semibold">Redirecionamento automático</p>
+                  <p className="text-blue-900 font-semibold">Redirecionando para seus pedidos...</p>
                   <p className="text-blue-700 text-sm">
-                    Você será redirecionado para &quot;Meus Pedidos&quot; em {tempoRedirecionamento} segundo{tempoRedirecionamento !== 1 ? 's' : ''}...
+                    Você será levado para a página "Meus Pedidos" em {tempoRedirecionamento} segundo{tempoRedirecionamento !== 1 ? 's' : ''} para acompanhar seu pedido.
                   </p>
                 </div>
               </div>
@@ -557,12 +572,12 @@ export default function CheckoutPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/meus-pedidos"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#B69B4C] text-white font-semibold rounded-lg hover:bg-[#9d8540] transition-colors shadow-md hover:shadow-lg"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                Ver Meus Pedidos
+                📋 Ver Meus Pedidos
               </Link>
 
               <Link

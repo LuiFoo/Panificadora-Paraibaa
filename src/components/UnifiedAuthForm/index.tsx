@@ -36,8 +36,7 @@ export default function UnifiedAuthForm({
         console.log(`🔄 Tentativa de login Google ${retryCount + 1}/${maxRetries}`);
         
         const result = await signIn("google", { 
-          callbackUrl: "/",
-          redirect: false
+          callbackUrl: "/"
         });
         
         if (result?.error) {
