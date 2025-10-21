@@ -349,6 +349,7 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           produtos: cartItems.map(item => ({
+            id: item.id,
             produtoId: item.id,
             nome: item.nome,
             valor: item.valor,
@@ -365,6 +366,8 @@ export default function CheckoutPage() {
       });
 
       const data = await response.json();
+      
+      console.log("📋 Resposta da API:", { status: response.status, data });
 
       if (response.ok && data.success) {
         // Salvar dados do usuário se solicitado
@@ -399,6 +402,7 @@ export default function CheckoutPage() {
           });
         }, 1000);
       } else {
+        console.log("❌ Erro na API:", data);
         setError(data.error || "Erro ao processar pedido");
       }
     } catch (err) {
