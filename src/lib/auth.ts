@@ -26,18 +26,10 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === 'development',
   callbacks: {
     async signIn({ user, account }) {
-      console.log("=== CALLBACK SIGNIN ===");
-      console.log("User:", user.email);
-      console.log("Account provider:", account?.provider);
-      console.log("User ID:", user.id);
-      console.log("User name:", user.name);
-      
       // Permite login apenas com Google
       if (account?.provider === "google") {
-        console.log("✅ Login com Google autorizado");
         return true;
       }
-      console.log("❌ Login rejeitado - não é Google");
       return false;
     },
     async session({ session, token }) {
