@@ -21,7 +21,13 @@ async function inicializarContador() {
     console.log("✅ Conectado com sucesso!\n");
 
     const db = client.db("paraiba");
-    const contadoresCollection = db.collection("contadores");
+    
+    // Definir interface para o contador
+    interface Contador {
+      _id: string;
+      ultimoNumero: number;
+    }
+    const contadoresCollection = db.collection<Contador>("contadores");
 
     // Verificar se o contador já existe
     const contadorExistente = await contadoresCollection.findOne({ _id: "pedidos" });
