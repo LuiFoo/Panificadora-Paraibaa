@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { validateAndFormatCEP } from "@/lib/cepUtils";
-import { parseTime, isValidPhone, isValidEmail } from "@/lib/validation";
+import { parseTime, isValidPhone } from "@/lib/validation";
 
 interface Endereco {
   rua: string;
@@ -214,7 +214,8 @@ export default function CheckoutPage() {
         setHoraEntrega("");
       }
     }
-  }, [dataEntrega]); // Removido horaEntrega das dependências para evitar loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataEntrega]); // horaEntrega intencionalmente omitido para evitar loop
 
   // Redirecionar se não estiver logado
   useEffect(() => {
@@ -266,7 +267,8 @@ export default function CheckoutPage() {
     if (!validandoCarrinho && cartItems.length > 0) {
       validarCarrinho();
     }
-  }, [cartItems.length, forcarAtualizacao]); // Adicionado forcarAtualizacao nas dependências
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartItems.length, forcarAtualizacao]); // validandoCarrinho intencionalmente omitido
 
   const total = cartItems.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
 
@@ -547,7 +549,7 @@ export default function CheckoutPage() {
                 <div>
                   <p className="text-blue-900 font-semibold">Redirecionando para seus pedidos...</p>
                   <p className="text-blue-700 text-sm">
-                    Você será levado para a página "Meus Pedidos" em {tempoRedirecionamento} segundo{tempoRedirecionamento !== 1 ? 's' : ''} para acompanhar seu pedido.
+                    Você será levado para a página &quot;Meus Pedidos&quot; em {tempoRedirecionamento} segundo{tempoRedirecionamento !== 1 ? 's' : ''} para acompanhar seu pedido.
                   </p>
                 </div>
               </div>

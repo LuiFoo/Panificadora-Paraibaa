@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
+import { ObjectId } from "mongodb";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -46,7 +47,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // 3. Se ainda não encontrou, tentar por _id (se userId for um ObjectId)
           if (!usuario && pedido.userId) {
             try {
-              const { ObjectId } = require("mongodb");
               if (ObjectId.isValid(pedido.userId)) {
                 usuario = await db.collection("users").findOne({ 
                   _id: new ObjectId(pedido.userId) 

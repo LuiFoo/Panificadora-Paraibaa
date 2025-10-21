@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
-import { safeParseFloat, safeParseInt } from "@/lib/validation";
+import { safeParseFloat } from "@/lib/validation";
 
 // Categorias disponíveis
 const CATEGORIAS_DISPONIVEIS = [

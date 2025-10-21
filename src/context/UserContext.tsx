@@ -24,6 +24,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // Helper para remover dados sensíveis antes de salvar no localStorage
 const sanitizeUserForStorage = (user: User): Omit<User, 'password'> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { password, ...userWithoutPassword } = user;
   return userWithoutPassword;
 };
@@ -255,7 +256,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     };
 
     validateUser();
-  }, []); // Executa apenas uma vez na montagem
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Executa apenas uma vez na montagem, dependências gerenciadas por refs
   
   // Polling unificado para detectar mudanças no localStorage
   useEffect(() => {
