@@ -592,7 +592,7 @@ export default function PedidosPage() {
                         <h4 className="font-bold text-amber-800 mb-2 flex items-center gap-2">
                           📝 Observações do Cliente
                         </h4>
-                        <p className="text-sm text-gray-700 italic">"{pedido.observacoes}"</p>
+                        <p className="text-sm text-gray-700 italic">&ldquo;{pedido.observacoes}&rdquo;</p>
                       </div>
                     )}
 
@@ -808,7 +808,7 @@ export default function PedidosPage() {
                     📝 Observações do Cliente
                   </h3>
                   <p className="text-gray-700 bg-white rounded-lg p-4 border border-amber-200 italic">
-                    "{pedidoSelecionado.observacoes}"
+                    &ldquo;{pedidoSelecionado.observacoes}&rdquo;
                   </p>
                 </div>
               )}

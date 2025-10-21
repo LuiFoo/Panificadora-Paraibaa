@@ -250,6 +250,7 @@ export default function CheckoutPage() {
 
     // Executar validação apenas uma vez
     validarCarrinho();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 🐛 CORREÇÃO: Array vazio - executa apenas uma vez
 
   const total = cartItems.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
