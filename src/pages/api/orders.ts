@@ -163,9 +163,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Observações muito longas (máximo 500 caracteres)" });
       }
 
+      // 🎯 NOVO: Gerar número sequencial do pedido
+      const contadoresCollection = db.collection("contadores");
+      
+      // Buscar ou criar contador de pedidos
+      let contador = await contadoresCollection.findOne({ _id: "pedidos" });
+      
+      if (!contador) {
+        // Criar contador se não existir
+        await contadoresCollection.insertOne({
+          _id: "pedidos",
+          ultimoNumero: 0
+        });
+        contador = { _id: "pedidos", ultimoNumero: 0 };
+      }
+
+      // Incrementar contador e obter próximo número
+      const resultado = await contadoresCollection.findOneAndUpdate(
+        { _id: "pedidos" },
+        { $inc: { ultimoNumero: 1 } },
+        { returnDocument: "after" }
+      );
+
+      const numeroPedido = resultado?.ultimoNumero || 1;
+      const numeroPedidoFormatado = String(numeroPedido).padStart(5, '0'); // 00001, 00002, etc.
+
       // Criar pedido
       const dataAtual = new Date();
       const novoPedido = {
+        numeroPedido: numeroPedidoFormatado, // Número sequencial
         userId: user.login || userLogin,
         produtos,
         total,
@@ -217,12 +243,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Não retornar erro porque o pedido já foi criado
       }
 
-      logger.info("✅ Pedido criado com sucesso:", pedidoId);
+      logger.info("✅ Pedido criado com sucesso:", pedidoId, "Número:", numeroPedidoFormatado);
       
       return res.status(201).json({ 
         success: true,
         pedidoId: pedidoId,
-        message: "Pedido realizado com sucesso! Aguarde a confirmação."
+        numeroPedido: numeroPedidoFormatado,
+        message: `Pedido #${numeroPedidoFormatado} realizado com sucesso! Aguarde a confirmação.`
       });
     }
 

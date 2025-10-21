@@ -10,6 +10,7 @@ import Link from "next/link";
 
 interface Pedido {
   _id: string;
+  numeroPedido?: string; // Número sequencial (00001, 00002, etc.)
   produtos: Array<{
     produtoId: string;
     nome: string;
@@ -271,7 +272,7 @@ export default function MeusPedidosPage() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold">Pedido #{pedido._id.slice(-6)}</h3>
+                        <h3 className="text-lg font-semibold">Pedido #{pedido.numeroPedido || pedido._id.slice(-6)}</h3>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(pedido.status)}`}>
                           {getStatusText(pedido.status)}
                         </span>
@@ -390,7 +391,7 @@ export default function MeusPedidosPage() {
                     {/* Ações Rápidas */}
                     <div className="flex gap-2 pt-2">
                       <a
-                        href={`https://api.whatsapp.com/send?phone=551636151947&text=Olá! Gostaria de saber sobre o pedido #${pedido._id.slice(-6)}`}
+                        href={`https://api.whatsapp.com/send?phone=551636151947&text=Olá! Gostaria de saber sobre o pedido #${pedido.numeroPedido || pedido._id.slice(-6)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-center text-sm transition-colors flex items-center justify-center gap-2"

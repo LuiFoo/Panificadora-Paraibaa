@@ -52,8 +52,8 @@ export default function CheckoutPage() {
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [cepError, setCepError] = useState("");
   const cepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const validacaoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const redirecionamentoIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const jaValidouRef = useRef(false); // 🐛 CORREÇÃO: Prevenir loop infinito
 
   // Calcular data máxima (1 mês a partir de hoje)
   const getDataMaxima = () => {
@@ -68,9 +68,6 @@ export default function CheckoutPage() {
     return () => {
       if (cepTimeoutRef.current) {
         clearTimeout(cepTimeoutRef.current);
-      }
-      if (validacaoTimeoutRef.current) {
-        clearTimeout(validacaoTimeoutRef.current);
       }
       if (redirecionamentoIntervalRef.current) {
         clearInterval(redirecionamentoIntervalRef.current);
@@ -231,44 +228,29 @@ export default function CheckoutPage() {
     }
   }, [cartItems, loading, router]);
 
-  // Validar carrinho antes do checkout (apenas uma vez)
+  // 🐛 CORREÇÃO: Validar carrinho apenas UMA VEZ ao montar o componente
   useEffect(() => {
     const validarCarrinho = async () => {
-      if (cartItems.length === 0) return;
+      // Prevenir validação múltipla
+      if (jaValidouRef.current || cartItems.length === 0) return;
       
+      jaValidouRef.current = true;
       setValidandoCarrinho(true);
-      
-      // Timeout de 10 segundos para evitar travamento
-      validacaoTimeoutRef.current = setTimeout(() => {
-        console.log("⏰ Timeout na validação do carrinho");
-        setValidandoCarrinho(false);
-        setError("Timeout na validação do carrinho. Tente novamente.");
-      }, 10000);
       
       try {
         console.log("🔄 Validando carrinho antes do checkout...");
         await forcarAtualizacao();
         console.log("✅ Carrinho validado com sucesso");
-        if (validacaoTimeoutRef.current) {
-          clearTimeout(validacaoTimeoutRef.current);
-        }
       } catch (error) {
         console.error("❌ Erro ao validar carrinho:", error);
-        setError("Erro ao validar carrinho. Recarregue a página e tente novamente.");
-        if (validacaoTimeoutRef.current) {
-          clearTimeout(validacaoTimeoutRef.current);
-        }
       } finally {
         setValidandoCarrinho(false);
       }
     };
 
-    // Só validar se não estiver já validando
-    if (!validandoCarrinho && cartItems.length > 0) {
-      validarCarrinho();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cartItems.length, forcarAtualizacao]); // validandoCarrinho intencionalmente omitido
+    // Executar validação apenas uma vez
+    validarCarrinho();
+  }, []); // 🐛 CORREÇÃO: Array vazio - executa apenas uma vez
 
   const total = cartItems.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
 
@@ -480,18 +462,9 @@ export default function CheckoutPage() {
         <Header />
         <main className="max-w-6xl mx-auto px-4 py-10 text-center">
           <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-avocado-600)]"></div>
-            <p className="text-gray-600 text-lg">Validando carrinho...</p>
-            <p className="text-gray-500 text-sm">Verificando preços e disponibilidade dos produtos</p>
-            <button
-              onClick={() => {
-                console.log("⏭️ Pulando validação do carrinho");
-                setValidandoCarrinho(false);
-              }}
-              className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              Pular Validação
-            </button>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p className="text-gray-800 text-xl font-bold">Validando carrinho...</p>
+            <p className="text-gray-500">Verificando preços e disponibilidade dos produtos</p>
           </div>
         </main>
         <Footer showMap={false} />
@@ -910,16 +883,32 @@ export default function CheckoutPage() {
               {/* Informações de Retirada */}
               {modalidadeEntrega === 'retirada' && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                  <h3 className="text-lg font-medium text-blue-900 mb-2">Informações para Retirada</h3>
-                  <div className="text-sm text-blue-800 space-y-1 mb-4">
-                    <p><strong>Endereço da Panificadora:</strong></p>
-                    <p>Rua das Flores, 123 - Centro</p>
-                    <p>João Pessoa - PB, 58000-000</p>
-                    <p className="mt-2"><strong>Horário de Funcionamento:</strong></p>
-                    <p>✅ Segunda a Sábado: 07h às 18:30h</p>
-                    <p>❌ Domingo: NÃO fazemos pedidos</p>
-                    <p className="mt-2 text-green-800">📅 <strong>Prazo:</strong> Pedidos até 1 mês no futuro</p>
-                    <p className="mt-2"><strong>Telefone:</strong> (83) 99999-9999</p>
+                  <h3 className="text-lg font-medium text-blue-900 mb-3">📍 Informações para Retirada</h3>
+                  <div className="text-sm text-blue-800 space-y-2 mb-4">
+                    <div>
+                      <p className="font-bold text-blue-900 mb-1">Endereço</p>
+                      <p>Av. Ernesto Guevara Lã Serna, 72</p>
+                      <p>Jardim Heitor Rigon</p>
+                      <p>Ribeirão Preto - SP</p>
+                    </div>
+                    
+                    <div className="pt-2 border-t border-blue-200">
+                      <p className="font-bold text-blue-900 mb-1">Telefone</p>
+                      <p>(16) 3615-1947</p>
+                    </div>
+                    
+                    <div className="pt-2 border-t border-blue-200">
+                      <p className="font-bold text-blue-900 mb-1">E-mail</p>
+                      <p>padariaparaiba@gmail.com</p>
+                    </div>
+                    
+                    <div className="pt-2 border-t border-blue-200">
+                      <p className="font-bold text-blue-900 mb-1">Horário de Funcionamento</p>
+                      <p>✅ Segunda a Sábado: 07h às 18:30h</p>
+                      <p>❌ Domingo: NÃO fazemos pedidos</p>
+                    </div>
+                    
+                    <p className="mt-2 text-green-800 font-medium">📅 Pedidos até 1 mês no futuro</p>
                   </div>
                   
                   {/* Campos de Data e Hora de Retirada */}
@@ -1022,7 +1011,7 @@ export default function CheckoutPage() {
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Digite apenas números (ex: 83999999999)
+                  Digite apenas números (ex: 16999999999)
                 </p>
               </div>
 

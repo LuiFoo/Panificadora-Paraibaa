@@ -6,6 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Modal from "@/components/Modal";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
@@ -20,6 +21,8 @@ interface Usuario {
   permissaoSuprema?: boolean | string; // Aceita boolean true ou string "true" do MongoDB
   dataCriacao: string | null;
   ultimoAcesso: string | null;
+  picture?: string; // Foto do Google
+  googleId?: string;
 }
 
 export default function GerenciarUsuarios() {
@@ -404,11 +407,31 @@ export default function GerenciarUsuarios() {
                     <div key={user.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-lg">
-                              {user.permission === "administrador" ? "👑" : "👤"}
-                            </span>
-                          </div>
+                          {/* Foto do usuário (Google) ou avatar padrão */}
+                          {user.picture && user.picture.trim() !== '' ? (
+                            <div className="relative w-14 h-14 flex-shrink-0">
+                              <Image
+                                src={user.picture}
+                                alt={user.name}
+                                width={56}
+                                height={56}
+                                className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-300"
+                                unoptimized={!user.picture.includes('googleusercontent.com')}
+                              />
+                              {user.permission === "administrador" && (
+                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                                  <span className="text-xs">👑</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="w-14 h-14 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                              <span className="text-white text-2xl">
+                                {user.permission === "administrador" ? "👑" : "👤"}
+                              </span>
+                            </div>
+                          )}
+                          
                           <div>
                             <button
                               onClick={() => router.push(`/painel/cliente/${user.login}?from=usuarios`)}
@@ -420,7 +443,14 @@ export default function GerenciarUsuarios() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                               </svg>
                             </button>
-                            <p className="text-sm text-gray-600">@{user.login}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-gray-600">@{user.login}</p>
+                              {user.googleId && (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-1">
+                                  🔵 Google
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-4 mt-1">
                               {user.email && (
                                 <span className="text-xs text-gray-500 flex items-center gap-1">

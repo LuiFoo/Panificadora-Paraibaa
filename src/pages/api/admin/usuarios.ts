@@ -34,7 +34,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         permission: user.permissao || "usuario",
         permissaoSuprema: user.permissaoSuprema === true || user.permissaoSuprema === "true" || user.ExIlimitada === true || user.ExIlimitada === "true",
         dataCriacao: user.dataCriacao || null,
-        ultimoAcesso: user.ultimoAcesso || null
+        ultimoAcesso: user.ultimoAcesso || null,
+        picture: user.picture || null,
+        googleId: user.googleId || null
       }));
 
       return res.status(200).json({ 
