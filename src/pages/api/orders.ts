@@ -75,10 +75,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           logger.dev("❌ Estrutura de produto inválida:", produto);
           return res.status(400).json({ error: "Estrutura de produto inválida" });
         }
-        if (produto.valor <= 0 || produto.quantidade <= 0) {
+        // 🐛 CORREÇÃO: Validações numéricas robustas
+        if (produto.valor <= 0 || produto.quantidade <= 0 || isNaN(produto.valor) || isNaN(produto.quantidade)) {
           logger.dev("❌ Valor ou quantidade inválidos:", produto);
-          return res.status(400).json({ error: "Valor e quantidade devem ser maiores que zero" });
+          return res.status(400).json({ error: "Valor e quantidade devem ser números maiores que zero" });
         }
+        
+        if (!isFinite(produto.valor) || !isFinite(produto.quantidade)) {
+          logger.dev("❌ Valor ou quantidade infinitos:", produto);
+          return res.status(400).json({ error: "Valores inválidos detectados" });
+        }
+
+        if (produto.quantidade > 999) {
+          return res.status(400).json({ error: "Quantidade máxima por produto é 999" });
+        }
+        
         // Validar se o ID é um ObjectId válido
         if (!ObjectId.isValid(produto.id)) {
           logger.dev("❌ ID de produto inválido:", produto.id);
@@ -90,6 +101,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 4. Calcular total (limite de valor removido)
       const total = produtos.reduce((sum: number, item: ProdutoPedido) => sum + (item.valor * item.quantidade), 0);
+      
+      // 🐛 CORREÇÃO: Validar total calculado
+      if (isNaN(total) || !isFinite(total) || total <= 0) {
+        return res.status(400).json({ error: "Total do pedido inválido" });
+      }
+
+      if (total > 999999) {
+        return res.status(400).json({ error: "Valor total muito alto. Entre em contato conosco." });
+      }
 
       // 5. Validar modalidade de entrega
       if (!modalidadeEntrega || !['entrega', 'retirada'].includes(modalidadeEntrega)) {
@@ -129,9 +149,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // 8. Validar telefone
-      if (!telefone || telefone.length < 10) {
+      if (!telefone || typeof telefone !== 'string' || telefone.length < 10) {
         logger.dev("❌ Telefone inválido:", telefone);
         return res.status(400).json({ error: "Telefone válido é obrigatório" });
+      }
+
+      if (telefone.length > 20) {
+        return res.status(400).json({ error: "Telefone muito longo (máximo 20 caracteres)" });
+      }
+
+      // 9. Validar observações (se fornecidas)
+      if (observacoes && typeof observacoes === 'string' && observacoes.length > 500) {
+        return res.status(400).json({ error: "Observações muito longas (máximo 500 caracteres)" });
       }
 
       // Criar pedido

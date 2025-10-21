@@ -49,6 +49,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Nome é obrigatório" });
       }
 
+      // 🐛 CORREÇÃO: Validações de segurança e tamanho
+      if (typeof nome !== 'string' || nome.trim().length === 0) {
+        return res.status(400).json({ error: "Nome inválido" });
+      }
+
+      if (nome.length > 200) {
+        return res.status(400).json({ error: "Nome muito longo (máximo 200 caracteres)" });
+      }
+
+      if (descricao && typeof descricao === 'string' && descricao.length > 1000) {
+        return res.status(400).json({ error: "Descrição muito longa (máximo 1000 caracteres)" });
+      }
+
       const updateData: Record<string, unknown> = {
         nome,
         atualizadoEm: new Date()

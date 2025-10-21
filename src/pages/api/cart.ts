@@ -72,15 +72,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
-    // Inicializa o carrinho caso não exista
-    if (!user.carrinho) {
-      user.carrinho = { produtos: [] };
+    // 🐛 CORREÇÃO DE BUG: Inicializa o carrinho E salva no banco caso não exista
+    if (!user.carrinho || !user.carrinho.produtos) {
+      const carrinhoInicial = { produtos: [], updatedAt: new Date().toISOString() };
+      
+      // Salvar carrinho inicializado no banco
+      await db.collection("users").updateOne(
+        { _id: user._id },
+        { $set: { carrinho: carrinhoInicial } }
+      );
+      
+      user.carrinho = carrinhoInicial;
     }
 
     // Se for GET, retorna os produtos do carrinho
     if (method === "GET") {
       return res.status(200).json({ 
-        produtos: user.carrinho.produtos || [],
+        produtos: user.carrinho.produtos,
         updatedAt: user.carrinho.updatedAt || new Date().toISOString()
       });
     }
@@ -89,9 +97,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { produtoId, nome, valor, quantidade, img } = req.body;
       logger.dev("Dados recebidos na API:", { produtoId, nome, valor, quantidade, img });
 
-      if (!produtoId || !nome || !valor || quantidade <= 0) {
+      // 🐛 CORREÇÃO: Validações mais robustas
+      if (!produtoId || !nome || !valor || !quantidade) {
         logger.dev("Dados inválidos:", { produtoId, nome, valor, quantidade });
         return res.status(400).json({ error: "Dados inválidos para adicionar produto" });
+      }
+
+      if (typeof valor !== 'number' || valor <= 0 || isNaN(valor)) {
+        return res.status(400).json({ error: "Valor deve ser um número maior que zero" });
+      }
+
+      if (typeof quantidade !== 'number' || quantidade <= 0 || isNaN(quantidade) || quantidade > 999) {
+        return res.status(400).json({ error: "Quantidade inválida (entre 1 e 999)" });
       }
 
       logger.dev("Carrinho atual do usuário:", user.carrinho.produtos);

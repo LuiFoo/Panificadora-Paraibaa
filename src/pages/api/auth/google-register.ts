@@ -13,11 +13,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { googleId, email, name, login, password } = req.body;
 
-    // Verifica se todos os campos obrigatórios foram fornecidos
+    // 🐛 CORREÇÃO: Validações mais robustas
     if (!googleId || !email || !name || !login || !password) {
       return res.status(400).json({ 
         ok: false, 
         msg: "Todos os campos são obrigatórios" 
+      });
+    }
+
+    // Validações de tipo e tamanho
+    if (typeof email !== 'string' || typeof name !== 'string' || typeof login !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: "Dados inválidos" 
+      });
+    }
+
+    if (login.length < 3 || login.length > 30) {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: "Login deve ter entre 3 e 30 caracteres" 
+      });
+    }
+
+    if (name.length > 100 || email.length > 100 || password.length > 100) {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: "Dados muito longos" 
+      });
+    }
+
+    // Validação básica de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: "Formato de email inválido" 
       });
     }
 

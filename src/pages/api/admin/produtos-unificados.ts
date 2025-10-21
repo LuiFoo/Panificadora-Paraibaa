@@ -76,9 +76,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         destaque = false
       } = req.body;
 
-      // Validações
+      // 🐛 CORREÇÃO: Validações robustas de segurança e tamanho
       if (!nome || !categoriaSlug || !valor || !tipo || !ingredientes || !imagem) {
         return res.status(400).json({ error: "Campos obrigatórios: nome, categoria, valor, tipo, ingredientes, imagem" });
+      }
+
+      if (typeof nome !== 'string' || nome.trim().length === 0) {
+        return res.status(400).json({ error: "Nome inválido" });
+      }
+
+      if (nome.length > 200) {
+        return res.status(400).json({ error: "Nome muito longo (máximo 200 caracteres)" });
+      }
+
+      if (descricao && typeof descricao === 'string' && descricao.length > 1000) {
+        return res.status(400).json({ error: "Descrição muito longa (máximo 1000 caracteres)" });
+      }
+
+      if (typeof valor !== 'number' || valor <= 0 || isNaN(valor)) {
+        return res.status(400).json({ error: "Valor deve ser um número maior que zero" });
       }
 
       // Verificar se categoria existe

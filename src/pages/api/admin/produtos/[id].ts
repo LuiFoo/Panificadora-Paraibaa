@@ -57,13 +57,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (method === "PUT") {
       const { subc, nome, valor, vtipo, ingredientes, img, status } = req.body;
 
-      // Validações
+      // 🐛 CORREÇÃO: Validações mais robustas
       if (!subc || !nome || !valor || !vtipo || !ingredientes || !img) {
         return res.status(400).json({ error: "Todos os campos são obrigatórios" });
       }
 
-      if (valor <= 0) {
-        return res.status(400).json({ error: "Valor deve ser maior que zero" });
+      if (typeof nome !== 'string' || nome.trim().length === 0) {
+        return res.status(400).json({ error: "Nome inválido" });
+      }
+
+      if (nome.length > 200) {
+        return res.status(400).json({ error: "Nome muito longo (máximo 200 caracteres)" });
+      }
+
+      if (typeof valor !== 'number' || valor <= 0 || isNaN(valor) || !isFinite(valor)) {
+        return res.status(400).json({ error: "Valor deve ser um número válido e maior que zero" });
       }
 
       // Verificar se o produto existe

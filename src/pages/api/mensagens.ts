@@ -131,6 +131,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // 🐛 CORREÇÃO: Validar tamanho de userName
+      if (userName.length > 100) {
+        return res.status(400).json({ 
+          error: "Nome de usuário muito longo (máximo 100 caracteres)" 
+        });
+      }
+
+      if (userId.length > 100) {
+        return res.status(400).json({ 
+          error: "ID de usuário muito longo" 
+        });
+      }
+
       if (!['cliente', 'admin'].includes(remetente)) {
         return res.status(400).json({ 
           error: "Remetente deve ser 'cliente' ou 'admin'" 

@@ -10,11 +10,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { googleId, email, name, picture } = req.body;
 
-    // Verifica se todos os campos obrigatórios foram fornecidos
+    // 🐛 CORREÇÃO: Validações mais robustas
     if (!googleId || !email || !name) {
       return res.status(400).json({ 
         ok: false, 
         msg: "Dados do Google incompletos" 
+      });
+    }
+
+    if (typeof email !== 'string' || typeof name !== 'string' || typeof googleId !== 'string') {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: "Dados inválidos" 
+      });
+    }
+
+    if (name.length > 100 || email.length > 100) {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: "Dados muito longos" 
+      });
+    }
+
+    // Validação básica de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        ok: false, 
+        msg: "Formato de email inválido" 
       });
     }
 

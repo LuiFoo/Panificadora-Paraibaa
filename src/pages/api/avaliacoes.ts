@@ -113,7 +113,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const soma = usuarios.reduce((acc, av) => acc + (Number(av.nota) || 0), 0);
       const media = usuarios.length > 0 ? Number((soma / usuarios.length).toFixed(1)) : 0;
 
-      await produtosCol.updateOne(
+      // 🐛 CORREÇÃO: Verificar resultado do updateOne
+      const updateResult = await produtosCol.updateOne(
         { _id },
         {
           $set: {
@@ -123,6 +124,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       );
+
+      if (updateResult.matchedCount === 0) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
 
       return res.status(idx >= 0 ? 200 : 201).json({
         success: true,
@@ -157,7 +162,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const soma = novosUsuarios.reduce((acc, av) => acc + (Number(av.nota) || 0), 0);
       const media = novosUsuarios.length > 0 ? Number((soma / novosUsuarios.length).toFixed(1)) : 0;
 
-      await produtosCol.updateOne(
+      // 🐛 CORREÇÃO: Verificar resultado do updateOne
+      const deleteResult = await produtosCol.updateOne(
         { _id },
         {
           $set: {
@@ -167,6 +173,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       );
+
+      if (deleteResult.matchedCount === 0) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
 
       return res.status(200).json({
         success: true,
