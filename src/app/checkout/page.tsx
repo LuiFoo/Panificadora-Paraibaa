@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
 import { useUser } from "@/context/UserContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { validateAndFormatCEP } from "@/lib/cepUtils";
@@ -50,7 +50,9 @@ export default function CheckoutPage() {
   const [dadosCarregados, setDadosCarregados] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [cepError, setCepError] = useState("");
-  const [cepTimeout, setCepTimeout] = useState<NodeJS.Timeout | null>(null);
+  const cepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const validacaoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const redirecionamentoIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calcular data máxima (1 mês a partir de hoje)
   const getDataMaxima = () => {
@@ -60,14 +62,20 @@ export default function CheckoutPage() {
     return umMesDepois.toISOString().split('T')[0];
   };
 
-  // Cleanup timeout quando componente for desmontado
+  // Cleanup de todos os timeouts e intervalos quando componente for desmontado
   useEffect(() => {
     return () => {
-      if (cepTimeout) {
-        clearTimeout(cepTimeout);
+      if (cepTimeoutRef.current) {
+        clearTimeout(cepTimeoutRef.current);
+      }
+      if (validacaoTimeoutRef.current) {
+        clearTimeout(validacaoTimeoutRef.current);
+      }
+      if (redirecionamentoIntervalRef.current) {
+        clearInterval(redirecionamentoIntervalRef.current);
       }
     };
-  }, [cepTimeout]);
+  }, []);
 
   // Função para buscar endereço por CEP (otimizada)
   const buscarCep = async (cep: string) => {
@@ -205,7 +213,7 @@ export default function CheckoutPage() {
         setHoraEntrega("");
       }
     }
-  }, [dataEntrega, horaEntrega]);
+  }, [dataEntrega]); // Removido horaEntrega das dependências para evitar loop
 
   // Redirecionar se não estiver logado
   useEffect(() => {
@@ -229,7 +237,7 @@ export default function CheckoutPage() {
       setValidandoCarrinho(true);
       
       // Timeout de 10 segundos para evitar travamento
-      const timeout = setTimeout(() => {
+      validacaoTimeoutRef.current = setTimeout(() => {
         console.log("⏰ Timeout na validação do carrinho");
         setValidandoCarrinho(false);
         setError("Timeout na validação do carrinho. Tente novamente.");
@@ -239,11 +247,15 @@ export default function CheckoutPage() {
         console.log("🔄 Validando carrinho antes do checkout...");
         await forcarAtualizacao();
         console.log("✅ Carrinho validado com sucesso");
-        clearTimeout(timeout);
+        if (validacaoTimeoutRef.current) {
+          clearTimeout(validacaoTimeoutRef.current);
+        }
       } catch (error) {
         console.error("❌ Erro ao validar carrinho:", error);
         setError("Erro ao validar carrinho. Recarregue a página e tente novamente.");
-        clearTimeout(timeout);
+        if (validacaoTimeoutRef.current) {
+          clearTimeout(validacaoTimeoutRef.current);
+        }
       } finally {
         setValidandoCarrinho(false);
       }
@@ -253,7 +265,7 @@ export default function CheckoutPage() {
     if (!validandoCarrinho && cartItems.length > 0) {
       validarCarrinho();
     }
-  }, [cartItems.length]); // Removido forcarAtualizacao da dependência
+  }, [cartItems.length, forcarAtualizacao]); // Adicionado forcarAtualizacao nas dependências
 
   const total = cartItems.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
 
@@ -404,10 +416,12 @@ export default function CheckoutPage() {
         clearCart();
         
         // Contador para redirecionamento
-        const interval = setInterval(() => {
+        redirecionamentoIntervalRef.current = setInterval(() => {
           setTempoRedirecionamento((prev) => {
             if (prev <= 1) {
-              clearInterval(interval);
+              if (redirecionamentoIntervalRef.current) {
+                clearInterval(redirecionamentoIntervalRef.current);
+              }
               router.push("/meus-pedidos");
               return 0;
             }
@@ -701,15 +715,14 @@ export default function CheckoutPage() {
                             setCepError("");
                             
                             // Buscar CEP quando tiver 8 dígitos
-                            if (cepTimeout) {
-                              clearTimeout(cepTimeout);
+                            if (cepTimeoutRef.current) {
+                              clearTimeout(cepTimeoutRef.current);
                             }
                             
                             if (cepNumeros.length === 8) {
-                              const timeout = setTimeout(() => {
+                              cepTimeoutRef.current = setTimeout(() => {
                                 buscarCep(cepNumeros);
                               }, 500);
-                              setCepTimeout(timeout);
                             }
                           }}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${

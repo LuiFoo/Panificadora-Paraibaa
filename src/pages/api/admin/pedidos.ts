@@ -26,16 +26,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Enriquecer pedidos com informações do usuário
       const pedidosEnriquecidos = await Promise.all(
         pedidos.map(async (pedido) => {
-          const usuario = await db.collection("users").findOne({ 
-            email: pedido.emailUsuario || pedido.userEmail 
-          });
+          // Tentar buscar usuário por diferentes campos
+          let usuario = null;
+          
+          // 1. Tentar por email
+          if (pedido.emailUsuario || pedido.userEmail) {
+            usuario = await db.collection("users").findOne({ 
+              email: pedido.emailUsuario || pedido.userEmail 
+            });
+          }
+          
+          // 2. Se não encontrou, tentar por userId/login
+          if (!usuario && pedido.userId) {
+            usuario = await db.collection("users").findOne({ 
+              login: pedido.userId 
+            });
+          }
+          
+          // 3. Se ainda não encontrou, tentar por _id (se userId for um ObjectId)
+          if (!usuario && pedido.userId) {
+            try {
+              const { ObjectId } = require("mongodb");
+              if (ObjectId.isValid(pedido.userId)) {
+                usuario = await db.collection("users").findOne({ 
+                  _id: new ObjectId(pedido.userId) 
+                });
+              }
+            } catch (err) {
+              console.error("Erro ao buscar usuário por ObjectId:", err);
+            }
+          }
           
           return {
             ...pedido,
             usuario: usuario ? {
               nome: usuario.name,
               email: usuario.email,
-              telefone: usuario.phone
+              telefone: usuario.phone || pedido.telefone
             } : null
           };
         })

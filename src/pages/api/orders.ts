@@ -3,6 +3,7 @@ import clientPromise from "@/modules/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { logger } from "@/lib/logger";
 
 interface ProdutoPedido {
   id: string;
@@ -51,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (method === "POST") {
       const { produtos, modalidadeEntrega, endereco, dataRetirada, horaRetirada, telefone, observacoes } = req.body;
       
-      console.log("📦 Dados recebidos na API orders:", {
+      logger.dev("📦 Dados recebidos na API orders:", {
         produtos: produtos?.length,
         modalidadeEntrega,
         telefone,
@@ -70,19 +71,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Validar estrutura dos produtos
       for (const produto of produtos) {
-        console.log("🔍 Validando produto:", { id: produto.id, nome: produto.nome, valor: produto.valor, quantidade: produto.quantidade });
+        logger.dev("🔍 Validando produto:", { id: produto.id, nome: produto.nome, valor: produto.valor, quantidade: produto.quantidade });
         
         if (!produto.id || !produto.nome || typeof produto.valor !== 'number' || typeof produto.quantidade !== 'number') {
-          console.log("❌ Estrutura de produto inválida:", produto);
+          logger.dev("❌ Estrutura de produto inválida:", produto);
           return res.status(400).json({ error: "Estrutura de produto inválida" });
         }
         if (produto.valor <= 0 || produto.quantidade <= 0) {
-          console.log("❌ Valor ou quantidade inválidos:", produto);
+          logger.dev("❌ Valor ou quantidade inválidos:", produto);
           return res.status(400).json({ error: "Valor e quantidade devem ser maiores que zero" });
         }
         // Validar se o ID é um ObjectId válido
         if (!ObjectId.isValid(produto.id)) {
-          console.log("❌ ID de produto inválido:", produto.id);
+          logger.dev("❌ ID de produto inválido:", produto.id);
           return res.status(400).json({ error: "ID de produto inválido" });
         }
       }
@@ -94,13 +95,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 5. Validar modalidade de entrega
       if (!modalidadeEntrega || !['entrega', 'retirada'].includes(modalidadeEntrega)) {
-        console.log("❌ Modalidade de entrega inválida:", modalidadeEntrega);
+        logger.dev("❌ Modalidade de entrega inválida:", modalidadeEntrega);
         return res.status(400).json({ error: "Modalidade de entrega é obrigatória" });
       }
 
       // 6. Validar endereço (obrigatório apenas para entrega)
       if (modalidadeEntrega === 'entrega' && (!endereco || !endereco.rua || !endereco.numero || !endereco.bairro || !endereco.cidade)) {
-        console.log("❌ Endereço incompleto para entrega:", endereco);
+        logger.dev("❌ Endereço incompleto para entrega:", endereco);
         return res.status(400).json({ error: "Endereço completo é obrigatório para entrega" });
       }
 
@@ -126,7 +127,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 8. Validar telefone
       if (!telefone || telefone.length < 10) {
-        console.log("❌ Telefone inválido:", telefone);
+        logger.dev("❌ Telefone inválido:", telefone);
         return res.status(400).json({ error: "Telefone válido é obrigatório" });
       }
 
@@ -153,7 +154,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ]
       };
       
-      console.log("📝 Criando pedido:", { userId: novoPedido.userId, total: novoPedido.total, modalidade: novoPedido.modalidadeEntrega });
+      logger.dev("📝 Criando pedido:", { userId: novoPedido.userId, total: novoPedido.total, modalidade: novoPedido.modalidadeEntrega });
 
       // Salvar no banco
       const result = await db.collection("pedidos").insertOne(novoPedido);
@@ -169,7 +170,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       );
 
-      console.log("✅ Pedido criado com sucesso:", result.insertedId);
+      logger.info("✅ Pedido criado com sucesso:", result.insertedId);
       
       return res.status(201).json({ 
         success: true,
@@ -192,7 +193,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método não permitido" });
 
   } catch (error) {
-    console.error("Erro na API de pedidos:", error);
+    logger.error("Erro na API de pedidos:", error);
     return res.status(500).json({ error: "Erro interno do servidor" });
   }
 }

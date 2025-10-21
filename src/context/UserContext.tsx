@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useRef } from "react";
 
 interface User {
   _id: string;
@@ -22,17 +22,28 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Helper para remover dados sensíveis antes de salvar no localStorage
+const sanitizeUserForStorage = (user: User): Omit<User, 'password'> => {
+  const { password, ...userWithoutPassword } = user;
+  return userWithoutPassword;
+};
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [lastValidation, setLastValidation] = useState<number>(0);
+  const lastValidationRef = useRef<number>(0);
+  const isValidating = useRef(false);
+  const lastUserLoginRef = useRef<string>("");
 
-  // Debug logs removidos para produção
+  // Debug logs removido para produção
 
   // Recupera o usuário armazenado no localStorage e valida se ainda é válido no servidor
   useEffect(() => {
-    // Evitar múltiplas execuções simultâneas
-    if (loading === false) return;
+    // Evitar múltiplas validações simultâneas
+    if (isValidating.current) {
+      console.log("🔍 UserContext: Validação já em andamento, pulando");
+      return;
+    }
     
     const savedUser = localStorage.getItem("usuario");
     const manualLogout = localStorage.getItem("manual_logout");
@@ -54,16 +65,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
           picture: parsedUser.picture,
           googleId: parsedUser.googleId
         });
+        
+        // Se o usuário é o mesmo que já foi validado recentemente, pular
+        if (lastUserLoginRef.current === parsedUser.login) {
+          const now = Date.now();
+          const cacheTime = parsedUser.password === 'google-auth' ? 60000 : 30000;
+          if (now - lastValidationRef.current < cacheTime) {
+            console.log("🔍 UserContext: Mesmo usuário validado recentemente, pulando");
+            if (!user) {
+              setUser(parsedUser);
+            }
+            setLoading(false);
+            return;
+          }
+        }
       } catch (e) {
         console.error("🔍 UserContext: Erro ao parsear usuário salvo:", e);
       }
-    }
-    
-    // Se já temos um usuário no contexto, não precisa recarregar do localStorage
-    if (user) {
-      console.log("🔍 UserContext: Usuário já existe no contexto, pulando verificação");
-      setLoading(false);
-      return;
     }
 
     // Se foi logout manual, não carregar usuário
@@ -93,17 +111,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     // Função para verificar o usuário no servidor
     const validateUser = async () => {
-      // Evitar validações muito frequentes (cache de 60 segundos para Google)
-      const now = Date.now();
-      const cacheTime = parsedUser.password === 'google-auth' ? 60000 : 30000; // 1 min para Google, 30s para outros
+      // Marcar que validação está em andamento
+      isValidating.current = true;
       
-      if (now - lastValidation < cacheTime) {
-        console.log("🔍 UserContext: Validação recente, pulando");
-        setLoading(false);
-        return;
-      }
-      
-      setLastValidation(now);
+      // Atualizar registro de validação
+      lastValidationRef.current = Date.now();
+      lastUserLoginRef.current = parsedUser.login;
       
       if (process.env.NODE_ENV === 'development') {
         console.log("🔍 UserContext: Iniciando validação do usuário");
@@ -153,7 +166,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                   picture: validUser.picture
                 });
                 setUser(validUser);
-                localStorage.setItem("usuario", JSON.stringify(validUser));
+                localStorage.setItem("usuario", JSON.stringify(sanitizeUserForStorage(validUser)));
                 success = true;
               } else if (retryCount < maxRetries - 1) {
                 console.log(`🔄 UserContext: Tentativa ${retryCount + 1} falhou, tentando novamente...`);
@@ -209,7 +222,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
               picture: validUser.picture
             });
             setUser(validUser);
-            localStorage.setItem("usuario", JSON.stringify(validUser));
+            localStorage.setItem("usuario", JSON.stringify(sanitizeUserForStorage(validUser)));
           } else {
             // Usuário não válido, limpando localStorage
             console.log("❌ UserContext: Usuário tradicional inválido, limpando localStorage");
@@ -236,12 +249,76 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }
       } finally {
         setLoading(false);
+        isValidating.current = false;
         console.log("🔍 UserContext: Validação concluída, loading = false");
       }
     };
 
     validateUser();
-  }, [user, loading, lastValidation]); // Executa quando user muda
+  }, []); // Executa apenas uma vez na montagem
+  
+  // Polling suave para detectar mudanças no localStorage (quando useAuthSync atualiza)
+  useEffect(() => {
+    // Se já tem usuário, não precisa fazer polling
+    if (user) return;
+    
+    console.log("🔄 UserContext: Iniciando polling para detectar login");
+    
+    const checkForUser = () => {
+      const savedUser = localStorage.getItem("usuario");
+      const manualLogout = localStorage.getItem("manual_logout");
+      
+      // Não carregar se foi logout manual recente
+      if (manualLogout === "true") {
+        const logoutTimestamp = localStorage.getItem("logout_timestamp");
+        const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp) : 0;
+        if (timeSinceLogout < 10000) {
+          return; // Aguardar 10 segundos após logout
+        }
+      }
+      
+      if (savedUser && !isValidating.current) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          console.log("✅ UserContext: Usuário detectado no localStorage via polling:", parsedUser.name);
+          setUser(parsedUser);
+          setLoading(false);
+        } catch (e) {
+          console.error("Erro ao parsear usuário do polling:", e);
+        }
+      }
+    };
+
+    // Verificar a cada 500ms se há usuário no localStorage
+    const interval = setInterval(checkForUser, 500);
+    
+    // Verificar imediatamente também
+    checkForUser();
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, [user]);
+  
+  // Listener para logout (quando usuário é removido)
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkForLogout = () => {
+      const savedUser = localStorage.getItem("usuario");
+      if (!savedUser) {
+        console.log("🔄 UserContext: Logout detectado");
+        setUser(null);
+      }
+    };
+
+    // Verificar a cada segundo se o usuário ainda existe
+    const interval = setInterval(checkForLogout, 1000);
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, [user]);
 
   // Verifica se o usuário tem permissão de administrador usando useMemo para performance
   const isAdmin = useMemo(() => {

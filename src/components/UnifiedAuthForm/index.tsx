@@ -28,67 +28,36 @@ export default function UnifiedAuthForm({
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
-    let retryCount = 0;
-    const maxRetries = 3;
-    
-    const attemptLogin = async (): Promise<boolean> => {
-      try {
-        console.log(`🔄 Tentativa de login Google ${retryCount + 1}/${maxRetries}`);
-        
-        const result = await signIn("google", { 
-          callbackUrl: "/"
-        });
-        
-        if (result?.error) {
-          console.error("❌ Erro no Google Auth:", result.error);
-          
-          // Se for erro de rede ou timeout, tentar novamente
-          if (result.error.includes('network') || result.error.includes('timeout') || result.error.includes('fetch')) {
-            if (retryCount < maxRetries - 1) {
-              retryCount++;
-              console.log(`🔄 Tentando novamente em 1 segundo... (${retryCount}/${maxRetries})`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              return await attemptLogin();
-            }
-          }
-          
-          console.log("❌ Falha no login Google após todas as tentativas");
-          return false;
-        }
-        
-        if (result?.ok) {
-          console.log("✅ Login Google bem-sucedido");
-          // Aguardar um pouco para garantir que a sessão seja processada
-          await new Promise(resolve => setTimeout(resolve, 500));
-          return true;
-        }
-        
-        return false;
-      } catch (error) {
-        console.error("❌ Erro Google Auth:", error);
-        
-        if (retryCount < maxRetries - 1) {
-          retryCount++;
-          console.log(`🔄 Tentando novamente em 1 segundo... (${retryCount}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return await attemptLogin();
-        }
-        
-        return false;
-      }
-    };
     
     try {
-      const success = await attemptLogin();
+      console.log("🔄 Iniciando login com Google");
       
-      if (!success) {
-        console.log("❌ Falha no login após todas as tentativas");
-        // Aqui você pode adicionar um toast ou feedback visual
-        alert("Falha no login. Tente novamente em alguns segundos.");
+      // Para OAuth com redirecionamento, signIn retorna undefined quando bem-sucedido
+      // Apenas mostramos erro se houver um erro explícito
+      const result = await signIn("google", { 
+        callbackUrl: "/",
+        redirect: true // Garantir que redirecione
+      });
+      
+      // Se result existe e tem erro, algo deu errado
+      if (result?.error) {
+        console.error("❌ Erro no Google Auth:", result.error);
+        alert("Falha no login com Google. Tente novamente.");
+        setIsLoading(false);
       }
-    } finally {
+      
+      // Se não há erro e chegou aqui, provavelmente está redirecionando
+      // Não fazemos nada e deixamos o redirect acontecer
+      console.log("🔄 Redirecionando para autenticação Google...");
+      
+    } catch (error) {
+      console.error("❌ Erro ao iniciar Google Auth:", error);
+      alert("Erro ao conectar com Google. Verifique sua conexão.");
       setIsLoading(false);
     }
+    
+    // Nota: setIsLoading(false) não é chamado em caso de sucesso
+    // porque a página vai redirecionar de qualquer forma
   };
 
 

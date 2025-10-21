@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb"; // Conexão com MongoDB
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 interface ProdutoCarrinho {
   produtoId: string;
@@ -43,9 +44,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     login = session.user.email || undefined;
   }
 
-  console.log("Login recebido:", login);
-  console.log("Método:", method);
-  console.log("Body recebido:", req.body);
+  logger.dev("Login recebido:", login);
+  logger.dev("Método:", method);
+  logger.dev("Body recebido:", req.body);
 
   try {
     // Corrigindo a inicialização da variável client
@@ -79,25 +80,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (method === "POST") {
       const { produtoId, nome, valor, quantidade, img } = req.body;
-      console.log("Dados recebidos na API:", { produtoId, nome, valor, quantidade, img });
+      logger.dev("Dados recebidos na API:", { produtoId, nome, valor, quantidade, img });
 
       if (!produtoId || !nome || !valor || quantidade <= 0) {
-        console.log("Dados inválidos:", { produtoId, nome, valor, quantidade });
+        logger.dev("Dados inválidos:", { produtoId, nome, valor, quantidade });
         return res.status(400).json({ error: "Dados inválidos para adicionar produto" });
       }
 
-      console.log("Carrinho atual do usuário:", user.carrinho.produtos);
+      logger.dev("Carrinho atual do usuário:", user.carrinho.produtos);
       const existingProductIndex = user.carrinho.produtos.findIndex(
         (item: ProdutoCarrinho) => item.produtoId === produtoId
       );
 
-      console.log("Índice do produto existente:", existingProductIndex);
+      logger.dev("Índice do produto existente:", existingProductIndex);
 
       if (existingProductIndex > -1) {
-        console.log("Produto já existe, substituindo quantidade de", user.carrinho.produtos[existingProductIndex].quantidade, "para", quantidade);
+        logger.dev("Produto já existe, substituindo quantidade de", user.carrinho.produtos[existingProductIndex].quantidade, "para", quantidade);
         user.carrinho.produtos[existingProductIndex].quantidade = quantidade;
       } else {
-        console.log("Novo produto, adicionando ao carrinho");
+        logger.dev("Novo produto, adicionando ao carrinho");
         user.carrinho.produtos.push({ produtoId, nome, valor, quantidade, img });
       }
 
@@ -111,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       );
 
-      console.log("Carrinho atualizado no MongoDB:", user.carrinho.produtos);
+      logger.dev("Carrinho atualizado no MongoDB:", user.carrinho.produtos);
       return res.status(200).json({ 
         msg: "Produto adicionado ou atualizado no carrinho",
         produtos: user.carrinho.produtos 
@@ -120,11 +121,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (method === "PUT") {
       const { produtoId, quantidade, produtos } = req.body;
-      console.log("Atualizando carrinho - produtoId:", produtoId, "quantidade:", quantidade, "produtos:", produtos);
+      logger.dev("Atualizando carrinho - produtoId:", produtoId, "quantidade:", quantidade, "produtos:", produtos);
 
       // Se produtos foi enviado, atualizar todo o carrinho (para remoção de produtos pausados)
       if (produtos && Array.isArray(produtos)) {
-        console.log("Atualizando carrinho completo com produtos:", produtos);
+        logger.dev("Atualizando carrinho completo com produtos:", produtos);
         await db.collection("users").updateOne(
           { _id: user._id },
           { 
@@ -141,15 +142,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       if (!produtoId || quantidade <= 0) {
-        console.log("Dados inválidos para atualização:", { produtoId, quantidade });
+        logger.dev("Dados inválidos para atualização:", { produtoId, quantidade });
         return res.status(400).json({ error: "Dados inválidos para atualização" });
       }
 
-      console.log("Carrinho antes da atualização:", user.carrinho.produtos);
+      logger.dev("Carrinho antes da atualização:", user.carrinho.produtos);
       const updatedCarrinho = user.carrinho.produtos.map((item: ProdutoCarrinho) =>
         item.produtoId === produtoId ? { ...item, quantidade } : item
       );
-      console.log("Carrinho após atualização:", updatedCarrinho);
+      logger.dev("Carrinho após atualização:", updatedCarrinho);
 
       await db.collection("users").updateOne(
         { _id: user._id },
@@ -166,8 +167,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Limpar todo o carrinho (quando produtoId é vazio)
     if (method === "DELETE" && req.body.produtoId === "") {
-      console.log("Limpando carrinho completo para usuário:", login);
-      console.log("Carrinho antes da limpeza:", user.carrinho.produtos);
+      logger.dev("Limpando carrinho completo para usuário:", login);
+      logger.dev("Carrinho antes da limpeza:", user.carrinho.produtos);
       
       const updateResult = await db.collection("users").updateOne(
         { _id: user._id },
@@ -179,18 +180,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       );
 
-      console.log("Resultado da atualização:", updateResult);
-      console.log("Carrinho limpo no MongoDB para usuário:", login);
+      logger.dev("Resultado da atualização:", updateResult);
+      logger.dev("Carrinho limpo no MongoDB para usuário:", login);
       return res.status(200).json({ msg: "Carrinho limpo com sucesso" });
     }
 
     // Remover produto específico
     if (method === "DELETE") {
       const { produtoId } = req.body;
-      console.log("Removendo produto específico:", produtoId);
+      logger.dev("Removendo produto específico:", produtoId);
 
       if (!produtoId) {
-        console.log("ProdutoId não fornecido para remoção");
+        logger.dev("ProdutoId não fornecido para remoção");
         return res.status(400).json({ error: "ProdutoId é necessário para remoção" });
       }
 
@@ -208,14 +209,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       );
 
-      console.log("Produto removido do carrinho:", produtoId);
+      logger.dev("Produto removido do carrinho:", produtoId);
       return res.status(200).json({ msg: "Produto removido do carrinho" });
     }
 
     return res.status(405).json({ error: "Método não permitido" });
 
   } catch (error) {
-    console.error("Erro no carrinho:", error);
+    logger.error("Erro no carrinho:", error);
     return res.status(500).json({ error: "Erro interno do servidor" });
   }
 }

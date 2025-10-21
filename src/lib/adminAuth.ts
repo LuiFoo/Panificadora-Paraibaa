@@ -1,6 +1,7 @@
 import type { NextApiRequest } from "next";
 import clientPromise from "@/modules/mongodb";
 import { getToken } from "next-auth/jwt";
+import { logger } from "./logger";
 
 /**
  * Verifica se o usuário é um administrador válido
@@ -9,50 +10,46 @@ import { getToken } from "next-auth/jwt";
  */
 export async function verificarAdmin(req: NextApiRequest): Promise<boolean> {
   try {
-    console.log("🔍 === INICIANDO VERIFICAÇÃO DE ADMIN ===");
-    console.log("🌐 NODE_ENV:", process.env.NODE_ENV);
-    console.log("🔗 NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
-    console.log("🍪 Cookies presentes:", !!req.headers.cookie);
+    logger.dev("🔍 === INICIANDO VERIFICAÇÃO DE ADMIN ===");
+    logger.dev("🌐 NODE_ENV:", process.env.NODE_ENV);
+    logger.dev("🔗 NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
+    logger.dev("🍪 Cookies presentes:", !!req.headers.cookie);
     
     // Verificar se há cookies de sessão
     if (!req.headers.cookie) {
-      console.log("🔒 Nenhum cookie de sessão encontrado");
+      logger.dev("🔒 Nenhum cookie de sessão encontrado");
       return false;
     }
 
     // Obter token JWT do NextAuth diretamente (não precisa de res)
     const token = await getToken({ req: req as NextApiRequest, secret: process.env.NEXTAUTH_SECRET });
-    if (process.env.NODE_ENV === 'development') {
-      console.log("🔍 Token recebido:", JSON.stringify(token, null, 2));
-    }
+    logger.dev("🔍 Token recebido:", JSON.stringify(token, null, 2));
 
     const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as { permissao?: string }).permissao } } : null;
-    if (process.env.NODE_ENV === 'development') {
-      console.log("🔍 Sessão derivada do token:", JSON.stringify(session, null, 2));
-    }
+    logger.dev("🔍 Sessão derivada do token:", JSON.stringify(session, null, 2));
     
     if (!session?.user?.email) {
-      console.log("🔒 Sessão inválida - sem email");
+      logger.dev("🔒 Sessão inválida - sem email");
       return false;
     }
 
-    console.log("🔍 Verificando permissões para:", session.user.email);
+    logger.dev("🔍 Verificando permissões para:", session.user.email);
     
     // Verificar no banco se o usuário é admin
     try {
-      console.log("🗄️ Conectando ao MongoDB...");
+      logger.dev("🗄️ Conectando ao MongoDB...");
       const client = await clientPromise;
       const db = client.db("paraiba");
       
-      console.log("🔍 Buscando usuário no banco...");
+      logger.dev("🔍 Buscando usuário no banco...");
       const user = await db.collection("users").findOne({ 
         email: session.user.email,
         permissao: "administrador"
       });
       
-      console.log("👤 Usuário encontrado:", !!user);
+      logger.dev("👤 Usuário encontrado:", !!user);
       if (user) {
-        console.log("👤 Dados do usuário:", {
+        logger.dev("👤 Dados do usuário:", {
           email: user.email,
           permissao: user.permissao,
           nome: user.name
@@ -60,16 +57,16 @@ export async function verificarAdmin(req: NextApiRequest): Promise<boolean> {
       }
       
       const isAdmin = !!user;
-      console.log(isAdmin ? "✅ Usuário é admin" : "❌ Usuário não é admin");
-      console.log("🔍 === FIM DA VERIFICAÇÃO DE ADMIN ===");
+      logger.dev(isAdmin ? "✅ Usuário é admin" : "❌ Usuário não é admin");
+      logger.dev("🔍 === FIM DA VERIFICAÇÃO DE ADMIN ===");
       
       return isAdmin;
     } catch (dbError) {
-      console.error("❌ Erro ao conectar com o banco de dados:", dbError);
+      logger.error("❌ Erro ao conectar com o banco de dados:", dbError);
       return false;
     }
   } catch (error) {
-    console.error("❌ Erro geral ao verificar admin:", error);
+    logger.error("❌ Erro geral ao verificar admin:", error);
     return false;
   }
 }
@@ -81,16 +78,16 @@ export async function verificarAdmin(req: NextApiRequest): Promise<boolean> {
  */
 export async function protegerApiAdmin(req: NextApiRequest): Promise<{ isAdmin: boolean, error?: string }> {
   try {
-    console.log("🛡️ === INICIANDO PROTEÇÃO DE API ADMIN ===");
-    console.log("📝 Método da requisição:", req.method);
-    console.log("🔗 URL da requisição:", req.url);
+    logger.dev("🛡️ === INICIANDO PROTEÇÃO DE API ADMIN ===");
+    logger.dev("📝 Método da requisição:", req.method);
+    logger.dev("🔗 URL da requisição:", req.url);
     
     const isAdmin = await verificarAdmin(req);
     
     if (!isAdmin) {
       const errorMsg = "Acesso negado. Apenas administradores podem acessar esta API.";
-      console.log("❌", errorMsg);
-      console.log("🛡️ === FIM DA PROTEÇÃO DE API ADMIN (NEGADO) ===");
+      logger.dev("❌", errorMsg);
+      logger.dev("🛡️ === FIM DA PROTEÇÃO DE API ADMIN (NEGADO) ===");
       
       return {
         isAdmin: false,
@@ -98,12 +95,12 @@ export async function protegerApiAdmin(req: NextApiRequest): Promise<{ isAdmin: 
       };
     }
     
-    console.log("✅ Acesso de admin autorizado");
-    console.log("🛡️ === FIM DA PROTEÇÃO DE API ADMIN (AUTORIZADO) ===");
+    logger.dev("✅ Acesso de admin autorizado");
+    logger.dev("🛡️ === FIM DA PROTEÇÃO DE API ADMIN (AUTORIZADO) ===");
     
     return { isAdmin: true };
   } catch (error) {
-    console.error("❌ Erro na proteção de API admin:", error);
+    logger.error("❌ Erro na proteção de API admin:", error);
     return {
       isAdmin: false,
       error: "Erro interno na verificação de permissões."
@@ -118,13 +115,13 @@ export async function protegerApiAdmin(req: NextApiRequest): Promise<{ isAdmin: 
  */
 export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAuthenticated: boolean, isAdmin: boolean, user?: { email: string; name: string; login: string; permissao: string }, error?: string }> {
   try {
-    console.log("🔍 === INICIANDO VERIFICAÇÃO DE AUTENTICAÇÃO ===");
-    console.log("📝 Método da requisição:", req.method);
-    console.log("🔗 URL da requisição:", req.url);
+    logger.dev("🔍 === INICIANDO VERIFICAÇÃO DE AUTENTICAÇÃO ===");
+    logger.dev("📝 Método da requisição:", req.method);
+    logger.dev("🔗 URL da requisição:", req.url);
     
     // Verificar se há cookies de sessão
     if (!req.headers.cookie) {
-      console.log("🔒 Nenhum cookie de sessão encontrado");
+      logger.dev("🔒 Nenhum cookie de sessão encontrado");
       return {
         isAuthenticated: false,
         isAdmin: false,
@@ -135,10 +132,10 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
     // Obter token JWT do NextAuth diretamente (não precisa de res)
     const token = await getToken({ req: req as NextApiRequest, secret: process.env.NEXTAUTH_SECRET });
     const session = token ? { user: { email: token.email, id: token.sub, permissao: (token as { permissao?: string; login?: string }).permissao, login: (token as { permissao?: string; login?: string }).login } } : null;
-    console.log("🔍 Dados da sessão recebidos:", JSON.stringify(session, null, 2));
+    logger.dev("🔍 Dados da sessão recebidos:", JSON.stringify(session, null, 2));
     
     if (!session?.user?.email) {
-      console.log("🔒 Sessão inválida - sem email");
+      logger.dev("🔒 Sessão inválida - sem email");
       return {
         isAuthenticated: false,
         isAdmin: false,
@@ -146,7 +143,7 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
       };
     }
 
-    console.log("🔍 Verificando usuário no banco para:", session.user.email);
+    logger.dev("🔍 Verificando usuário no banco para:", session.user.email);
     
     // Verificar no banco se o usuário existe e suas permissões
     try {
@@ -158,7 +155,7 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
       });
       
       if (!user) {
-        console.log("❌ Usuário não encontrado no banco");
+        logger.dev("❌ Usuário não encontrado no banco");
         return {
           isAuthenticated: false,
           isAdmin: false,
@@ -167,15 +164,15 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
       }
       
       const isAdmin = user.permissao === "administrador";
-      console.log("👤 Usuário encontrado:", {
+      logger.dev("👤 Usuário encontrado:", {
         email: user.email,
         permissao: user.permissao,
         nome: user.name,
         isAdmin
       });
       
-      console.log("✅ Autenticação verificada com sucesso");
-      console.log("🔍 === FIM DA VERIFICAÇÃO DE AUTENTICAÇÃO ===");
+      logger.dev("✅ Autenticação verificada com sucesso");
+      logger.dev("🔍 === FIM DA VERIFICAÇÃO DE AUTENTICAÇÃO ===");
       
       return {
         isAuthenticated: true,
@@ -188,7 +185,7 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
         }
       };
     } catch (dbError) {
-      console.error("❌ Erro ao conectar com o banco de dados:", dbError);
+      logger.error("❌ Erro ao conectar com o banco de dados:", dbError);
       return {
         isAuthenticated: false,
         isAdmin: false,
@@ -196,7 +193,7 @@ export async function verificarAutenticacao(req: NextApiRequest): Promise<{ isAu
       };
     }
   } catch (error) {
-    console.error("❌ Erro geral ao verificar autenticação:", error);
+    logger.error("❌ Erro geral ao verificar autenticação:", error);
     return {
       isAuthenticated: false,
       isAdmin: false,

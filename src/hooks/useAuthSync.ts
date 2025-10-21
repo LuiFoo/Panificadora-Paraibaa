@@ -102,6 +102,8 @@ export const useAuthSync = () => {
             // Só atualiza se o usuário atual for diferente ou não existir
             if (!user || user.login !== userData.login) {
               localStorage.setItem("usuario", JSON.stringify(userData));
+              // Disparar evento customizado para notificar outros componentes
+              window.dispatchEvent(new Event('localStorageUpdated'));
               setUser(userData);
               // Limpar flag de logout manual quando usuário faz login
               localStorage.removeItem("manual_logout");
@@ -126,6 +128,8 @@ export const useAuthSync = () => {
             // Só atualiza se o usuário atual for diferente ou não existir
             if (!user || user.login !== userData.login) {
               localStorage.setItem("usuario", JSON.stringify(userData));
+              // Disparar evento customizado para notificar outros componentes
+              window.dispatchEvent(new Event('localStorageUpdated'));
               setUser(userData);
               // Limpar flag de logout manual quando usuário faz login
               localStorage.removeItem("manual_logout");
@@ -153,6 +157,8 @@ export const useAuthSync = () => {
           // Só atualiza se o usuário atual for diferente ou não existir
           if (!user || user.login !== userData.login) {
             localStorage.setItem("usuario", JSON.stringify(userData));
+            // Disparar evento customizado para notificar outros componentes
+            window.dispatchEvent(new Event('localStorageUpdated'));
             setUser(userData);
             // Limpar flag de logout manual quando usuário faz login
             localStorage.removeItem("manual_logout");
@@ -165,6 +171,8 @@ export const useAuthSync = () => {
       } else if (status === "unauthenticated") {
         // Remove dados do localStorage se não autenticado
         localStorage.removeItem("usuario");
+        // Disparar evento customizado para notificar outros componentes
+        window.dispatchEvent(new Event('localStorageUpdated'));
         setUser(null);
         console.log("🔓 Usuário deslogado - sessão limpa");
       }
