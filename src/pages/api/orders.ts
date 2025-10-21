@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { logger } from "@/lib/logger";
+import { parseTime } from "@/lib/validation";
 
 interface ProdutoPedido {
   id: string;
@@ -118,8 +119,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           return res.status(400).json({ error: "Data e hora de retirada devem ser no futuro" });
         }
 
-        // Validar horário de funcionamento (6h às 18h)
-        const hora = parseInt(horaRetirada.split(':')[0]);
+        // Validar formato e horário de funcionamento (6h às 18h)
+        const timeResult = parseTime(horaRetirada);
+        if (!timeResult) {
+          return res.status(400).json({ error: "Formato de hora inválido. Use HH:MM" });
+        }
+        
+        const { hour: hora } = timeResult;
         if (hora < 6 || hora > 18) {
           return res.status(400).json({ error: "Horário de retirada deve ser entre 6h e 18h" });
         }

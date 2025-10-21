@@ -39,22 +39,37 @@ export default function Header() {
     fetchPedidosPendentes();
     
     // Polling inteligente - só quando a página está visível
-    let interval: NodeJS.Timeout;
+    const intervalRef = { current: null as NodeJS.Timeout | null };
+    
+    const startPolling = () => {
+      // Limpar interval anterior se existir
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      intervalRef.current = setInterval(fetchPedidosPendentes, 120000);
+    };
+    
+    const stopPolling = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
     
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        clearInterval(interval);
+        stopPolling();
       } else {
         // Página ficou visível, buscar pedidos imediatamente
         fetchPedidosPendentes();
         // Reiniciar polling
-        interval = setInterval(fetchPedidosPendentes, 120000);
+        startPolling();
       }
     };
     
     // Iniciar polling se página estiver visível
     if (!document.hidden) {
-      interval = setInterval(fetchPedidosPendentes, 120000);
+      startPolling();
     }
     
     // Escutar mudanças de visibilidade
@@ -65,7 +80,7 @@ export default function Header() {
     window.addEventListener('refreshPedidosCount', handleRefresh);
     
     return () => {
-      clearInterval(interval);
+      stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('refreshPedidosCount', handleRefresh);
     };
@@ -121,22 +136,37 @@ export default function Header() {
     fetchMensagensNaoLidas();
     
     // Polling inteligente - só quando a página está visível
-    let interval: NodeJS.Timeout;
+    const intervalRef = { current: null as NodeJS.Timeout | null };
+    
+    const startPolling = () => {
+      // Limpar interval anterior se existir
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      intervalRef.current = setInterval(fetchMensagensNaoLidas, 15000);
+    };
+    
+    const stopPolling = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
     
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        clearInterval(interval);
+        stopPolling();
       } else {
         // Página ficou visível, buscar mensagens imediatamente
         fetchMensagensNaoLidas();
         // Reiniciar polling
-        interval = setInterval(fetchMensagensNaoLidas, 15000);
+        startPolling();
       }
     };
     
     // Iniciar polling se página estiver visível
     if (!document.hidden) {
-      interval = setInterval(fetchMensagensNaoLidas, 15000);
+      startPolling();
     }
     
     // Escutar mudanças de visibilidade
@@ -147,7 +177,7 @@ export default function Header() {
     window.addEventListener('refreshMensagensCount', handleRefresh);
     
     return () => {
-      clearInterval(interval);
+      stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('refreshMensagensCount', handleRefresh);
     };

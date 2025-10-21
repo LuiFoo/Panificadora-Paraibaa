@@ -109,29 +109,43 @@ export default function MensagensAdminPage() {
     fetchConversas();
     
     // Polling inteligente - só quando a página está visível
-    let interval: NodeJS.Timeout;
+    const intervalRef = { current: null as NodeJS.Timeout | null };
+    
+    const startPolling = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      intervalRef.current = setInterval(fetchConversas, 30000);
+    };
+    
+    const stopPolling = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
     
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        clearInterval(interval);
+        stopPolling();
       } else {
         // Página ficou visível, buscar conversas imediatamente
         fetchConversas();
         // Reiniciar polling
-        interval = setInterval(fetchConversas, 30000);
+        startPolling();
       }
     };
     
     // Iniciar polling se página estiver visível
     if (!document.hidden) {
-      interval = setInterval(fetchConversas, 30000);
+      startPolling();
     }
     
     // Escutar mudanças de visibilidade
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      clearInterval(interval);
+      stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       // Limpar timeout se existir
       if (buscaTimeout) {

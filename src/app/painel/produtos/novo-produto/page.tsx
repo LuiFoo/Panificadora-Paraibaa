@@ -7,6 +7,7 @@ import BreadcrumbNav from "@/components/BreadcrumbNav";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, useMemo } from "react";
+import { safeParseFloat, safeParseInt } from "@/lib/validation";
 
 export default function NovoProdutoPage() {
   const router = useRouter();
@@ -72,26 +73,33 @@ export default function NovoProdutoPage() {
     setSuccess("");
     try {
       const cat = CATEGORIAS_CANONICAS.find(c => c.slug === formData.categoria);
+      // Validar valores numéricos antes de enviar
+      const precoValor = safeParseFloat(formData.preco.valor);
+      if (precoValor <= 0) {
+        setError("Preço deve ser maior que zero");
+        return;
+      }
+      
       const payload = {
         nome: formData.nome,
         descricao: formData.descricao,
         categoria: { nome: cat?.nome || "", slug: cat?.slug || formData.categoria },
         subcategoria: formData.subcategoria,
         preco: {
-          valor: parseFloat(formData.preco.valor),
+          valor: precoValor,
           tipo: formData.preco.tipo,
-          custoProducao: formData.preco.custoProducao ? parseFloat(formData.preco.custoProducao) : undefined,
+          custoProducao: formData.preco.custoProducao ? safeParseFloat(formData.preco.custoProducao) : undefined,
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
-            valorPromocional: parseFloat(formData.preco.promocao.valorPromocional),
+            valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
             inicio: new Date(formData.preco.promocao.inicio),
             fim: new Date(formData.preco.promocao.fim)
           } : undefined
         },
         estoque: {
           disponivel: formData.estoque.disponivel,
-          quantidade: formData.estoque.quantidade ? parseInt(formData.estoque.quantidade) : undefined,
-          minimo: formData.estoque.minimo ? parseInt(formData.estoque.minimo) : undefined,
+          quantidade: formData.estoque.quantidade ? safeParseInt(formData.estoque.quantidade) : undefined,
+          minimo: formData.estoque.minimo ? safeParseInt(formData.estoque.minimo) : undefined,
           unidadeMedida: formData.estoque.unidadeMedida
         },
         imagem: {

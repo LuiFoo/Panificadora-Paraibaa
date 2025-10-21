@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId, Db } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
+import { safeParseFloat } from "@/lib/validation";
 
 // Função para buscar produto na coleção unificada
 async function buscarProduto(db: Db, id: string) {
@@ -86,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         subcategoria: subc,
         nome,
         preco: {
-          valor: parseFloat(valor),
+          valor: safeParseFloat(valor, 0),
           tipo: vtipo
         },
         ingredientes,

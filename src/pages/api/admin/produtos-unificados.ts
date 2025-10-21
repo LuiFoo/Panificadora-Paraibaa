@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
+import { safeParseFloat, safeParseInt } from "@/lib/validation";
 
 // Categorias disponíveis
 const CATEGORIAS_DISPONIVEIS = [
@@ -107,9 +108,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         subcategoria: subcategoria || "Padrão",
         preco: {
-          valor: parseFloat(valor),
+          valor: safeParseFloat(valor, 0),
           tipo,
-          custoProducao: custoProducao ? parseFloat(custoProducao) : null
+          custoProducao: custoProducao ? safeParseFloat(custoProducao, 0) : null
         },
         estoque: {
           disponivel: true,

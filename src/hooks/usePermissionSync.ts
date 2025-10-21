@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useUser } from '@/context/UserContext';
 
 /**
@@ -8,76 +8,76 @@ import { useUser } from '@/context/UserContext';
 export function usePermissionSync() {
   const { user, setUser } = useUser();
 
-  useEffect(() => {
-    // Função para verificar e atualizar permissões do usuário atual
-    const checkPermissionUpdate = async () => {
-      if (!user) return;
+  // Função estável para verificar permissões
+  const checkPermissionUpdate = useCallback(async () => {
+    if (!user) return;
 
-      try {
-        // Verificar se é usuário Google
-        if (user.password === 'google-auth' && user.googleId) {
-          const response = await fetch("/api/auth/get-user-data", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ googleId: user.googleId }),
-          });
+    try {
+      // Verificar se é usuário Google
+      if (user.password === 'google-auth' && user.googleId) {
+        const response = await fetch("/api/auth/get-user-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ googleId: user.googleId }),
+        });
 
-          const data = await response.json();
-          if (data.ok && data.user) {
-            // Verificar se a permissão mudou
-            if (data.user.permissao !== user.permissao) {
-              console.log("🔄 Permissão atualizada detectada:", data.user.permissao);
-              
-              // Atualizar usuário no contexto
-              const updatedUser = {
-                ...user,
-                permissao: data.user.permissao
-              };
-              
-              setUser(updatedUser);
-              localStorage.setItem("usuario", JSON.stringify(updatedUser));
-              
-              // Disparar evento para notificar outras partes do sistema
-              window.dispatchEvent(new CustomEvent('permissionUpdated', {
-                detail: { newPermission: data.user.permissao }
-              }));
-            }
-          }
-        } else {
-          // Para usuários tradicionais, usar verificar-admin
-          const response = await fetch("/api/verificar-admin", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ login: user.login, password: user.password }),
-          });
-
-          const data = await response.json();
-          if (data.ok && data.user) {
-            // Verificar se a permissão mudou
-            if (data.user.permissao !== user.permissao) {
-              console.log("🔄 Permissão atualizada detectada:", data.user.permissao);
-              
-              // Atualizar usuário no contexto
-              const updatedUser = {
-                ...user,
-                permissao: data.user.permissao
-              };
-              
-              setUser(updatedUser);
-              localStorage.setItem("usuario", JSON.stringify(updatedUser));
-              
-              // Disparar evento para notificar outras partes do sistema
-              window.dispatchEvent(new CustomEvent('permissionUpdated', {
-                detail: { newPermission: data.user.permissao }
-              }));
-            }
+        const data = await response.json();
+        if (data.ok && data.user) {
+          // Verificar se a permissão mudou
+          if (data.user.permissao !== user.permissao) {
+            console.log("🔄 Permissão atualizada detectada:", data.user.permissao);
+            
+            // Atualizar usuário no contexto
+            const updatedUser = {
+              ...user,
+              permissao: data.user.permissao
+            };
+            
+            setUser(updatedUser);
+            localStorage.setItem("usuario", JSON.stringify(updatedUser));
+            
+            // Disparar evento para notificar outras partes do sistema
+            window.dispatchEvent(new CustomEvent('permissionUpdated', {
+              detail: { newPermission: data.user.permissao }
+            }));
           }
         }
-      } catch (error) {
-        console.error("Erro ao verificar atualização de permissão:", error);
-      }
-    };
+      } else {
+        // Para usuários tradicionais, usar verificar-admin
+        const response = await fetch("/api/verificar-admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ login: user.login, password: user.password }),
+        });
 
+        const data = await response.json();
+        if (data.ok && data.user) {
+          // Verificar se a permissão mudou
+          if (data.user.permissao !== user.permissao) {
+            console.log("🔄 Permissão atualizada detectada:", data.user.permissao);
+            
+            // Atualizar usuário no contexto
+            const updatedUser = {
+              ...user,
+              permissao: data.user.permissao
+            };
+            
+            setUser(updatedUser);
+            localStorage.setItem("usuario", JSON.stringify(updatedUser));
+            
+            // Disparar evento para notificar outras partes do sistema
+            window.dispatchEvent(new CustomEvent('permissionUpdated', {
+              detail: { newPermission: data.user.permissao }
+            }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao verificar atualização de permissão:", error);
+    }
+  }, [user, setUser]);
+
+  useEffect(() => {
     // Verificar atualizações a cada 10 segundos
     const interval = setInterval(checkPermissionUpdate, 10000);
 
@@ -85,7 +85,7 @@ export function usePermissionSync() {
     checkPermissionUpdate();
 
     return () => clearInterval(interval);
-  }, [user, setUser]);
+  }, [checkPermissionUpdate]);
 
   // Função para forçar verificação manual
   const forcePermissionCheck = async () => {

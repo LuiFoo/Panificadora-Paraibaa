@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
+import { safeParseFloat, safeParseInt } from "@/lib/validation";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -80,17 +81,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .toLowerCase()
         .replace(/\s+/g, "-");
 
-      const precoValor = preco?.valor ?? (valor !== undefined ? parseFloat(valor) : 0);
+      const precoValor = preco?.valor ?? (valor !== undefined ? safeParseFloat(valor, 0) : 0);
       const precoTipo = preco?.tipo || vtipo || "UN";
-      const precoCusto = preco?.custoProducao !== undefined ? Number(preco.custoProducao) : undefined;
+      const precoCusto = preco?.custoProducao !== undefined ? safeParseFloat(preco.custoProducao, 0) : undefined;
       const promocaoAtiva = !!preco?.promocao?.ativo;
-      const promocaoValor = preco?.promocao?.valorPromocional !== undefined ? Number(preco?.promocao?.valorPromocional) : undefined;
+      const promocaoValor = preco?.promocao?.valorPromocional !== undefined ? safeParseFloat(preco?.promocao?.valorPromocional, 0) : undefined;
       const promocaoInicio = preco?.promocao?.inicio ? new Date(preco.promocao.inicio) : undefined;
       const promocaoFim = preco?.promocao?.fim ? new Date(preco.promocao.fim) : undefined;
 
       const estoqueDisponivel = estoque?.disponivel !== undefined ? !!estoque.disponivel : true;
-      const estoqueQtd = estoque?.quantidade !== undefined ? Number(estoque.quantidade) : undefined;
-      const estoqueMin = estoque?.minimo !== undefined ? Number(estoque.minimo) : undefined;
+      const estoqueQtd = estoque?.quantidade !== undefined ? safeParseInt(estoque.quantidade, 0) : undefined;
+      const estoqueMin = estoque?.minimo !== undefined ? safeParseInt(estoque.minimo, 0) : undefined;
       const unidadeMedida = estoque?.unidadeMedida || precoTipo;
 
       const imagemHref = imagem?.href || img;

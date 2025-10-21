@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { validateAndFormatCEP } from "@/lib/cepUtils";
+import { parseTime, isValidPhone, isValidEmail } from "@/lib/validation";
 
 interface Endereco {
   rua: string;
@@ -342,8 +343,16 @@ export default function CheckoutPage() {
       // Validar horário de funcionamento baseado no dia da semana
       const dataSelecionada = new Date(dataEntrega + 'T12:00:00');
       const diaSemana = dataSelecionada.getDay(); // 0 = Domingo
-      const hora = parseInt(horaEntrega.split(':')[0]);
-      const minuto = parseInt(horaEntrega.split(':')[1]);
+      
+      // Validar formato da hora
+      const timeResult = parseTime(horaEntrega);
+      if (!timeResult) {
+        setError("Formato de hora inválido. Use HH:MM");
+        setLoading(false);
+        return;
+      }
+      
+      const { hour: hora, minute: minuto } = timeResult;
       const horarioEmMinutos = hora * 60 + minuto;
       
       if (diaSemana === 0) { // Domingo - NÃO PERMITIDO
@@ -359,9 +368,8 @@ export default function CheckoutPage() {
       }
 
       // Validar telefone (considerando formatação)
-      const telefoneNumeros = telefone.replace(/\D/g, '');
-      if (!telefone || telefoneNumeros.length < 10) {
-        setError("Telefone deve ter pelo menos 10 dígitos");
+      if (!isValidPhone(telefone)) {
+        setError("Telefone inválido. Deve ter 10 ou 11 dígitos (DDD + número)");
         setLoading(false);
         return;
       }

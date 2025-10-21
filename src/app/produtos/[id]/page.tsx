@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { safeParseInt, clamp } from "@/lib/validation";
 import { useUser } from "@/context/UserContext";
 // import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 import Loading from "@/components/Loading";
@@ -481,7 +482,7 @@ export default function ProdutoDetalhePage() {
                     min={1}
                     max={20}
                     value={quantidade}
-                    onChange={(e) => setQuantidade(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                    onChange={(e) => setQuantidade(clamp(safeParseInt(e.target.value, 1), 1, 20))}
                             className="w-20 border-2 border-gray-300 rounded-xl px-3 py-2 text-center font-bold text-lg focus:border-[var(--color-avocado-600)] focus:outline-none"
                     aria-label="Quantidade"
                   />

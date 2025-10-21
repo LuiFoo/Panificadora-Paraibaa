@@ -16,7 +16,12 @@ export function isValidRibeiraoPretoCEP(cep: string): boolean {
   }
   
   // Converte para número para fazer a comparação
-  const cepNumero = parseInt(cepNumeros);
+  const cepNumero = parseInt(cepNumeros, 10);
+  
+  // Verificar se o parsing foi bem-sucedido
+  if (isNaN(cepNumero)) {
+    return false;
+  }
   
   // Ribeirão Preto: 14000000 a 14109999
   return cepNumero >= 14000000 && cepNumero <= 14109999;

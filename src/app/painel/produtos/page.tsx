@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback, useDeferredValue, useMemo, useTransit
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { safeParseFloat, safeParseInt } from "@/lib/validation";
 
 interface Produto {
   _id: string;
@@ -288,20 +289,20 @@ export default function ProdutosPage() {
         },
         subcategoria: formData.subcategoria,
         preco: {
-          valor: parseFloat(formData.preco.valor),
+          valor: safeParseFloat(formData.preco.valor),
           tipo: formData.preco.tipo,
-          custoProducao: formData.preco.custoProducao ? parseFloat(formData.preco.custoProducao) : undefined,
+          custoProducao: formData.preco.custoProducao ? safeParseFloat(formData.preco.custoProducao) : undefined,
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
-            valorPromocional: parseFloat(formData.preco.promocao.valorPromocional),
+            valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
             inicio: new Date(formData.preco.promocao.inicio),
             fim: new Date(formData.preco.promocao.fim)
           } : undefined
         },
         estoque: {
           disponivel: formData.estoque.disponivel,
-          quantidade: formData.estoque.quantidade ? parseInt(formData.estoque.quantidade) : undefined,
-          minimo: formData.estoque.minimo ? parseInt(formData.estoque.minimo) : undefined,
+          quantidade: formData.estoque.quantidade ? safeParseInt(formData.estoque.quantidade) : undefined,
+          minimo: formData.estoque.minimo ? safeParseInt(formData.estoque.minimo) : undefined,
           unidadeMedida: formData.estoque.unidadeMedida
         },
         imagem: {

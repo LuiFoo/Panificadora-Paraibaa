@@ -257,30 +257,41 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     validateUser();
   }, []); // Executa apenas uma vez na montagem
   
-  // Polling suave para detectar mudanças no localStorage (quando useAuthSync atualiza)
+  // Polling unificado para detectar mudanças no localStorage
   useEffect(() => {
-    // Se já tem usuário, não precisa fazer polling
-    if (user) return;
+    console.log("🔄 UserContext: Iniciando polling unificado");
     
-    console.log("🔄 UserContext: Iniciando polling para detectar login");
-    
-    const checkForUser = () => {
+    const checkLocalStorage = () => {
       const savedUser = localStorage.getItem("usuario");
       const manualLogout = localStorage.getItem("manual_logout");
       
-      // Não carregar se foi logout manual recente
+      // Verificar logout manual
       if (manualLogout === "true") {
         const logoutTimestamp = localStorage.getItem("logout_timestamp");
-        const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp) : 0;
+        const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp, 10) : 0;
+        
         if (timeSinceLogout < 10000) {
-          return; // Aguardar 10 segundos após logout
+          // Logout recente - garantir que usuário está limpo
+          if (user) {
+            console.log("🔄 UserContext: Limpando usuário devido a logout manual");
+            setUser(null);
+          }
+          return;
         }
       }
       
-      if (savedUser && !isValidating.current) {
+      // Se não há usuário salvo e temos usuário no contexto, limpar
+      if (!savedUser && user) {
+        console.log("🔄 UserContext: Logout detectado");
+        setUser(null);
+        return;
+      }
+      
+      // Se há usuário salvo mas não no contexto, carregar
+      if (savedUser && !user && !isValidating.current) {
         try {
           const parsedUser = JSON.parse(savedUser);
-          console.log("✅ UserContext: Usuário detectado no localStorage via polling:", parsedUser.name);
+          console.log("✅ UserContext: Usuário detectado no localStorage:", parsedUser.name);
           setUser(parsedUser);
           setLoading(false);
         } catch (e) {
@@ -289,36 +300,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    // Verificar a cada 500ms se há usuário no localStorage
-    const interval = setInterval(checkForUser, 500);
+    // Verificar imediatamente
+    checkLocalStorage();
     
-    // Verificar imediatamente também
-    checkForUser();
-    
-    return () => {
-      clearInterval(interval);
-    };
-  }, [user]);
-  
-  // Listener para logout (quando usuário é removido)
-  useEffect(() => {
-    if (!user) return;
-    
-    const checkForLogout = () => {
-      const savedUser = localStorage.getItem("usuario");
-      if (!savedUser) {
-        console.log("🔄 UserContext: Logout detectado");
-        setUser(null);
-      }
-    };
-
-    // Verificar a cada segundo se o usuário ainda existe
-    const interval = setInterval(checkForLogout, 1000);
+    // Polling a cada 500ms (apenas um interval)
+    const interval = setInterval(checkLocalStorage, 500);
     
     return () => {
       clearInterval(interval);
     };
-  }, [user]);
+  }, [user]); // Reexecuta quando user muda
 
   // Verifica se o usuário tem permissão de administrador usando useMemo para performance
   const isAdmin = useMemo(() => {

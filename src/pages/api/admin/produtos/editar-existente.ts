@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
+import { safeParseFloat, safeParseInt } from "@/lib/validation";
 
 // Usar apenas a coleção unificada "produtos"
 
@@ -64,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // Preço (novo ou legado)
-      const precoValor = preco?.valor ?? (valor !== undefined ? parseFloat(valor) : undefined);
+      const precoValor = preco?.valor ?? (valor !== undefined ? safeParseFloat(valor) : undefined);
       const precoTipo = preco?.tipo || vtipo;
       const precoCusto = preco?.custoProducao;
       const prom = preco?.promocao;
@@ -72,11 +73,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updateData.preco = {
           ...(precoValor !== undefined ? { valor: Number(precoValor) } : {}),
           ...(precoTipo ? { tipo: precoTipo } : {}),
-          ...(precoCusto !== undefined ? { custoProducao: Number(precoCusto) } : {}),
+          ...(precoCusto !== undefined ? { custoProducao: safeParseFloat(precoCusto, 0) } : {}),
           ...(prom ? {
             promocao: {
               ativo: !!prom.ativo,
-              ...(prom.valorPromocional !== undefined ? { valorPromocional: Number(prom.valorPromocional) } : {}),
+              ...(prom.valorPromocional !== undefined ? { valorPromocional: safeParseFloat(prom.valorPromocional, 0) } : {}),
               ...(prom.inicio ? { inicio: new Date(prom.inicio) } : {}),
               ...(prom.fim ? { fim: new Date(prom.fim) } : {})
             }
@@ -88,8 +89,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (estoque) {
         updateData.estoque = {
           ...(estoque.disponivel !== undefined ? { disponivel: !!estoque.disponivel } : {}),
-          ...(estoque.quantidade !== undefined ? { quantidade: Number(estoque.quantidade) } : {}),
-          ...(estoque.minimo !== undefined ? { minimo: Number(estoque.minimo) } : {}),
+          ...(estoque.quantidade !== undefined ? { quantidade: safeParseInt(estoque.quantidade, 0) } : {}),
+          ...(estoque.minimo !== undefined ? { minimo: safeParseInt(estoque.minimo, 0) } : {}),
           ...(estoque.unidadeMedida ? { unidadeMedida: estoque.unidadeMedida } : {})
         };
       }
