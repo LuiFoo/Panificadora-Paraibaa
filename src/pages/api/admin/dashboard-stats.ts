@@ -37,28 +37,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 3. Contar total de produtos (da coleção unificada produtos)
     const totalProdutos = await db.collection("produtos").countDocuments({});
 
-    // 4. Contar produtos das coleções antigas
-    const colecoes = [
-      "bolos-doces-especiais",
-      "doces-individuais",
-      "paes-doces",
-      "paes-salgados-especiais",
-      "roscas-paes-especiais",
-      "salgados-assados-lanches",
-      "sobremesas-tortas"
-    ];
+    // ⚠️ LIMPEZA: Código de contagem de coleções antigas removido (sistema migrado para coleção unificada)
 
-    let produtosAntigos = 0;
-    for (const colecao of colecoes) {
-      const count = await db.collection(colecao).countDocuments({ 
-        deleted: { $ne: true } 
-      });
-      produtosAntigos += count;
-    }
-
-    const totalProdutosCombinado = totalProdutos + produtosAntigos;
-
-    // 5. Estatísticas de pedidos por status
+    // 4. Estatísticas de pedidos por status
     const pedidosPorStatus = await db.collection("pedidos")
       .aggregate([
         {
@@ -90,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       stats: {
         pedidosHoje,
         totalUsuarios,
-        totalProdutos: totalProdutosCombinado,
+        totalProdutos,
         pedidosPorStatus: statusMap
       }
     });

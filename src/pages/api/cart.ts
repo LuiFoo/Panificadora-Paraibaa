@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import clientPromise from "@/modules/mongodb"; // Conexão com MongoDB
+import clientPromise from "@/modules/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { logger } from "@/lib/logger";
@@ -42,6 +42,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Fallback para email se ainda não tem login
   if (!login) {
     login = session.user.email || undefined;
+  }
+
+  // 🐛 CORREÇÃO: Validar que login não é undefined
+  if (!login) {
+    return res.status(400).json({ 
+      error: "Não foi possível identificar o usuário. Faça login novamente." 
+    });
   }
 
   logger.dev("Login recebido:", login);

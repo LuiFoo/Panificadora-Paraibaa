@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status
       } = req.body;
 
-      console.log("📦 Tentando criar produto:", { nome });
+      // Criar produto
 
       // Validação mínima
       if (!nome) {
@@ -66,13 +66,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       let slug = slugBase;
       let counter = 1;
+      const MAX_TENTATIVAS = 100; // Prevenir loop infinito
 
-      while (await db.collection("produtos").findOne({ slug })) {
+      // ⚠️ CORREÇÃO DE BUG: Race condition em geração de slug
+      while (counter < MAX_TENTATIVAS && await db.collection("produtos").findOne({ slug })) {
         slug = `${slugBase}-${counter}`;
         counter++;
       }
 
-      console.log(`📂 Salvando na coleção unificada: produtos`);
+      if (counter >= MAX_TENTATIVAS) {
+        return res.status(500).json({ error: "Erro ao gerar slug único. Tente outro nome." });
+      }
+
+      // Salvar na coleção produtos
 
       // Normalizações a partir do payload
       const categoriaNome = categoria?.nome || subc || "Categoria";
@@ -158,10 +164,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         atualizadoEm: new Date()
       };
 
-      console.log("✅ Inserindo produto no MongoDB...");
       try {
         const result = await db.collection("produtos").insertOne(novoProduto);
-        console.log(`✅ Produto inserido na coleção produtos com ID:`, result.insertedId);
         return res.status(201).json({ 
           success: true,
           produtoId: result.insertedId,

@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST" && req.method !== "GET") {
@@ -12,8 +14,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let userId: string | undefined;
 
     if (req.method === "POST") {
+      // POST é para usuário buscar seu próprio perfil - PRECISA estar autenticado
+      const session = await getServerSession(req, res, authOptions);
+      if (!session || !session.user || !session.user.email) {
+        return res.status(401).json({ 
+          ok: false, 
+          msg: "Não autenticado" 
+        });
+      }
+
       email = req.body.email;
-      // POST é para usuário buscar seu próprio perfil
+      
+      // Verificar se o usuário está tentando buscar o próprio perfil
+      if (email !== session.user.email) {
+        return res.status(403).json({ 
+          ok: false, 
+          msg: "Você só pode visualizar seu próprio perfil" 
+        });
+      }
     } else if (req.method === "GET") {
       userId = req.query.userId as string;
       // GET é para admin buscar perfil de outros usuários - precisa verificar admin
@@ -39,22 +57,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let user;
     if (email) {
-      console.log("Buscando perfil do usuário por email:", email);
       user = await users.findOne({ email });
     } else if (userId) {
-      console.log("Buscando perfil do usuário por userId:", userId);
       user = await users.findOne({ login: userId });
     }
 
     if (!user) {
-      console.log("Usuário não encontrado para:", email || userId);
       return res.status(404).json({ 
         ok: false, 
         msg: "Usuário não encontrado" 
       });
     }
-
-    console.log("Usuário encontrado:", user.email);
 
     return res.status(200).json({
       ok: true,

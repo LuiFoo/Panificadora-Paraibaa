@@ -20,6 +20,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Parâmetro 'q' é obrigatório" });
     }
 
+    // ✅ PROTEÇÃO CRÍTICA: Escapar caracteres especiais de regex para prevenir ReDoS/NoSQL injection
+    // Limitar tamanho para prevenir ataques
+    if (q.length > 50) {
+      return res.status(400).json({ error: "Busca muito longa (máximo 50 caracteres)" });
+    }
+
+    // Escapar todos os caracteres especiais de regex
+    const escapedQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     const client = await clientPromise;
     const db = client.db("paraiba");
     const usuariosCollection = db.collection("users");
@@ -28,8 +37,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const usuarios = await usuariosCollection
       .find({
         $or: [
-          { login: { $regex: q, $options: "i" } },
-          { name: { $regex: q, $options: "i" } }
+          { login: { $regex: escapedQuery, $options: "i" } },
+          { name: { $regex: escapedQuery, $options: "i" } }
         ],
         permissao: { $ne: "administrador" } // Excluir administradores
       })

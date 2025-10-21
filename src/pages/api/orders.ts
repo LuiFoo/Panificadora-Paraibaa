@@ -15,9 +15,6 @@ interface ProdutoPedido {
   img?: string;
 }
 
-// Configurações de limite
-// Limite de valor removido
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
 
@@ -162,25 +159,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       logger.dev("📝 Criando pedido:", { userId: novoPedido.userId, total: novoPedido.total, modalidade: novoPedido.modalidadeEntrega });
 
-      // Salvar no banco
-      const result = await db.collection("pedidos").insertOne(novoPedido);
+      // ⚠️ CORREÇÃO DE BUG: Operações críticas devem ter tratamento de erro individual
+      let pedidoId;
+      try {
+        // Salvar no banco
+        const result = await db.collection("pedidos").insertOne(novoPedido);
+        pedidoId = result.insertedId;
+        logger.dev("✅ Pedido inserido:", pedidoId);
+      } catch (error) {
+        logger.error("❌ Erro ao criar pedido:", error);
+        return res.status(500).json({ error: "Erro ao criar pedido. Tente novamente." });
+      }
 
-      // Limpar carrinho do usuário
-      await db.collection("users").updateOne(
-        { login: user.login || userLogin },
-        { 
-          $set: { 
-            "carrinho.produtos": [],
-            "carrinho.updatedAt": new Date().toISOString()
-          } 
-        }
-      );
+      // Limpar carrinho do usuário (se falhar, não cancela o pedido)
+      try {
+        await db.collection("users").updateOne(
+          { login: user.login || userLogin },
+          { 
+            $set: { 
+              "carrinho.produtos": [],
+              "carrinho.updatedAt": new Date().toISOString()
+            } 
+          }
+        );
+        logger.dev("✅ Carrinho limpo para usuário:", user.login || userLogin);
+      } catch (error) {
+        logger.error("⚠️ Erro ao limpar carrinho (pedido foi criado):", error);
+        // Não retornar erro porque o pedido já foi criado
+      }
 
-      logger.info("✅ Pedido criado com sucesso:", result.insertedId);
+      logger.info("✅ Pedido criado com sucesso:", pedidoId);
       
       return res.status(201).json({ 
         success: true,
-        pedidoId: result.insertedId,
+        pedidoId: pedidoId,
         message: "Pedido realizado com sucesso! Aguarde a confirmação."
       });
     }

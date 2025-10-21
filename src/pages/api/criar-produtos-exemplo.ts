@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { protegerApiAdmin } from "@/lib/adminAuth";
 
 export default async function handler(
   req: NextApiRequest,
@@ -7,6 +8,13 @@ export default async function handler(
 ) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Método não permitido" });
+  }
+
+  // 🚨 PROTEÇÃO CRÍTICA: Esta API deleta TODOS os produtos! 
+  // Apenas admins com permissão suprema devem ter acesso
+  const { isAdmin, error } = await protegerApiAdmin(req);
+  if (!isAdmin) {
+    return res.status(403).json({ error });
   }
 
   try {

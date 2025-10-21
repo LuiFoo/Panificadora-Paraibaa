@@ -2,19 +2,9 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
 
-// Mapeamento das coleções antigas para as novas subcategorias
-// const MAPEAMENTO_COLECOES = {
-//   "bolos-doces-especiais": "BOLOS DOCES ESPECIAIS",
-//   "doces-individuais": "DOCES INDIVIDUAIS",
-//   "paes-doces": "PAES DOCES",
-//   "paes-salgados-especiais": "PAES SALGADOS ESPECIAIS",
-//   "roscas-paes-especiais": "ROSCAS PAES ESPECIAIS",
-//   "salgados-assados-lanches": "SALGADOS ASSADOS LANCHES",
-//   "sobremesas-tortas": "SOBREMESAS TORTAS",
-//   "bebidas": "BEBIDAS"
-// };
+// ⚠️ LIMPEZA: Código comentado removido
 
-// Subcategorias válidas (apenas estas)
+// Subcategorias válidas
 const SUBCATEGORIAS_VALIDAS = [
   "BOLOS DOCES ESPECIAIS",
   "DOCES INDIVIDUAIS",
@@ -53,19 +43,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log("🔍 Iniciando busca de todos os produtos...");
     const client = await clientPromise;
     const db = client.db("paraiba");
 
     const todosProdutos: ProdutoExistente[] = [];
 
     // Buscar produtos apenas da coleção unificada "produtos"
-    console.log("📦 Buscando produtos da coleção 'produtos'...");
     const produtos = await db.collection("produtos")
       .find({})
       .sort({ criadoEm: -1, dataCriacao: -1 })
       .toArray();
-    console.log(`📦 Encontrados ${produtos.length} produtos na coleção 'produtos'`);
 
     // Adicionar produtos da coleção unificada
     for (const produto of produtos) {
@@ -91,12 +78,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return dateB.getTime() - dateA.getTime();
     });
 
-    console.log(`✅ Total de produtos encontrados: ${todosProdutos.length}`);
-
     // Extrair subcategorias únicas e filtrar apenas as válidas
     const subcategoriasUnicas = [...new Set(todosProdutos.map(p => p.subcategoria))]
       .filter(sub => sub && SUBCATEGORIAS_VALIDAS.includes(sub))
-      .sort(); // Ordenar alfabeticamente
+      .sort();
 
     const resposta = { 
       success: true,
@@ -105,12 +90,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subcategorias: subcategoriasUnicas,
       colecoes: ["produtos"]
     };
-
-    console.log("📤 Retornando resposta:", { 
-      success: resposta.success, 
-      total: resposta.total, 
-      subcategorias: resposta.subcategorias.length 
-    });
 
     return res.status(200).json(resposta);
 

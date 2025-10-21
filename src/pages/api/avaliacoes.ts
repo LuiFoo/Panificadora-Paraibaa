@@ -15,7 +15,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (method === "GET") {
       const { produtoId, produtoIds } = req.query;
 
-      const db = (await clientPromise).db("paraiba");
       const produtosCol = db.collection("produtos");
 
       // Se produtoIds for fornecido, buscar avaliações de múltiplos produtos (embutidas)
@@ -96,7 +95,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Nota deve ser entre 1 e 5" });
       }
 
-      const db = (await clientPromise).db("paraiba");
       const produtosCol = db.collection("produtos");
       const _id = new ObjectId(produtoId);
 
@@ -150,7 +148,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "produtoId inválido" });
       }
 
-      const db = (await clientPromise).db("paraiba");
       const produtosCol = db.collection("produtos");
       const _id = new ObjectId(produtoId);
 

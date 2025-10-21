@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 interface Endereco {
   rua: string;
@@ -43,6 +45,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ msg: "Método não permitido" });
   }
 
+  // ✅ VERIFICAÇÃO DE AUTENTICAÇÃO OBRIGATÓRIA
+  const session = await getServerSession(req, res, authOptions);
+  if (!session || !session.user || !session.user.email) {
+    return res.status(401).json({ 
+      ok: false, 
+      msg: "Não autenticado" 
+    });
+  }
+
   try {
     const { 
       name, 
@@ -58,6 +69,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ 
         ok: false, 
         msg: "Nome e email são obrigatórios" 
+      });
+    }
+
+    // ✅ VERIFICAR SE O USUÁRIO ESTÁ TENTANDO ATUALIZAR SEU PRÓPRIO PERFIL
+    if (email !== session.user.email) {
+      return res.status(403).json({ 
+        ok: false, 
+        msg: "Você só pode atualizar seu próprio perfil" 
       });
     }
 
@@ -105,8 +124,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Buscar usuário atualizado
     const updatedUser = await users.findOne({ email });
-
-    console.log("Perfil atualizado com sucesso:", updatedUser?.email);
 
     return res.status(200).json({
       ok: true,

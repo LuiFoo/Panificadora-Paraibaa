@@ -26,11 +26,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const mensagensCollection = db.collection("mensagens");
 
     if (method === "GET") {
-      const { userId, isAdmin } = req.query;
+      const { userId, isAdmin: isAdminQuery } = req.query;
 
       let query = {};
       
-      if (isAdmin === "true" && user?.permissao === "administrador") {
+      if (isAdminQuery === "true" && isAdmin) {
         // Admin vê todas as conversas
         query = {};
       } else if (userId) {
@@ -52,7 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .toArray();
 
       // Agrupar mensagens por usuário (para o admin)
-      if (isAdmin === "true") {
+      if (isAdminQuery === "true" && isAdmin) {
         const conversas: { [key: string]: Conversa } = {};
         
         mensagens.forEach((msg) => {
@@ -174,7 +174,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (method === "PUT") {
       // Marcar mensagens como lidas
-      const { userId, marcarComoLida, isAdmin } = req.body;
+      const { userId, marcarComoLida, isAdmin: isAdminBody } = req.body;
 
       if (!userId) {
         return res.status(400).json({ error: "userId é obrigatório" });
@@ -190,7 +190,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (marcarComoLida) {
         // Se for admin, marca mensagens do cliente como lidas
         // Se for cliente, marca mensagens do admin como lidas
-        const remetente = isAdmin ? "cliente" : "admin";
+        const remetente = isAdminBody ? "cliente" : "admin";
         
         await mensagensCollection.updateMany(
           { 
@@ -234,6 +234,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Deletar mensagem individual
       if (mensagemId) {
+        // ✅ VALIDAR ObjectId antes de usar
+        if (!ObjectId.isValid(mensagemId as string)) {
+          return res.status(400).json({ error: "ID de mensagem inválido" });
+        }
+
         await mensagensCollection.deleteOne({
           _id: new ObjectId(mensagemId as string)
         });

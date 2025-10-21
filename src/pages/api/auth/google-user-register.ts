@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verificar se já existe um usuário com este Google ID
     const existingUser = await users.findOne({ googleId });
     if (existingUser) {
-      console.log("Usuário já existe no MongoDB:", existingUser.email);
+      // Usuário já existe
       return res.status(200).json({ 
         ok: true, 
         msg: "Usuário já existe",
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verificar se já existe um usuário com este email (segurança adicional)
     const existingEmailUser = await users.findOne({ email });
     if (existingEmailUser && existingEmailUser.googleId !== googleId) {
-      console.log("Email já existe com outro Google ID:", email);
+      // Email já vinculado a outra conta
       return res.status(400).json({ 
         ok: false, 
         msg: "Este email já está associado a outra conta" 
@@ -49,9 +49,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verificar se o login já existe (caso raro)
     let finalLogin = login;
     let counter = 1;
-    while (await users.findOne({ login: finalLogin })) {
+    const MAX_TENTATIVAS = 1000; // Prevenir loop infinito
+    
+    // ⚠️ CORREÇÃO DE BUG: Race condition em geração de login
+    while (counter < MAX_TENTATIVAS && await users.findOne({ login: finalLogin })) {
       finalLogin = `${login}${counter}`;
       counter++;
+    }
+
+    if (counter >= MAX_TENTATIVAS) {
+      return res.status(500).json({ 
+        ok: false, 
+        msg: "Erro ao gerar login único. Tente novamente." 
+      });
     }
 
     // Criar novo usuário
@@ -70,14 +80,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ultimoAcesso: new Date()
     };
 
-    console.log("Criando novo usuário no MongoDB:", { googleId, email, name, login: finalLogin });
-    
     const result = await users.insertOne(novoUser);
     const userCreated = await users.findOne({ _id: result.insertedId });
-    
-    if (userCreated) {
-      console.log("Usuário criado com sucesso:", userCreated.email);
-    }
 
     return res.status(200).json({
       ok: true,

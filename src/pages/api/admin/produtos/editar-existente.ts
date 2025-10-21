@@ -69,20 +69,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const precoTipo = preco?.tipo || vtipo;
       const precoCusto = preco?.custoProducao;
       const prom = preco?.promocao;
+      
+      // 🐛 CORREÇÃO: Validar preço se fornecido
+      if (precoValor !== undefined && (isNaN(precoValor) || precoValor <= 0)) {
+        return res.status(400).json({ error: "Preço deve ser maior que zero" });
+      }
+      
       if (precoValor !== undefined || precoTipo || precoCusto !== undefined || prom) {
-        updateData.preco = {
-          ...(precoValor !== undefined ? { valor: Number(precoValor) } : {}),
-          ...(precoTipo ? { tipo: precoTipo } : {}),
-          ...(precoCusto !== undefined ? { custoProducao: safeParseFloat(precoCusto, 0) } : {}),
-          ...(prom ? {
-            promocao: {
-              ativo: !!prom.ativo,
-              ...(prom.valorPromocional !== undefined ? { valorPromocional: safeParseFloat(prom.valorPromocional, 0) } : {}),
-              ...(prom.inicio ? { inicio: new Date(prom.inicio) } : {}),
-              ...(prom.fim ? { fim: new Date(prom.fim) } : {})
-            }
-          } : {})
-        };
+        const precoObj: Record<string, unknown> = {};
+        
+        if (precoValor !== undefined) precoObj.valor = Number(precoValor);
+        if (precoTipo) precoObj.tipo = precoTipo;
+        if (precoCusto !== undefined) precoObj.custoProducao = safeParseFloat(precoCusto, 0);
+        
+        if (prom) {
+          const promocaoObj: Record<string, unknown> = { ativo: !!prom.ativo };
+          if (prom.valorPromocional !== undefined) promocaoObj.valorPromocional = safeParseFloat(prom.valorPromocional, 0);
+          if (prom.inicio) promocaoObj.inicio = new Date(prom.inicio);
+          if (prom.fim) promocaoObj.fim = new Date(prom.fim);
+          precoObj.promocao = promocaoObj;
+        }
+        
+        // Só adicionar se o objeto não estiver vazio
+        if (Object.keys(precoObj).length > 0) {
+          updateData.preco = precoObj;
+        }
       }
 
       // Estoque
@@ -181,8 +192,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             { "carrinho.produtos.produtoId": id },
             updateOperation as Record<string, unknown>
           );
-          
-          console.log(`Produto ${id} removido de todos os carrinhos após ser pausado`);
         } catch (error) {
           console.error("Erro ao remover produto dos carrinhos:", error);
           // Não falhar a operação principal se houver erro na remoção dos carrinhos
@@ -201,6 +210,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!ObjectId.isValid(id)) {
         return res.status(400).json({ error: "ID inválido" });
+      }
+
+      // 🐛 CORREÇÃO DE BUG CRÍTICO: Remover produto de todos os carrinhos antes de deletar
+      try {
+        await db.collection("users").updateMany(
+          { "carrinho.produtos.produtoId": id },
+          {
+            $pull: { 
+              "carrinho.produtos": { produtoId: id }
+            },
+            $set: {
+              "carrinho.updatedAt": new Date().toISOString()
+            }
+          } as Record<string, unknown>
+        );
+      } catch (error) {
+        console.error("Erro ao remover produto dos carrinhos antes de deletar:", error);
+        // Continuar com a deleção mesmo se falhar a remoção dos carrinhos
       }
 
       // Excluir permanentemente da coleção unificada

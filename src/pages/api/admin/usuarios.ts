@@ -91,8 +91,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "Permissão inválida. Apenas 'usuario' ou 'administrador' são permitidos" });
       }
 
+      // ✅ VALIDAR ObjectId antes de usar
+      if (!ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: "ID de usuário inválido" });
+      }
+
       const result = await db.collection("users").updateOne(
-        { _id: new ObjectId(userId as string) },
+        { _id: new ObjectId(userId) },
         { 
           $set: { 
             permissao: permission,
@@ -117,6 +122,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!userId) {
         return res.status(400).json({ error: "userId é obrigatório" });
+      }
+
+      // ✅ VALIDAR ObjectId antes de usar
+      if (!ObjectId.isValid(userId as string)) {
+        return res.status(400).json({ error: "ID de usuário inválido" });
       }
 
       const result = await db.collection("users").deleteOne({

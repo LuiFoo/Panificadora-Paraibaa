@@ -19,21 +19,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const client = await clientPromise;
     const db = client.db("paraiba");
     const users = db.collection("users");
-
-    console.log("Buscando usuário com Google ID:", googleId);
     
     // Busca o usuário pelo Google ID
     const user = await users.findOne({ googleId });
 
     if (!user) {
-      console.log("Usuário não encontrado para Google ID:", googleId);
       return res.status(404).json({ 
         ok: false, 
         msg: "Usuário não encontrado" 
       });
     }
-
-    console.log("Usuário encontrado:", user.email);
 
     // Atualiza último acesso
     await users.updateOne(

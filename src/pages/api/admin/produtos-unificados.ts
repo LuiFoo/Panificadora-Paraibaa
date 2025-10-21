@@ -91,10 +91,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const slugBase = gerarSlug(nome);
       let slug = slugBase;
       let counter = 1;
+      const MAX_TENTATIVAS = 100; // Prevenir loop infinito
 
-      while (await db.collection("produtos").findOne({ slug })) {
+      // ⚠️ CORREÇÃO DE BUG: Race condition em geração de slug
+      while (counter < MAX_TENTATIVAS && await db.collection("produtos").findOne({ slug })) {
         slug = `${slugBase}-${counter}`;
         counter++;
+      }
+
+      if (counter >= MAX_TENTATIVAS) {
+        return res.status(500).json({ error: "Erro ao gerar slug único. Tente outro nome." });
       }
 
       // Criar produto
@@ -120,15 +126,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           href: imagem,
           alt: nome
         },
-        ingredientes: Array.isArray(ingredientes) ? ingredientes : ingredientes.split(',').map((i: string) => i.trim()),
-        alergicos: Array.isArray(alergicos) ? alergicos : (alergicos ? alergicos.split(',').map((i: string) => i.trim()) : []),
+        // ⚠️ CORREÇÃO DE BUG: Validação segura de tipos antes de split
+        ingredientes: Array.isArray(ingredientes) 
+          ? ingredientes 
+          : (typeof ingredientes === 'string' && ingredientes ? ingredientes.split(',').map((i: string) => i.trim()) : []),
+        alergicos: Array.isArray(alergicos) 
+          ? alergicos 
+          : (typeof alergicos === 'string' && alergicos ? alergicos.split(',').map((i: string) => i.trim()) : []),
         avaliacao: {
           media: 0,
           quantidade: 0,
           usuarios: []
         },
         destaque: Boolean(destaque),
-        tags: Array.isArray(tags) ? tags : (tags ? tags.split(',').map((t: string) => t.trim()) : []),
+        tags: Array.isArray(tags) 
+          ? tags 
+          : (typeof tags === 'string' && tags ? tags.split(',').map((t: string) => t.trim()) : []),
         status: "ativo",
         criadoEm: new Date(),
         atualizadoEm: new Date()

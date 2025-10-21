@@ -56,8 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { $set: { ultimoAcesso: new Date() } }
     );
 
-    console.log("Login bem-sucedido:", user.email);
-
     return res.status(200).json({
       ok: true,
       msg: "Login realizado com sucesso",

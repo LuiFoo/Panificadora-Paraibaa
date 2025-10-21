@@ -1,8 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
+
+  // ✅ VERIFICAÇÃO DE AUTENTICAÇÃO OBRIGATÓRIA
+  const session = await getServerSession(req, res, authOptions);
+  if (!session || !session.user) {
+    return res.status(401).json({ error: "Não autenticado" });
+  }
+
+  const sessionLogin = (session.user as { login?: string }).login || session.user.id;
 
   try {
     const client = await clientPromise;
@@ -15,6 +25,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!userId) {
         return res.status(400).json({ error: "userId é obrigatório" });
+      }
+
+      // ✅ VERIFICAR SE O USUÁRIO ESTÁ BUSCANDO SEUS PRÓPRIOS DADOS
+      if (userId !== sessionLogin) {
+        return res.status(403).json({ 
+          error: "Você só pode visualizar seus próprios dados" 
+        });
       }
 
       const user = await usersCollection.findOne({ login: userId as string });
@@ -38,6 +55,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!userId) {
         return res.status(400).json({ error: "userId é obrigatório" });
+      }
+
+      // ✅ VERIFICAR SE O USUÁRIO ESTÁ ATUALIZANDO SEUS PRÓPRIOS DADOS
+      if (userId !== sessionLogin) {
+        return res.status(403).json({ 
+          error: "Você só pode atualizar seus próprios dados" 
+        });
       }
 
       const updateData: {
