@@ -13,10 +13,13 @@ export default async function handler(
 
     // Se vier lista de IDs, retornar produtos específicos (com projection reduzida)
     if (ids) {
+      console.log("🔍 API produtos: Buscando IDs específicos:", ids);
       const idList = String(ids).split(',').filter(Boolean);
       const objectIds = idList
         .map((id) => (ObjectId.isValid(id) ? new ObjectId(id) : null))
         .filter((id): id is ObjectId => !!id);
+
+      console.log("🔍 API produtos: ObjectIds válidos:", objectIds.length);
 
       const produtos = await db.collection("produtos")
         .find({ _id: { $in: objectIds } }, {
@@ -31,6 +34,7 @@ export default async function handler(
         })
         .toArray();
 
+      console.log("📦 API produtos: Produtos encontrados:", produtos.length);
       return res.status(200).json({ produtos, total: produtos.length });
     }
 

@@ -58,16 +58,19 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Usar a API unificada de produtos com IDs específicos
       const ids = items.map(item => item.id).join(',');
+      console.log("🔍 Buscando produtos com IDs:", ids);
+      
       const response = await fetch(`/api/produtos?ids=${ids}`);
       
       if (!response.ok) {
-        console.error("Erro ao buscar produtos:", response.status);
+        console.error("❌ Erro ao buscar produtos:", response.status);
         // Em caso de erro na API, manter todos os produtos
         return items;
       }
 
       const data = await response.json();
       const produtos = data.produtos || [];
+      console.log("📦 Produtos encontrados:", produtos.length);
 
       for (const item of items) {
         const produto = produtos.find((p: { _id: string; status?: string; preco?: { valor: number } }) => p._id === item.id);
@@ -431,16 +434,20 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // Forçar atualização do carrinho (verificar produtos pausados e preços)
   const forcarAtualizacao = async () => {
-    if (cartItems.length === 0) return;
+    if (cartItems.length === 0) {
+      console.log("🔄 Carrinho vazio, não há nada para validar");
+      return;
+    }
     
     try {
-      console.log("🔄 Forçando atualização do carrinho...");
+      console.log("🔄 Forçando atualização do carrinho...", cartItems.length, "itens");
       const produtosValidos = await verificarProdutosPausados(cartItems);
+      console.log("✅ Produtos válidos encontrados:", produtosValidos.length);
       setCartItems(produtosValidos);
-        console.log("Carrinho atualizado com sucesso!");
+      console.log("✅ Carrinho atualizado com sucesso!");
     } catch (error) {
-      console.error("Erro ao forçar atualização:", error);
-      console.log("Erro ao atualizar carrinho");
+      console.error("❌ Erro ao forçar atualização:", error);
+      console.log("❌ Erro ao atualizar carrinho");
     }
   };
 

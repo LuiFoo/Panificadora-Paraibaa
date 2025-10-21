@@ -221,26 +221,39 @@ export default function CheckoutPage() {
     }
   }, [cartItems, loading, router]);
 
-  // Validar carrinho antes do checkout
+  // Validar carrinho antes do checkout (apenas uma vez)
   useEffect(() => {
     const validarCarrinho = async () => {
       if (cartItems.length === 0) return;
       
       setValidandoCarrinho(true);
+      
+      // Timeout de 10 segundos para evitar travamento
+      const timeout = setTimeout(() => {
+        console.log("⏰ Timeout na validação do carrinho");
+        setValidandoCarrinho(false);
+        setError("Timeout na validação do carrinho. Tente novamente.");
+      }, 10000);
+      
       try {
         console.log("🔄 Validando carrinho antes do checkout...");
         await forcarAtualizacao();
         console.log("✅ Carrinho validado com sucesso");
+        clearTimeout(timeout);
       } catch (error) {
         console.error("❌ Erro ao validar carrinho:", error);
         setError("Erro ao validar carrinho. Recarregue a página e tente novamente.");
+        clearTimeout(timeout);
       } finally {
         setValidandoCarrinho(false);
       }
     };
 
-    validarCarrinho();
-  }, [cartItems, forcarAtualizacao]);
+    // Só validar se não estiver já validando
+    if (!validandoCarrinho && cartItems.length > 0) {
+      validarCarrinho();
+    }
+  }, [cartItems.length]); // Removido forcarAtualizacao da dependência
 
   const total = cartItems.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
 
@@ -446,6 +459,15 @@ export default function CheckoutPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-avocado-600)]"></div>
             <p className="text-gray-600 text-lg">Validando carrinho...</p>
             <p className="text-gray-500 text-sm">Verificando preços e disponibilidade dos produtos</p>
+            <button
+              onClick={() => {
+                console.log("⏭️ Pulando validação do carrinho");
+                setValidandoCarrinho(false);
+              }}
+              className="mt-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            >
+              Pular Validação
+            </button>
           </div>
         </main>
         <Footer showMap={false} />
