@@ -164,7 +164,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // 🎯 NOVO: Gerar número sequencial do pedido
-      const contadoresCollection = db.collection("contadores");
+      interface Contador {
+        _id: string;
+        ultimoNumero: number;
+      }
+      const contadoresCollection = db.collection<Contador>("contadores");
       
       // Buscar ou criar contador de pedidos
       let contador = await contadoresCollection.findOne({ _id: "pedidos" });
