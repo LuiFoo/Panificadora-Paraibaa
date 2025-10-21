@@ -824,12 +824,13 @@ export default function PedidosPage() {
                 {!['entregue', 'cancelado'].includes(pedidoSelecionado.status) && (
                   <button
                     onClick={() => {
-                      const proximoStatus = {
+                      const statusMap: Record<string, string> = {
                         'pendente': 'confirmado',
                         'confirmado': 'preparando',
                         'preparando': 'pronto',
                         'pronto': 'entregue'
-                      }[pedidoSelecionado.status];
+                      };
+                      const proximoStatus = statusMap[pedidoSelecionado.status];
                       
                       if (proximoStatus) {
                         handleStatusChange(pedidoSelecionado._id, proximoStatus);
