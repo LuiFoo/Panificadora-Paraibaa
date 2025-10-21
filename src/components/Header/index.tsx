@@ -195,6 +195,11 @@ export default function Header() {
       
       // 2. Limpar localStorage e estado do usuário
       localStorage.removeItem("usuario");
+      
+      // Disparar eventos de logout para sincronização imediata
+      window.dispatchEvent(new Event('localStorageUpdated'));
+      window.dispatchEvent(new Event('userLoggedOut'));
+      
       setUser(null);
       
       // 3. Fazer logout do NextAuth (Google OAuth)
@@ -210,6 +215,11 @@ export default function Header() {
       localStorage.setItem("manual_logout", "true");
       localStorage.setItem("logout_timestamp", Date.now().toString());
       localStorage.removeItem("usuario");
+      
+      // Disparar eventos de logout para sincronização imediata
+      window.dispatchEvent(new Event('localStorageUpdated'));
+      window.dispatchEvent(new Event('userLoggedOut'));
+      
       setUser(null);
     } finally {
       // Reset do estado de loading após um pequeno delay

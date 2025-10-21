@@ -259,9 +259,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Executa apenas uma vez na montagem, dependências gerenciadas por refs
   
-  // Polling unificado para detectar mudanças no localStorage
+  // Sistema híbrido: Eventos + Polling de fallback
   useEffect(() => {
-    console.log("🔄 UserContext: Iniciando polling unificado");
+    console.log("🔄 UserContext: Iniciando sistema de sincronização");
     
     const checkLocalStorage = () => {
       const savedUser = localStorage.getItem("usuario");
@@ -302,14 +302,27 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    // Verificar imediatamente
+    // 1. Verificar imediatamente
     checkLocalStorage();
     
-    // Polling a cada 500ms (apenas um interval)
+    // 2. Listener para eventos customizados (resposta imediata)
+    const handleStorageUpdate = () => {
+      console.log("🔔 UserContext: Evento de atualização recebido");
+      checkLocalStorage();
+    };
+    
+    window.addEventListener('localStorageUpdated', handleStorageUpdate);
+    window.addEventListener('userLoggedIn', handleStorageUpdate);
+    window.addEventListener('userLoggedOut', handleStorageUpdate);
+    
+    // 3. Polling de fallback a cada 500ms (caso eventos falhem)
     const interval = setInterval(checkLocalStorage, 500);
     
     return () => {
       clearInterval(interval);
+      window.removeEventListener('localStorageUpdated', handleStorageUpdate);
+      window.removeEventListener('userLoggedIn', handleStorageUpdate);
+      window.removeEventListener('userLoggedOut', handleStorageUpdate);
     };
   }, [user]); // Reexecuta quando user muda
 
