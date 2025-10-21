@@ -3,6 +3,7 @@
  * Execute com: node src/scripts/migrar-permissao.js
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { MongoClient } = require('mongodb');
 
 const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";

@@ -353,7 +353,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       checkLocalStorage();
     };
     
-    const handleUserLoggedIn = (event: Event) => {
+    const handleUserLoggedIn = () => {
       console.log("🔔 UserContext: Evento userLoggedIn recebido!");
       checkLocalStorage();
     };

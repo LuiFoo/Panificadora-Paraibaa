@@ -24,7 +24,7 @@ interface Usuario {
 
 export default function GerenciarUsuarios() {
   const router = useRouter();
-  const { user: currentUser, isSuperAdmin } = useUser();
+  const { isSuperAdmin } = useUser();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
