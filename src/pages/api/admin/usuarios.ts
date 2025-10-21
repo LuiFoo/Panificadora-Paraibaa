@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req;
@@ -30,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: user.email || "",
         telefone: user.telefone || "",
         permission: user.permissao || "usuario",
+        permissaoSuprema: user.permissaoSuprema === true || user.permissaoSuprema === "true" || user.ExIlimitada === true || user.ExIlimitada === "true",
         dataCriacao: user.dataCriacao || null,
         ultimoAcesso: user.ultimoAcesso || null
       }));
@@ -52,16 +55,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "userId e permission devem ser strings válidas" });
       }
 
-      // Não permitir promover usuários a administrador
-      if (permission === "administrador") {
+      // Verificar se quem está atualizando tem permissão suprema
+      const session = await getServerSession(req, res, authOptions);
+      if (!session || !session.user || !session.user.email) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      // Buscar o usuário logado para verificar permissão suprema
+      const adminUser = await db.collection("users").findOne({ 
+        email: session.user.email 
+      });
+
+      if (!adminUser) {
+        return res.status(404).json({ error: "Usuário administrador não encontrado" });
+      }
+
+      // VERIFICAÇÃO CRÍTICA: Apenas usuários com permissão suprema podem promover a admin
+      // Verifica tanto permissaoSuprema quanto ExIlimitada (retrocompatibilidade)
+      // Aceita boolean true ou string "true"
+      const temPermissaoSuprema = 
+        adminUser.permissaoSuprema === true || 
+        adminUser.permissaoSuprema === "true" ||
+        adminUser.ExIlimitada === true || 
+        adminUser.ExIlimitada === "true";
+      
+      if (permission === "administrador" && !temPermissaoSuprema) {
         return res.status(403).json({ 
-          error: "Não é permitido promover usuários a administrador através desta interface" 
+          error: "Apenas usuários com Permissão Suprema podem promover outros a administrador",
+          requiredPermission: "permissaoSuprema"
         });
       }
 
       // Permitir apenas permissões válidas
-      if (!["usuario", "cliente"].includes(permission)) {
-        return res.status(400).json({ error: "Permissão inválida. Apenas 'usuario' ou 'cliente' são permitidos" });
+      if (!["usuario", "administrador"].includes(permission)) {
+        return res.status(400).json({ error: "Permissão inválida. Apenas 'usuario' ou 'administrador' são permitidos" });
       }
 
       const result = await db.collection("users").updateOne(

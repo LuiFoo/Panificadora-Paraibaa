@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useUser } from "@/context/UserContext";
 
@@ -20,19 +20,29 @@ interface UserData {
   permissao: string;
   googleId: string;
   picture?: string;
+  permissaoSuprema?: boolean | string;
+  ExIlimitada?: boolean | string;
 }
 
 export const useAuthSync = () => {
   const { data: session, status } = useSession();
   const { setUser, user } = useUser();
+  const isSyncing = useRef(false);
 
   useEffect(() => {
+    // Evitar execuções simultâneas
+    if (isSyncing.current) {
+      console.log("🔄 useAuthSync: Já está sincronizando, pulando");
+      return;
+    }
     // Evitar execuções desnecessárias
     if (status === "loading") return;
     
     console.log("🔍 useAuthSync: Status:", status, "Session:", !!session, "User:", !!user);
     
     const syncUserData = async () => {
+      console.log("🔄 useAuthSync: syncUserData chamado. Status:", status);
+      
       // Verificar se foi logout manual
       const manualLogout = localStorage.getItem("manual_logout");
       const logoutTimestamp = localStorage.getItem("logout_timestamp");
@@ -40,7 +50,7 @@ export const useAuthSync = () => {
       // Se o usuário fez logout manualmente, não relogar automaticamente
       if (manualLogout === "true") {
         const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp) : 0;
-        console.log("🚫 Logout manual detectado - não relogando automaticamente");
+        console.log("🚫 useAuthSync: Logout manual detectado - não relogando automaticamente");
         
         // Aguardar um tempo antes de remover a flag para evitar relogin imediato
         // Se já passou mais de 10 segundos, pode limpar a flag
@@ -52,9 +62,9 @@ export const useAuthSync = () => {
       }
 
       if (status === "authenticated" && session?.user) {
-        console.log("🔍 useAuthSync: Tentando sincronizar usuário autenticado:", session.user.email);
+        console.log("✅ useAuthSync: Usuário autenticado detectado:", session.user.email);
         try {
-          console.log("Sincronizando dados do usuário:", session.user.email);
+          console.log("🔄 useAuthSync: Buscando dados do usuário do banco...");
           
           // Primeiro tenta buscar dados existentes do usuário
           let response = await fetch('/api/auth/get-user-data', {
@@ -97,27 +107,36 @@ export const useAuthSync = () => {
               permissao: data.user.permissao || "usuario",
               googleId: data.user.googleId,
               picture: data.user.picture || undefined,
+              permissaoSuprema: data.user.permissaoSuprema,
+              ExIlimitada: data.user.ExIlimitada
             };
 
-            // Só atualiza se o usuário atual for diferente ou não existir
-            if (!user || user.login !== userData.login) {
-              localStorage.setItem("usuario", JSON.stringify(userData));
-              
-              // Disparar múltiplos eventos para garantir sincronização
-              window.dispatchEvent(new Event('localStorageUpdated'));
-              window.dispatchEvent(new Event('userLoggedIn'));
-              window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
-              
-              setUser(userData);
-              
-              // Limpar flag de logout manual quando usuário faz login
-              localStorage.removeItem("manual_logout");
-              localStorage.removeItem("logout_timestamp");
-              
-              console.log("✅ Usuário sincronizado com dados do MongoDB");
-            } else {
-              console.log("✅ Usuário já está sincronizado");
-            }
+            console.log("💾 useAuthSync: Salvando usuário no localStorage:", {
+              login: userData.login,
+              permissaoSuprema: userData.permissaoSuprema,
+              ExIlimitada: userData.ExIlimitada
+            });
+            
+            // SEMPRE salvar no localStorage
+            localStorage.setItem("usuario", JSON.stringify(userData));
+            
+            console.log("📡 useAuthSync: Disparando eventos de sincronização...");
+            
+            // Disparar múltiplos eventos para garantir sincronização
+            window.dispatchEvent(new Event('localStorageUpdated'));
+            window.dispatchEvent(new Event('userLoggedIn'));
+            window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
+            
+            console.log("📡 useAuthSync: Eventos disparados!");
+            
+            // SEMPRE atualizar o contexto quando autenticado
+            setUser(userData);
+            
+            // Limpar flag de logout manual quando usuário faz login
+            localStorage.removeItem("manual_logout");
+            localStorage.removeItem("logout_timestamp");
+            
+            console.log("✅ useAuthSync: Usuário sincronizado com dados do MongoDB");
           } else {
             // Fallback para dados do NextAuth
             const userData: UserData = {
@@ -129,27 +148,28 @@ export const useAuthSync = () => {
               permissao: (session.user as GoogleUser).permissao || "usuario",
               googleId: (session.user as GoogleUser).id,
               picture: session.user.image || undefined,
+              permissaoSuprema: false, // Fallback não tem permissão suprema
+              ExIlimitada: false
             };
 
-            // Só atualiza se o usuário atual for diferente ou não existir
-            if (!user || user.login !== userData.login) {
-              localStorage.setItem("usuario", JSON.stringify(userData));
-              
-              // Disparar múltiplos eventos para garantir sincronização
-              window.dispatchEvent(new Event('localStorageUpdated'));
-              window.dispatchEvent(new Event('userLoggedIn'));
-              window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
-              
-              setUser(userData);
-              
-              // Limpar flag de logout manual quando usuário faz login
-              localStorage.removeItem("manual_logout");
-              localStorage.removeItem("logout_timestamp");
-              
-              console.log("✅ Usuário sincronizado com dados do NextAuth (fallback)");
-            } else {
-              console.log("✅ Usuário já está sincronizado (fallback)");
-            }
+            console.log("💾 useAuthSync: Salvando usuário (fallback) no localStorage");
+            
+            // SEMPRE salvar no localStorage
+            localStorage.setItem("usuario", JSON.stringify(userData));
+            
+            // Disparar múltiplos eventos para garantir sincronização
+            window.dispatchEvent(new Event('localStorageUpdated'));
+            window.dispatchEvent(new Event('userLoggedIn'));
+            window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
+            
+            // SEMPRE atualizar o contexto
+            setUser(userData);
+            
+            // Limpar flag de logout manual quando usuário faz login
+            localStorage.removeItem("manual_logout");
+            localStorage.removeItem("logout_timestamp");
+            
+            console.log("✅ useAuthSync: Usuário sincronizado com dados do NextAuth (fallback)");
           }
         } catch (error) {
           console.error("Erro ao sincronizar dados do usuário:", error);
@@ -164,27 +184,28 @@ export const useAuthSync = () => {
             permissao: (session.user as GoogleUser).permissao || "usuario",
             googleId: (session.user as GoogleUser).id,
             picture: session.user.image || undefined,
+            permissaoSuprema: false, // Erro fallback não tem permissão suprema
+            ExIlimitada: false
           };
 
-          // Só atualiza se o usuário atual for diferente ou não existir
-          if (!user || user.login !== userData.login) {
-            localStorage.setItem("usuario", JSON.stringify(userData));
-            
-            // Disparar múltiplos eventos para garantir sincronização
-            window.dispatchEvent(new Event('localStorageUpdated'));
-            window.dispatchEvent(new Event('userLoggedIn'));
-            window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
-            
-            setUser(userData);
-            
-            // Limpar flag de logout manual quando usuário faz login
-            localStorage.removeItem("manual_logout");
-            localStorage.removeItem("logout_timestamp");
-            
-            console.log("✅ Usuário sincronizado com dados do NextAuth (erro fallback)");
-          } else {
-            console.log("✅ Usuário já está sincronizado (erro fallback)");
-          }
+          console.log("💾 useAuthSync: Salvando usuário (erro fallback) no localStorage");
+          
+          // SEMPRE salvar no localStorage
+          localStorage.setItem("usuario", JSON.stringify(userData));
+          
+          // Disparar múltiplos eventos para garantir sincronização
+          window.dispatchEvent(new Event('localStorageUpdated'));
+          window.dispatchEvent(new Event('userLoggedIn'));
+          window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
+          
+          // SEMPRE atualizar o contexto
+          setUser(userData);
+          
+          // Limpar flag de logout manual quando usuário faz login
+          localStorage.removeItem("manual_logout");
+          localStorage.removeItem("logout_timestamp");
+          
+          console.log("✅ useAuthSync: Usuário sincronizado com dados do NextAuth (erro fallback)");
         }
       } else if (status === "unauthenticated") {
         // Remove dados do localStorage se não autenticado
@@ -199,13 +220,16 @@ export const useAuthSync = () => {
       }
     };
 
-    // Debounce para evitar múltiplas execuções
-    const timeoutId = setTimeout(syncUserData, 100);
+    // Executar imediatamente sem debounce para sincronização instantânea
+    isSyncing.current = true;
+    syncUserData().finally(() => {
+      isSyncing.current = false;
+    });
     
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [session, status, setUser, user]);
+    // Sem cleanup necessário pois não há timeout
+    // Nota: 'user' foi REMOVIDO das dependências para evitar loops desnecessários
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status]);
 
   return { session, status };
 };

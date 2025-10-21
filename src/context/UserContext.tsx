@@ -6,17 +6,20 @@ interface User {
   _id: string;
   login: string;
   name: string;
-  permissao: string; // "administrador" ou outro
+  permissao: string; // "administrador" ou "usuario"
   password: string;
   googleId?: string;
   email?: string;
   picture?: string;
+  permissaoSuprema?: boolean | string; // Super Admin - pode promover outros a admin (aceita boolean ou string "true")
+  ExIlimitada?: boolean | string; // Retrocompatibilidade (campo antigo)
 }
 
 interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   loading: boolean;
 }
 
@@ -35,6 +38,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const lastValidationRef = useRef<number>(0);
   const isValidating = useRef(false);
   const lastUserLoginRef = useRef<string>("");
+  const userStateRef = useRef<User | null>(null); // Ref para rastrear estado atual do usuário
+
+  // Sincronizar ref com estado
+  useEffect(() => {
+    userStateRef.current = user;
+  }, [user]);
 
   // Debug logs removido para produção
 
@@ -261,7 +270,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   
   // Sistema híbrido: Eventos + Polling de fallback
   useEffect(() => {
-    console.log("🔄 UserContext: Iniciando sistema de sincronização");
+    console.log("🔄 UserContext: Iniciando sistema de sincronização OTIMIZADO");
     
     const checkLocalStorage = () => {
       const savedUser = localStorage.getItem("usuario");
@@ -274,7 +283,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         
         if (timeSinceLogout < 10000) {
           // Logout recente - garantir que usuário está limpo
-          if (user) {
+          if (userStateRef.current) {
             console.log("🔄 UserContext: Limpando usuário devido a logout manual");
             setUser(null);
           }
@@ -283,19 +292,29 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }
       
       // Se não há usuário salvo e temos usuário no contexto, limpar
-      if (!savedUser && user) {
+      if (!savedUser && userStateRef.current) {
         console.log("🔄 UserContext: Logout detectado");
         setUser(null);
         return;
       }
       
-      // Se há usuário salvo mas não no contexto, carregar
-      if (savedUser && !user && !isValidating.current) {
+      // Se há usuário salvo, verificar se precisa atualizar
+      if (savedUser && !isValidating.current) {
         try {
           const parsedUser = JSON.parse(savedUser);
-          console.log("✅ UserContext: Usuário detectado no localStorage:", parsedUser.name);
-          setUser(parsedUser);
-          setLoading(false);
+          
+          // Verificar se o usuário mudou antes de atualizar (evitar re-renders desnecessários)
+          const hasChanged = !userStateRef.current || 
+                           userStateRef.current.login !== parsedUser.login ||
+                           userStateRef.current.permissao !== parsedUser.permissao ||
+                           userStateRef.current.permissaoSuprema !== parsedUser.permissaoSuprema ||
+                           userStateRef.current.name !== parsedUser.name;
+          
+          if (hasChanged) {
+            console.log("✅ UserContext: Atualizando usuário do localStorage:", parsedUser.name);
+            setUser(parsedUser);
+            setLoading(false);
+          }
         } catch (e) {
           console.error("Erro ao parsear usuário do polling:", e);
         }
@@ -305,34 +324,74 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     // 1. Verificar imediatamente
     checkLocalStorage();
     
-    // 2. Listener para eventos customizados (resposta imediata)
-    const handleStorageUpdate = () => {
-      console.log("🔔 UserContext: Evento de atualização recebido");
+    // 2. Listener para evento direto com dados do usuário (MAIS RÁPIDO)
+    const handleUserDataUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        const newUser = customEvent.detail;
+        
+        // Verificar se o usuário realmente mudou antes de atualizar
+        const hasChanged = !userStateRef.current || 
+                         userStateRef.current.login !== newUser.login ||
+                         userStateRef.current.permissao !== newUser.permissao ||
+                         userStateRef.current.permissaoSuprema !== newUser.permissaoSuprema ||
+                         userStateRef.current.name !== newUser.name;
+        
+        if (hasChanged) {
+          console.log("🚀 UserContext: Dados do usuário recebidos DIRETAMENTE via evento!");
+          setUser(newUser);
+          setLoading(false);
+        } else {
+          console.log("✅ UserContext: Evento recebido mas usuário já está atualizado");
+        }
+      }
+    };
+    
+    // 3. Listener para eventos genéricos
+    const handleStorageUpdate = (event?: Event) => {
+      console.log("🔔 UserContext: Evento de atualização recebido:", event?.type);
       checkLocalStorage();
     };
     
+    const handleUserLoggedIn = (event: Event) => {
+      console.log("🔔 UserContext: Evento userLoggedIn recebido!");
+      checkLocalStorage();
+    };
+    
+    // Registrar listeners (userDataUpdated TEM PRIORIDADE)
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
     window.addEventListener('localStorageUpdated', handleStorageUpdate);
-    window.addEventListener('userLoggedIn', handleStorageUpdate);
+    window.addEventListener('userLoggedIn', handleUserLoggedIn);
     window.addEventListener('userLoggedOut', handleStorageUpdate);
     
-    // 3. Polling de fallback a cada 500ms (caso eventos falhem)
-    const interval = setInterval(checkLocalStorage, 500);
+    // 4. Polling de fallback a cada 300ms (mais rápido)
+    const interval = setInterval(checkLocalStorage, 300);
     
     return () => {
       clearInterval(interval);
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
       window.removeEventListener('localStorageUpdated', handleStorageUpdate);
-      window.removeEventListener('userLoggedIn', handleStorageUpdate);
+      window.removeEventListener('userLoggedIn', handleUserLoggedIn);
       window.removeEventListener('userLoggedOut', handleStorageUpdate);
     };
-  }, [user]); // Reexecuta quando user muda
+  }, []); // NUNCA reexecuta - listeners ficam sempre ativos
 
   // Verifica se o usuário tem permissão de administrador usando useMemo para performance
   const isAdmin = useMemo(() => {
     return user?.permissao === "administrador";
   }, [user]);
 
+  // Verifica se o usuário tem permissão suprema (Super Admin)
+  // Aceita tanto boolean true quanto string "true" do MongoDB
+  // Suporta ambos os campos: permissaoSuprema (novo) e ExIlimitada (antigo)
+  const isSuperAdmin = useMemo(() => {
+    const permissaoSuprema = user?.permissaoSuprema === true || user?.permissaoSuprema === "true";
+    const exIlimitada = user?.ExIlimitada === true || user?.ExIlimitada === "true";
+    return permissaoSuprema || exIlimitada;
+  }, [user]);
+
   return (
-    <UserContext.Provider value={{ user, setUser, isAdmin, loading }}>
+    <UserContext.Provider value={{ user, setUser, isAdmin, isSuperAdmin, loading }}>
       {children}
     </UserContext.Provider>
   );

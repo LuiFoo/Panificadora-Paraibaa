@@ -62,6 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       login: finalLogin,
       password: await bcrypt.hash('google-auth', 10), // Senha fictícia criptografada
       permissao: "usuario",
+      permissaoSuprema: false, // Por padrão, novos usuários NÃO têm permissão suprema (boolean, não string)
+      ExIlimitada: false, // Retrocompatibilidade
       dataCriacao: new Date(),
       authProvider: "google",
       picture: picture || null,
@@ -87,7 +89,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: userCreated.email,
         permissao: userCreated.permissao,
         googleId: userCreated.googleId,
-        picture: userCreated.picture
+        picture: userCreated.picture,
+        permissaoSuprema: userCreated.permissaoSuprema,
+        ExIlimitada: userCreated.ExIlimitada
       } : null,
     });
   } catch (err) {

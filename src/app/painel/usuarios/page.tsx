@@ -8,6 +8,7 @@ import BreadcrumbNav from "@/components/BreadcrumbNav";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
 
 interface Usuario {
   id: string;
@@ -16,12 +17,14 @@ interface Usuario {
   email: string;
   telefone: string;
   permission: string;
+  permissaoSuprema?: boolean | string; // Aceita boolean true ou string "true" do MongoDB
   dataCriacao: string | null;
   ultimoAcesso: string | null;
 }
 
 export default function GerenciarUsuarios() {
   const router = useRouter();
+  const { user: currentUser, isSuperAdmin } = useUser();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,45 +68,62 @@ export default function GerenciarUsuarios() {
   }, []);
 
   const handleUpdatePermission = async (userId: string, currentPermission: string) => {
-    // Apenas permitir remover admin (não promover a admin)
-    if (currentPermission !== "administrador") {
-      setError("Não é permitido promover usuários a administrador através desta interface");
+    // Verificar se o usuário logado tem permissão suprema
+    if (!isSuperAdmin) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "❌ Acesso Negado",
+        message: "Apenas usuários com Permissão Suprema podem alterar permissões de outros usuários."
+      });
       return;
     }
     
-    const newPermission = "usuario";
+    // Alternar entre admin e usuário
+    const newPermission = currentPermission === "administrador" ? "usuario" : "administrador";
+    const actionText = newPermission === "administrador" ? "promovido a Administrador" : "rebaixado para Usuário";
     
-    try {
-      const response = await fetch("/api/admin/usuarios", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          permission: newPermission
-        })
-      });
+    setModalState({
+      isOpen: true,
+      type: "confirm",
+      title: "Confirmar Alteração de Permissão",
+      message: `Deseja realmente alterar a permissão deste usuário para "${newPermission === "administrador" ? "Administrador" : "Usuário"}"?`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch("/api/admin/usuarios", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId,
+              permission: newPermission
+            })
+          });
 
-      const data = await response.json();
-      if (data.success) {
-        setSuccess(`Permissão removida! Usuário agora é Usuário padrão.`);
-        setTimeout(() => setSuccess(""), 3000);
-        fetchUsuarios();
-        
-        // Disparar evento para notificar outros usuários logados
-        window.dispatchEvent(new CustomEvent('permissionUpdated', {
-          detail: { 
-            userId, 
-            newPermission,
-            message: `Permissão removida! Usuário agora é Usuário padrão.`
+          const data = await response.json();
+          if (data.success) {
+            setSuccess(`✅ Permissão atualizada! Usuário ${actionText}.`);
+            setTimeout(() => setSuccess(""), 3000);
+            fetchUsuarios();
+            
+            // Disparar evento para notificar outros usuários logados
+            window.dispatchEvent(new CustomEvent('permissionUpdated', {
+              detail: { 
+                userId, 
+                newPermission,
+                message: `Permissão atualizada! Usuário ${actionText}.`
+              }
+            }));
+          } else {
+            setError(data.error || "Erro ao atualizar permissão");
+            setTimeout(() => setError(""), 3000);
           }
-        }));
-      } else {
-        setError(data.error || "Erro ao atualizar permissão");
+        } catch (err) {
+          console.error("Erro ao atualizar permissão:", err);
+          setError("Erro ao conectar com o servidor");
+          setTimeout(() => setError(""), 3000);
+        }
       }
-    } catch (err) {
-      console.error("Erro ao atualizar permissão:", err);
-      setError("Erro ao conectar com o servidor");
-    }
+    });
   };
 
   const handleDeleteUser = (userId: string, userName: string) => {
@@ -150,6 +170,8 @@ export default function GerenciarUsuarios() {
 
   const totalAdmins = usuarios.filter(u => u.permission === "administrador").length;
   const totalClientes = usuarios.filter(u => u.permission === "usuario").length;
+  // Aceita tanto boolean true quanto string "true"
+  const totalSuperAdmins = usuarios.filter(u => u.permissaoSuprema === true || u.permissaoSuprema === "true").length;
 
   if (loading) {
     return (
@@ -204,6 +226,23 @@ export default function GerenciarUsuarios() {
                       </svg>
                       Clique no nome do usuário para ver o perfil completo
                     </p>
+                    
+                    {/* Aviso sobre Permissão Suprema */}
+                    {isSuperAdmin ? (
+                      <div className="mt-2 p-2 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg">
+                        <p className="text-xs text-yellow-800 font-semibold flex items-center gap-1">
+                          <span>⭐</span>
+                          Você tem <strong>Permissão Suprema</strong> e pode promover/rebaixar administradores
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-2 p-2 bg-gray-50 border border-gray-300 rounded-lg">
+                        <p className="text-xs text-gray-600 flex items-center gap-1">
+                          <span>🔒</span>
+                          Apenas usuários com <strong>Permissão Suprema</strong> podem alterar permissões
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -264,7 +303,7 @@ export default function GerenciarUsuarios() {
             {/* Estatísticas */}
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">📊 Resumo dos Usuários</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
                   <div className="flex items-center justify-between">
                     <div>
@@ -273,6 +312,19 @@ export default function GerenciarUsuarios() {
                     </div>
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-lg">👥</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-100 p-4 rounded-lg border-2 border-yellow-400 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-orange-600 font-semibold">Super Admins</p>
+                      <p className="text-2xl font-bold text-orange-800">{totalSuperAdmins}</p>
+                      <p className="text-xs text-orange-500 mt-1">⭐ Controle Total</p>
+                    </div>
+                    <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center shadow-md">
+                      <span className="text-white text-lg">⭐</span>
                     </div>
                   </div>
                 </div>
@@ -387,7 +439,7 @@ export default function GerenciarUsuarios() {
                         </div>
                         
                         <div className="flex flex-col md:flex-row md:items-center gap-4">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className={`px-3 py-1 rounded-full text-sm font-semibold ${
                                 user.permission === "administrador"
@@ -397,6 +449,14 @@ export default function GerenciarUsuarios() {
                             >
                               {user.permission === "administrador" ? "👑 Admin" : "👤 Usuário"}
                             </span>
+                            
+                            {/* Badge de Permissão Suprema */}
+                            {user.permissaoSuprema && (
+                              <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg">
+                                ⭐ SUPER ADMIN
+                              </span>
+                            )}
+                            
                             <span className="text-xs text-gray-500">
                               {user.dataCriacao 
                                 ? new Date(user.dataCriacao).toLocaleDateString('pt-BR')
@@ -406,14 +466,36 @@ export default function GerenciarUsuarios() {
                           </div>
                           
                           <div className="flex gap-2">
-                            {user.permission === "administrador" && (
-                              <button
-                                onClick={() => handleUpdatePermission(user.id, user.permission)}
-                                className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-yellow-500 hover:bg-yellow-600 text-white"
-                              >
-                                ⬇️ Remover Admin
-                              </button>
+                            {/* Apenas Super Admin pode alterar permissões */}
+                            {isSuperAdmin && (
+                              <>
+                                {user.permission === "administrador" ? (
+                                  <button
+                                    onClick={() => handleUpdatePermission(user.id, user.permission)}
+                                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-yellow-500 hover:bg-yellow-600 text-white"
+                                    title="Remover permissão de administrador"
+                                  >
+                                    ⬇️ Remover Admin
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleUpdatePermission(user.id, user.permission)}
+                                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-green-500 hover:bg-green-600 text-white"
+                                    title="Promover a administrador"
+                                  >
+                                    ⬆️ Promover Admin
+                                  </button>
+                                )}
+                              </>
                             )}
+                            
+                            {/* Mostrar badge se NÃO tem permissão suprema */}
+                            {!isSuperAdmin && user.permission === "administrador" && (
+                              <span className="px-3 py-2 rounded-lg text-sm bg-gray-200 text-gray-600">
+                                🔒 Apenas Super Admin pode alterar
+                              </span>
+                            )}
+                            
                             <button
                               onClick={() => handleDeleteUser(user.id, user.name)}
                               className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"

@@ -52,7 +52,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         googleId: user.googleId,
         picture: user.picture,
         dataCriacao: user.dataCriacao,
-        ultimoAcesso: new Date()
+        ultimoAcesso: new Date(),
+        permissaoSuprema: user.permissaoSuprema,
+        ExIlimitada: user.ExIlimitada
       },
     });
   } catch (err) {

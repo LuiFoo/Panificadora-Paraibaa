@@ -72,6 +72,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       login,
       password: hashedPassword,
       permissao: "usuario",
+      permissaoSuprema: false, // Por padrão, novos usuários NÃO têm permissão suprema (boolean, não string)
+      ExIlimitada: false, // Retrocompatibilidade
       dataCriacao: new Date(),
       authProvider: "google"
     };

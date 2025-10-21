@@ -68,7 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: user.email,
         permissao: user.permissao,
         googleId: user.googleId,
-        picture: user.picture
+        picture: user.picture,
+        permissaoSuprema: user.permissaoSuprema,
+        ExIlimitada: user.ExIlimitada
       }
     });
 
