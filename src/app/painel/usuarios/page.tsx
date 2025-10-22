@@ -27,7 +27,7 @@ interface Usuario {
 
 export default function GerenciarUsuarios() {
   const router = useRouter();
-  const { isSuperAdmin } = useUser();
+  const { isSuperAdmin, user: currentUser } = useUser();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -130,6 +130,30 @@ export default function GerenciarUsuarios() {
   };
 
   const handleDeleteUser = (userId: string, userName: string) => {
+    // Verificar se o usuário logado tem permissão suprema
+    if (!isSuperAdmin) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "❌ Acesso Negado",
+        message: "Apenas usuários com Permissão Suprema podem deletar usuários. Esta é uma ação irreversível e requer privilégios especiais.",
+        onConfirm: undefined
+      });
+      return;
+    }
+
+    // Verificar se está tentando deletar a si mesmo
+    if (currentUser?._id === userId) {
+      setModalState({
+        isOpen: true,
+        type: "error",
+        title: "❌ Operação Não Permitida",
+        message: "Você não pode deletar sua própria conta. Peça a outro Super Admin para fazer isso se necessário.",
+        onConfirm: undefined
+      });
+      return;
+    }
+
     setModalState({
       isOpen: true,
       type: "warning",
@@ -143,15 +167,24 @@ export default function GerenciarUsuarios() {
 
           const data = await response.json();
           if (data.success) {
-            setSuccess("Usuário deletado com sucesso!");
+            setSuccess("✅ Usuário deletado com sucesso!");
             setTimeout(() => setSuccess(""), 3000);
             fetchUsuarios();
           } else {
-            setError(data.error || "Erro ao deletar usuário");
+            // Tratar códigos de erro específicos
+            if (data.code === "CANNOT_DELETE_SELF") {
+              setError("❌ Você não pode deletar sua própria conta.");
+            } else if (data.code === "LAST_SUPER_ADMIN") {
+              setError("⚠️ Não é possível deletar o último Super Admin. Promova outro usuário primeiro.");
+            } else {
+              setError(data.error || "Erro ao deletar usuário");
+            }
+            setTimeout(() => setError(""), 5000);
           }
         } catch (err) {
           console.error("Erro ao deletar usuário:", err);
-          setError("Erro ao conectar com o servidor");
+          setError("❌ Erro ao conectar com o servidor");
+          setTimeout(() => setError(""), 3000);
         }
       }
     });
@@ -526,12 +559,37 @@ export default function GerenciarUsuarios() {
                               </span>
                             )}
                             
-                            <button
-                              onClick={() => handleDeleteUser(user.id, user.name)}
-                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                            >
-                              🗑️ Deletar
-                            </button>
+                            {/* Apenas Super Admin pode deletar usuários */}
+                            {isSuperAdmin && (
+                              <>
+                                {/* Não pode deletar a si mesmo */}
+                                {currentUser?._id === user.id ? (
+                                  <span 
+                                    className="px-3 py-2 rounded-lg text-sm bg-gray-200 text-gray-600 cursor-not-allowed"
+                                    title="Você não pode deletar sua própria conta"
+                                  >
+                                    🔒 Você mesmo
+                                  </span>
+                                ) : user.permissaoSuprema && totalSuperAdmins <= 1 ? (
+                                  /* Não pode deletar o último Super Admin */
+                                  <span 
+                                    className="px-3 py-2 rounded-lg text-sm bg-yellow-200 text-yellow-800 cursor-not-allowed"
+                                    title="Não é possível deletar o último Super Admin. Promova outro usuário primeiro."
+                                  >
+                                    ⚠️ Último Super Admin
+                                  </span>
+                                ) : (
+                                  /* Pode deletar */
+                                  <button
+                                    onClick={() => handleDeleteUser(user.id, user.name)}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    title="Deletar usuário permanentemente"
+                                  >
+                                    🗑️ Deletar
+                                  </button>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

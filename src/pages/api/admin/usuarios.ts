@@ -126,11 +126,87 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "userId é obrigatório" });
       }
 
+      // Verificar se quem está deletando tem permissão suprema
+      const session = await getServerSession(req, res, authOptions);
+      if (!session || !session.user || !session.user.email) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+
+      // Buscar o usuário logado para verificar permissão suprema
+      const adminUser = await db.collection("users").findOne({ 
+        email: session.user.email 
+      });
+
+      if (!adminUser) {
+        return res.status(404).json({ error: "Usuário administrador não encontrado" });
+      }
+
+      // VERIFICAÇÃO CRÍTICA: Apenas usuários com permissão suprema podem deletar usuários
+      // Verifica tanto permissaoSuprema quanto ExIlimitada (retrocompatibilidade)
+      // Aceita boolean true ou string "true"
+      const temPermissaoSuprema = 
+        adminUser.permissaoSuprema === true || 
+        adminUser.permissaoSuprema === "true" ||
+        adminUser.ExIlimitada === true || 
+        adminUser.ExIlimitada === "true";
+      
+      if (!temPermissaoSuprema) {
+        return res.status(403).json({ 
+          error: "Apenas usuários com Permissão Suprema podem deletar usuários",
+          requiredPermission: "permissaoSuprema"
+        });
+      }
+
       // ✅ VALIDAR ObjectId antes de usar
       if (!ObjectId.isValid(userId as string)) {
         return res.status(400).json({ error: "ID de usuário inválido" });
       }
 
+      // 🛡️ PROTEÇÃO 1: Impedir que Super Admin delete a si mesmo
+      if (adminUser._id.toString() === userId) {
+        return res.status(403).json({ 
+          error: "Você não pode deletar sua própria conta. Peça a outro Super Admin para fazer isso.",
+          code: "CANNOT_DELETE_SELF"
+        });
+      }
+
+      // 🛡️ PROTEÇÃO 2: Buscar o usuário a ser deletado para verificações adicionais
+      const usuarioADeletar = await db.collection("users").findOne({
+        _id: new ObjectId(userId as string)
+      });
+
+      if (!usuarioADeletar) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+
+      // 🛡️ PROTEÇÃO 3: Verificar se o usuário a ser deletado é Super Admin
+      const targetTemPermissaoSuprema = 
+        usuarioADeletar.permissaoSuprema === true || 
+        usuarioADeletar.permissaoSuprema === "true" ||
+        usuarioADeletar.ExIlimitada === true || 
+        usuarioADeletar.ExIlimitada === "true";
+
+      // Se está tentando deletar um Super Admin, verificar se não é o último
+      if (targetTemPermissaoSuprema) {
+        // Contar quantos Super Admins existem no sistema
+        const totalSuperAdmins = await db.collection("users").countDocuments({
+          $or: [
+            { permissaoSuprema: true },
+            { permissaoSuprema: "true" },
+            { ExIlimitada: true },
+            { ExIlimitada: "true" }
+          ]
+        });
+
+        if (totalSuperAdmins <= 1) {
+          return res.status(403).json({ 
+            error: "Não é possível deletar o último Super Admin do sistema. Promova outro usuário a Super Admin primeiro.",
+            code: "LAST_SUPER_ADMIN"
+          });
+        }
+      }
+
+      // Tudo OK, pode deletar
       const result = await db.collection("users").deleteOne({
         _id: new ObjectId(userId as string)
       });
@@ -138,6 +214,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (result.deletedCount === 0) {
         return res.status(404).json({ error: "Usuário não encontrado" });
       }
+
+      console.log(`🗑️ Usuário deletado: ${usuarioADeletar.name} (${usuarioADeletar.email}) por ${adminUser.name} (${adminUser.email})`);
 
       return res.status(200).json({ 
         success: true,
