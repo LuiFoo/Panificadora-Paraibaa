@@ -47,24 +47,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const usuariosCollection = db.collection("users");
 
     console.log("🗄️ Executando busca no MongoDB...");
+    console.log("🔍 Query original:", q);
+    console.log("🔍 Query escapada:", escapedQuery);
     
     // Contar total de usuários no banco
     const totalUsuarios = await usuariosCollection.countDocuments();
     console.log("📊 Total de usuários no banco:", totalUsuarios);
     
+    // Contar usuários não-admin
+    const naoAdminCount = await usuariosCollection.countDocuments({
+      permissao: { $ne: "administrador" }
+    });
+    console.log("👤 Usuários não-admin:", naoAdminCount);
+    
     // Buscar usuários que não são admin
+    const queryObj = {
+      $and: [
+        {
+          $or: [
+            { login: { $regex: escapedQuery, $options: "i" } },
+            { name: { $regex: escapedQuery, $options: "i" } }
+          ]
+        },
+        { permissao: { $ne: "administrador" } } // Excluir administradores
+      ]
+    };
+    console.log("🔍 Query MongoDB:", JSON.stringify(queryObj, null, 2));
+    
     const usuarios = await usuariosCollection
-      .find({
-        $and: [
-          {
-            $or: [
-              { login: { $regex: escapedQuery, $options: "i" } },
-              { name: { $regex: escapedQuery, $options: "i" } }
-            ]
-          },
-          { permissao: { $ne: "administrador" } } // Excluir administradores
-        ]
-      })
+      .find(queryObj)
       .limit(10)
       .project({ _id: 1, login: 1, name: 1 })
       .toArray();
