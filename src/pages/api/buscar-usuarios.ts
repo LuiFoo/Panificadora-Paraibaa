@@ -55,11 +55,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Buscar usuários que não são admin
     const usuarios = await usuariosCollection
       .find({
-        $or: [
-          { login: { $regex: escapedQuery, $options: "i" } },
-          { name: { $regex: escapedQuery, $options: "i" } }
-        ],
-        permissao: { $ne: "administrador" } // Excluir administradores
+        $and: [
+          {
+            $or: [
+              { login: { $regex: escapedQuery, $options: "i" } },
+              { name: { $regex: escapedQuery, $options: "i" } }
+            ]
+          },
+          { permissao: { $ne: "administrador" } } // Excluir administradores
+        ]
       })
       .limit(10)
       .project({ _id: 1, login: 1, name: 1 })
@@ -68,19 +72,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("📊 Usuários encontrados:", usuarios.length);
     console.log("👥 Dados dos usuários:", JSON.stringify(usuarios, null, 2));
     
-    // Debug: Mostrar todos os usuários no banco
-    if (usuarios.length === 0) {
+    // Debug: Mostrar todos os usuários no banco (apenas em desenvolvimento)
+    if (usuarios.length === 0 && process.env.NODE_ENV === 'development') {
       console.log("⚠️ Nenhum usuário encontrado com essa busca. Mostrando todos os usuários do banco:");
       const todosUsuarios = await usuariosCollection.find({}).project({ _id: 1, login: 1, name: 1, permissao: 1 }).limit(20).toArray();
       console.log("👥 Todos os usuários:", JSON.stringify(todosUsuarios, null, 2));
-      
-      // TEMPORÁRIO: Retornar todos os usuários para debug
-      return res.status(200).json({
-        success: true,
-        usuarios: todosUsuarios,
-        debug: true,
-        message: "Retornando todos os usuários para debug"
-      });
     }
 
     return res.status(200).json({
