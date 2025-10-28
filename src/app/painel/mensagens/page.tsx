@@ -845,11 +845,6 @@ export default function MensagensAdminPage() {
               </div>
             )}
 
-            {(() => {
-              console.log("🔍 Renderizando lista: usuariosEncontrados.length =", usuariosEncontrados.length);
-              console.log("🔍 Dados:", usuariosEncontrados);
-              return null;
-            })()}
             {usuariosEncontrados.length > 0 && (
               <div className="mb-4 max-h-40 overflow-y-auto">
                 <p className="text-sm font-medium text-gray-700 mb-2">Usuários encontrados:</p>
