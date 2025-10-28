@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 export default function TesteBuscaPage() {
   const [query, setQuery] = useState('');
-  const [resultados, setResultados] = useState<any[]>([]);
+  const [resultados, setResultados] = useState<{ _id: string; login: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -75,7 +75,7 @@ export default function TesteBuscaPage() {
                 Resultados ({resultados.length}):
               </h3>
               <div className="space-y-2">
-                {resultados.map((usuario, index) => (
+                {resultados.map((usuario) => (
                   <div key={usuario._id} className="p-3 bg-gray-50 rounded border">
                     <div className="font-medium">{usuario.name}</div>
                     <div className="text-sm text-gray-600">@{usuario.login}</div>

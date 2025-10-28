@@ -68,3 +68,4 @@ Com os logs, vamos conseguir identificar:
 - Logs começam com `🔍` (debug), `✅` (sucesso), `❌` (erro)
 - Todos os logs importantes estão prefixados
 
+
