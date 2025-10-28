@@ -324,10 +324,7 @@ export default function MensagensAdminPage() {
   };
 
   const handleBuscarUsuarios = useCallback(async (query: string) => {
-    console.log("🔍 Iniciando busca de usuários com query:", query);
-    
     if (!query.trim()) {
-      console.log("❌ Query vazia, limpando resultados");
       setUsuariosEncontrados([]);
       return;
     }
@@ -335,28 +332,18 @@ export default function MensagensAdminPage() {
     setBuscandoUsuarios(true);
     try {
       const url = `/api/buscar-usuarios?q=${encodeURIComponent(query)}`;
-      console.log("🌐 Fazendo requisição para:", url);
-      
       const response = await fetch(url);
-      console.log("📡 Resposta recebida:", response.status, response.statusText);
       
       if (response.ok) {
         const data = await response.json();
-        console.log("📊 Dados recebidos:", data);
-        console.log("📊 Success:", data.success);
-        console.log("📊 Usuarios array:", data.usuarios);
         setUsuariosEncontrados(data.usuarios || []);
-        console.log("✅ Usuários encontrados:", data.usuarios?.length || 0);
-        console.log("✅ Estado atualizado com:", data.usuarios?.length || 0, "usuários");
       } else {
-        console.error("❌ Erro na resposta:", response.status, response.statusText);
         const errorData = await response.json();
-        console.error("❌ Detalhes do erro:", errorData);
-        // Limpar resultados em caso de erro
+        console.error("Erro na busca de usuários:", errorData);
         setUsuariosEncontrados([]);
       }
     } catch (error) {
-      console.error("❌ Erro ao buscar usuários:", error);
+      console.error("Erro ao buscar usuários:", error);
     } finally {
       setBuscandoUsuarios(false);
     }
