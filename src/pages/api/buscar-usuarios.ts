@@ -73,6 +73,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("⚠️ Nenhum usuário encontrado com essa busca. Mostrando todos os usuários do banco:");
       const todosUsuarios = await usuariosCollection.find({}).project({ _id: 1, login: 1, name: 1, permissao: 1 }).limit(20).toArray();
       console.log("👥 Todos os usuários:", JSON.stringify(todosUsuarios, null, 2));
+      
+      // TEMPORÁRIO: Retornar todos os usuários para debug
+      return res.status(200).json({
+        success: true,
+        usuarios: todosUsuarios,
+        debug: true,
+        message: "Retornando todos os usuários para debug"
+      });
     }
 
     return res.status(200).json({
