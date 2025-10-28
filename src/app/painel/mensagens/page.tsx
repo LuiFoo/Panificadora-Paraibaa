@@ -324,20 +324,39 @@ export default function MensagensAdminPage() {
   };
 
   const handleBuscarUsuarios = useCallback(async (query: string) => {
+    console.log("🔍 Iniciando busca de usuários com query:", query);
+    
     if (!query.trim()) {
+      console.log("❌ Query vazia, limpando resultados");
       setUsuariosEncontrados([]);
       return;
     }
 
     setBuscandoUsuarios(true);
     try {
-      const response = await fetch(`/api/buscar-usuarios?q=${encodeURIComponent(query)}`);
+      const url = `/api/buscar-usuarios?q=${encodeURIComponent(query)}`;
+      console.log("🌐 Fazendo requisição para:", url);
+      
+      const response = await fetch(url);
+      console.log("📡 Resposta recebida:", response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("📊 Dados recebidos:", data);
+        console.log("📊 Success:", data.success);
+        console.log("📊 Usuarios array:", data.usuarios);
         setUsuariosEncontrados(data.usuarios || []);
+        console.log("✅ Usuários encontrados:", data.usuarios?.length || 0);
+        console.log("✅ Estado atualizado com:", data.usuarios?.length || 0, "usuários");
+      } else {
+        console.error("❌ Erro na resposta:", response.status, response.statusText);
+        const errorData = await response.json();
+        console.error("❌ Detalhes do erro:", errorData);
+        // Limpar resultados em caso de erro
+        setUsuariosEncontrados([]);
       }
     } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
+      console.error("❌ Erro ao buscar usuários:", error);
     } finally {
       setBuscandoUsuarios(false);
     }
@@ -826,6 +845,11 @@ export default function MensagensAdminPage() {
               </div>
             )}
 
+            {(() => {
+              console.log("🔍 Renderizando lista: usuariosEncontrados.length =", usuariosEncontrados.length);
+              console.log("🔍 Dados:", usuariosEncontrados);
+              return null;
+            })()}
             {usuariosEncontrados.length > 0 && (
               <div className="mb-4 max-h-40 overflow-y-auto">
                 <p className="text-sm font-medium text-gray-700 mb-2">Usuários encontrados:</p>
