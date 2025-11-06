@@ -125,7 +125,7 @@ export default function EditarProdutoPage() {
               unidadeMedida: produto.estoque?.unidadeMedida || "UN"
             },
             imagem: {
-              href: produto.imagem?.href || produto.img || "",
+              href: produto.imagem?.href || "",
               alt: produto.imagem?.alt || produto.nome || "",
               galeria: Array.isArray(produto.imagem?.galeria) ? produto.imagem.galeria : []
             },
