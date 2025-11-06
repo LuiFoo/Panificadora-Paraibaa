@@ -1001,13 +1001,19 @@ export default function CheckoutPage() {
                         className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                         required
                       />
-                      {dataEntrega && (
-                        <p className={`text-xs mt-1 font-medium ${new Date(dataEntrega + 'T12:00:00').getDay() === 0 ? 'text-red-600' : 'text-blue-700'}`}>
-                          {new Date(dataEntrega + 'T12:00:00').getDay() === 0 
+                      {dataEntrega && (() => {
+                        // 🐛 CORREÇÃO: Validar data antes de usar getDay()
+                        const dataObj = new Date(dataEntrega + 'T12:00:00');
+                        if (isNaN(dataObj.getTime())) return null;
+                        const diaSemana = dataObj.getDay();
+                        return (
+                          <p className={`text-xs mt-1 font-medium ${diaSemana === 0 ? 'text-red-600' : 'text-blue-700'}`}>
+                            {diaSemana === 0 
                             ? "❌ Domingo: NÃO é possível fazer pedidos" 
                             : "⏰ Seg-Sáb: 07h às 18:30h"}
-                        </p>
-                      )}
+                          </p>
+                        );
+                      })()}
                     </div>
                   </div>
                   

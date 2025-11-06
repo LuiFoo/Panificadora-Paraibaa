@@ -1,0 +1,7 @@
+# Arquivos que não devem ser enviados para o Vercel
+node_modules
+.next
+.vercel
+*.log
+.DS_Store
+
