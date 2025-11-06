@@ -51,7 +51,7 @@ interface Produto {
 export default function EditarProdutoPage() {
   const router = useRouter();
   const params = useParams();
-  const produtoId = params.id as string;
+  const produtoId = params?.id as string | undefined;
   const [, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -90,6 +90,12 @@ export default function EditarProdutoPage() {
 
   useEffect(() => {
     async function carregarProduto() {
+      if (!produtoId) {
+        setError("ID do produto não encontrado");
+        setLoading(false);
+        return;
+      }
+      
       try {
         const res = await fetch(`/api/admin/produtos/${produtoId}`);
         const data = await res.json();
@@ -252,6 +258,11 @@ export default function EditarProdutoPage() {
         tags: Array.isArray(formData.tags) ? formData.tags : [],
         status: formData.status
       };
+
+      if (!produtoId) {
+        setError("ID do produto não encontrado");
+        return;
+      }
 
       const res = await fetch(`/api/admin/produtos/${produtoId}`, {
         method: 'PUT',

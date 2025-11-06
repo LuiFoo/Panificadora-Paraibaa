@@ -77,7 +77,7 @@ export default function ProdutoDetalhePage() {
   const { addItem } = useCart();
   const { user } = useUser();
 
-  const buscarAvaliacoes = async (produtoId: string) => {
+  const buscarAvaliacoes = useCallback(async (produtoId: string) => {
     try {
       const responseMedia = await fetch(`/api/avaliacoes?produtoId=${produtoId}`);
       
@@ -112,7 +112,7 @@ export default function ProdutoDetalhePage() {
     } catch (error) {
       console.error("Erro ao buscar avaliações:", error);
     }
-  };
+  }, [user?.login]);
 
   const buscarProduto = useCallback(async (id: string) => {
     setLoading(true);
