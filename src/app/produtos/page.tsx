@@ -302,7 +302,7 @@ export default function CardapioPage() {
                     >
                       <div className="relative overflow-hidden">
                         <OptimizedImage
-                          src={item.imagem?.href || item.img || '/images/placeholder.png'}
+                          src={item.imagem?.href || '/images/placeholder.png'}
                           alt={item.imagem?.alt || item.nome || 'Produto'}
                           width={300}
                           height={300}

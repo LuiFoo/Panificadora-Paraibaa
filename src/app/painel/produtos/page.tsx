@@ -1284,7 +1284,7 @@ export default function ProdutosPage() {
                       {produto.imagem?.href || produto.img ? (
                         <>
                           <Image
-                            src={produto.imagem?.href || produto.img || '/images/placeholder.png'}
+                            src={produto.imagem?.href || (produto.img ?? '/images/placeholder.png')}
                             alt={produto.nome}
                             width={400}
                             height={224}
