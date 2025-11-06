@@ -79,7 +79,21 @@ export default function PedidosPage() {
     setError("");
     try {
       const response = await fetch("/api/admin/pedidos");
-      const data = await response.json();
+      
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        return;
+      }
       
       if (data.success) {
         setPedidos(data.pedidos);

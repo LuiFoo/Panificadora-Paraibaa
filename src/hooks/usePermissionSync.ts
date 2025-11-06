@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useUser } from '@/context/UserContext';
 
 /**
@@ -9,27 +9,34 @@ export function usePermissionSync() {
   const { user, setUser } = useUser();
 
   // Função estável para verificar permissões
+  // Usar ref para evitar recriação constante da função
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const checkPermissionUpdate = useCallback(async () => {
-    if (!user) return;
+    const currentUser = userRef.current;
+    if (!currentUser) return;
 
     try {
       // Verificar se é usuário Google
-      if (user.password === 'google-auth' && user.googleId) {
+      if (currentUser.password === 'google-auth' && currentUser.googleId) {
         const response = await fetch("/api/auth/get-user-data", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ googleId: user.googleId }),
+          body: JSON.stringify({ googleId: currentUser.googleId }),
         });
 
         const data = await response.json();
         if (data.ok && data.user) {
           // Verificar se a permissão mudou
-          if (data.user.permissao !== user.permissao) {
+          if (data.user.permissao !== currentUser.permissao) {
             console.log("🔄 Permissão atualizada detectada:", data.user.permissao);
             
-            // Atualizar usuário no contexto
+            // Atualizar usuário no contexto usando setUser do contexto
             const updatedUser = {
-              ...user,
+              ...currentUser,
               permissao: data.user.permissao
             };
             
@@ -47,18 +54,18 @@ export function usePermissionSync() {
         const response = await fetch("/api/verificar-admin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ login: user.login, password: user.password }),
+          body: JSON.stringify({ login: currentUser.login, password: currentUser.password }),
         });
 
         const data = await response.json();
         if (data.ok && data.user) {
           // Verificar se a permissão mudou
-          if (data.user.permissao !== user.permissao) {
+          if (data.user.permissao !== currentUser.permissao) {
             console.log("🔄 Permissão atualizada detectada:", data.user.permissao);
             
             // Atualizar usuário no contexto
             const updatedUser = {
-              ...user,
+              ...currentUser,
               permissao: data.user.permissao
             };
             
@@ -75,7 +82,7 @@ export function usePermissionSync() {
     } catch (error) {
       console.error("Erro ao verificar atualização de permissão:", error);
     }
-  }, [user, setUser]);
+  }, [setUser]); // Removido 'user' das dependências para evitar loops
 
   useEffect(() => {
     // Verificar atualizações a cada 10 segundos

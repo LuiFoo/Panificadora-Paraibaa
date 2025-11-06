@@ -80,19 +80,33 @@ export default function ProdutoDetalhePage() {
   const buscarAvaliacoes = async (produtoId: string) => {
     try {
       const responseMedia = await fetch(`/api/avaliacoes?produtoId=${produtoId}`);
-      const dataMedia = await responseMedia.json();
       
-      if (dataMedia.success) {
-        setMediaAvaliacao(dataMedia.media);
-        setTotalAvaliacoes(dataMedia.total);
+      // 🐛 CORREÇÃO: Verificar se resposta é OK e JSON válido antes de fazer parse
+      if (responseMedia.ok) {
+        const contentType = responseMedia.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const dataMedia = await responseMedia.json();
+          
+          if (dataMedia.success) {
+            setMediaAvaliacao(dataMedia.media);
+            setTotalAvaliacoes(dataMedia.total);
+          }
+        }
       }
 
       if (user?.login) {
         const responseMinhaAv = await fetch(`/api/minha-avaliacao?produtoId=${produtoId}&userId=${user.login}`);
-        const dataMinhaAv = await responseMinhaAv.json();
         
-        if (dataMinhaAv.success && dataMinhaAv.avaliacao) {
-          setMinhaAvaliacao(dataMinhaAv.avaliacao.nota);
+        // 🐛 CORREÇÃO: Verificar se resposta é OK e JSON válido antes de fazer parse
+        if (responseMinhaAv.ok) {
+          const contentType = responseMinhaAv.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const dataMinhaAv = await responseMinhaAv.json();
+            
+            if (dataMinhaAv.success && dataMinhaAv.avaliacao) {
+              setMinhaAvaliacao(dataMinhaAv.avaliacao.nota);
+            }
+          }
         }
       }
     } catch (error) {
@@ -206,7 +220,20 @@ export default function ProdutoDetalhePage() {
         })
       });
 
-      const data = await response.json();
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        return;
+      }
+      
       if (data.success) {
         setMinhaAvaliacao(nota);
         buscarAvaliacoes(produto._id);
@@ -519,11 +546,19 @@ export default function ProdutoDetalhePage() {
                       <p className="text-xl text-gray-400 line-through">
                         R$ {(produto.preco?.valor || 0).toFixed(2).replace(".", ",")}
                       </p>
-                      {produto.preco?.promocao?.inicio && produto.preco?.promocao?.fim && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          Válido de {new Date(produto.preco.promocao.inicio).toLocaleDateString('pt-BR')} até {new Date(produto.preco.promocao.fim).toLocaleDateString('pt-BR')}
-                        </p>
-                      )}
+                      {produto.preco?.promocao?.inicio && produto.preco?.promocao?.fim && (() => {
+                        // 🐛 CORREÇÃO: Validar datas antes de formatar
+                        const inicio = new Date(produto.preco.promocao.inicio);
+                        const fim = new Date(produto.preco.promocao.fim);
+                        if (!isNaN(inicio.getTime()) && !isNaN(fim.getTime())) {
+                          return (
+                            <p className="text-sm text-gray-600 mt-2">
+                              Válido de {inicio.toLocaleDateString('pt-BR')} até {fim.toLocaleDateString('pt-BR')}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   ) : (
                     <div>

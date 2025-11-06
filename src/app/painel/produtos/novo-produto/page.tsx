@@ -160,7 +160,22 @@ export default function NovoProdutoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        return;
+      }
+      
       if (res.ok && data.success) {
         setSuccess('Produto criado com sucesso!');
         startTransition(() => router.push('/painel/produtos'));

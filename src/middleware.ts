@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { logger } from '@/lib/logger'
 
 export async function middleware(request: NextRequest) {
   // Middleware para proteção de rotas administrativas
@@ -9,7 +10,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/painel')) {
     // A autenticação é gerenciada pelo ProtectedRoute component
     // Este middleware apenas registra o acesso
-    console.log(`🔒 Acesso à rota administrativa: ${pathname}`);
+    logger.dev(`🔒 Acesso à rota administrativa: ${pathname}`);
   }
   
   return NextResponse.next()

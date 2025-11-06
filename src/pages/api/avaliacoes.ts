@@ -34,9 +34,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const prod = produtos.find((p) => p._id?.toString() === id);
           const usuarios = prod?.avaliacao?.usuarios || [];
           if (usuarios.length > 0) {
-            const soma = usuarios.reduce((acc: number, av: { nota: number }) => acc + (Number(av.nota) || 0), 0);
-            const media = soma / usuarios.length;
-            avaliacoesPorProduto[id] = { media: Number(media.toFixed(1)), total: usuarios.length };
+            // 🐛 CORREÇÃO: Validar notas e prevenir NaN/Infinity
+            const soma = usuarios.reduce((acc: number, av: { nota: number }) => {
+              const nota = Number(av.nota) || 0;
+              return acc + (isNaN(nota) || !isFinite(nota) ? 0 : nota);
+            }, 0);
+            const media = usuarios.length > 0 ? soma / usuarios.length : 0;
+            const mediaFinal = isNaN(media) || !isFinite(media) ? 0 : Number(media.toFixed(1));
+            avaliacoesPorProduto[id] = { media: mediaFinal, total: usuarios.length };
           } else {
             avaliacoesPorProduto[id] = { media: 0, total: 0 };
           }
@@ -61,9 +66,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const usuariosEmb = produto?.avaliacao?.usuarios || [];
       if (usuariosEmb.length > 0) {
-        const soma = usuariosEmb.reduce((acc: number, av: { nota: number }) => acc + (Number(av.nota) || 0), 0);
-        const media = soma / usuariosEmb.length;
-        return res.status(200).json({ success: true, media: Number(media.toFixed(1)), total: usuariosEmb.length });
+        // 🐛 CORREÇÃO: Validar notas e prevenir NaN/Infinity
+        const soma = usuariosEmb.reduce((acc: number, av: { nota: number }) => {
+          const nota = Number(av.nota) || 0;
+          return acc + (isNaN(nota) || !isFinite(nota) ? 0 : nota);
+        }, 0);
+        const media = usuariosEmb.length > 0 ? soma / usuariosEmb.length : 0;
+        const mediaFinal = isNaN(media) || !isFinite(media) ? 0 : Number(media.toFixed(1));
+        return res.status(200).json({ success: true, media: mediaFinal, total: usuariosEmb.length });
       }
 
       // Fallback para coleção antiga, se não houver embutido
@@ -71,9 +81,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (avals.length === 0) {
         return res.status(200).json({ success: true, media: 0, total: 0 });
       }
-      const soma = avals.reduce((acc, av) => acc + av.nota, 0);
-      const media = soma / avals.length;
-      return res.status(200).json({ success: true, media: Number(media.toFixed(1)), total: avals.length });
+      // 🐛 CORREÇÃO: Validar notas e prevenir NaN/Infinity
+      const soma = avals.reduce((acc, av) => {
+        const nota = Number(av.nota) || 0;
+        return acc + (isNaN(nota) || !isFinite(nota) ? 0 : nota);
+      }, 0);
+      const media = avals.length > 0 ? soma / avals.length : 0;
+      // Garantir que media é um número válido
+      const mediaFinal = isNaN(media) || !isFinite(media) ? 0 : Number(media.toFixed(1));
+      return res.status(200).json({ success: true, media: mediaFinal, total: avals.length });
     }
 
     if (method === "POST") {

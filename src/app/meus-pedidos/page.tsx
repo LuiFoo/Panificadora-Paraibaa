@@ -67,8 +67,14 @@ export default function MeusPedidosPage() {
     try {
       const response = await fetch(`/api/orders`);
       if (response.ok) {
-        const data = await response.json();
-        setPedidos(data.pedidos || []);
+        // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await response.json();
+          setPedidos(data.pedidos || []);
+        } else {
+          console.error("Resposta não é JSON");
+        }
       }
     } catch (error) {
       console.error("Erro ao buscar pedidos:", error);

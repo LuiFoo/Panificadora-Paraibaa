@@ -2,6 +2,9 @@ import { useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useUser } from "@/context/UserContext";
 
+// Flag global para evitar múltiplas sincronizações simultâneas
+let globalSyncing = false;
+
 // Interfaces para tipagem
 interface GoogleUser {
   id: string;
@@ -30,8 +33,8 @@ export const useAuthSync = () => {
   const isSyncing = useRef(false);
 
   useEffect(() => {
-    // Evitar execuções simultâneas
-    if (isSyncing.current) {
+    // Evitar execuções simultâneas (tanto local quanto global)
+    if (isSyncing.current || globalSyncing) {
       console.log("🔄 useAuthSync: Já está sincronizando, pulando");
       return;
     }
@@ -41,7 +44,12 @@ export const useAuthSync = () => {
     console.log("🔍 useAuthSync: Status:", status, "Session:", !!session, "User:", !!user);
     
     const syncUserData = async () => {
-      console.log("🔄 useAuthSync: syncUserData chamado. Status:", status);
+      // Marcar sincronização em andamento
+      isSyncing.current = true;
+      globalSyncing = true;
+      
+      try {
+        console.log("🔄 useAuthSync: syncUserData chamado. Status:", status);
       
       // Verificar se foi logout manual
       const manualLogout = localStorage.getItem("manual_logout");
@@ -58,7 +66,7 @@ export const useAuthSync = () => {
           localStorage.removeItem("manual_logout");
           localStorage.removeItem("logout_timestamp");
         }
-        return;
+        return; // Retornar antes de continuar
       }
 
       if (status === "authenticated" && session?.user) {
@@ -218,15 +226,21 @@ export const useAuthSync = () => {
         setUser(null);
         console.log("🔓 Usuário deslogado - sessão limpa");
       }
+      } finally {
+        // Sempre limpar flags ao finalizar
+        isSyncing.current = false;
+        globalSyncing = false;
+      }
     };
 
     // Executar imediatamente sem debounce para sincronização instantânea
-    isSyncing.current = true;
-    syncUserData().finally(() => {
-      isSyncing.current = false;
-    });
+    syncUserData();
     
-    // Sem cleanup necessário pois não há timeout
+    // Cleanup: garantir que flags sejam limpas se componente desmontar
+    return () => {
+      isSyncing.current = false;
+      globalSyncing = false;
+    };
     // Nota: 'user' foi REMOVIDO das dependências para evitar loops desnecessários
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status]);

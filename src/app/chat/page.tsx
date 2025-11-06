@@ -59,7 +59,20 @@ function ChatContent() {
 
     try {
       const response = await fetch(`/api/mensagens?userId=${user.login}`);
-      const data = await response.json();
+      
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        return;
+      }
       
       if (data.success) {
         setMensagens(data.mensagens);
@@ -157,7 +170,25 @@ function ChatContent() {
         })
       });
 
-      const data = await response.json();
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: "Erro ao processar resposta do servidor"
+        });
+        return;
+      }
       
       if (data.success) {
         setNovaMensagem("");

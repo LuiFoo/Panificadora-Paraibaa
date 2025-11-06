@@ -5,7 +5,6 @@ import Footer from "@/components/Footer";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-// import Image from "next/image";
 
 export default function FaleConoscoPage() {
   const [isVisible, setIsVisible] = useState<Record<string, boolean>>({});

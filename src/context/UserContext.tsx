@@ -364,8 +364,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener('userLoggedIn', handleUserLoggedIn);
     window.addEventListener('userLoggedOut', handleStorageUpdate);
     
-    // 4. Polling de fallback a cada 300ms (mais rápido)
-    const interval = setInterval(checkLocalStorage, 300);
+    // 4. Polling de fallback a cada 2 segundos (otimizado - 300ms era muito agressivo)
+    const interval = setInterval(checkLocalStorage, 2000);
     
     return () => {
       clearInterval(interval);

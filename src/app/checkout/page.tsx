@@ -189,6 +189,10 @@ export default function CheckoutPage() {
     if (!data) return { min: "07:00", max: "18:30" };
     
     const dataSelecionada = new Date(data + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
+    // 🐛 CORREÇÃO: Validar se a data é válida antes de usar
+    if (isNaN(dataSelecionada.getTime())) {
+      return null; // Retornar null se data inválida
+    }
     const diaSemana = dataSelecionada.getDay(); // 0 = Domingo, 6 = Sábado
     
     if (diaSemana === 0) { // Domingo - NÃO PERMITIDO
@@ -253,7 +257,18 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 🐛 CORREÇÃO: Array vazio - executa apenas uma vez
 
-  const total = cartItems.reduce((sum, item) => sum + (item.valor * item.quantidade), 0);
+  // 🐛 CORREÇÃO: Validar valores antes de calcular total para prevenir NaN/Infinity
+  const total = cartItems.reduce((sum, item) => {
+    const valor = Number(item.valor) || 0;
+    const quantidade = Number(item.quantidade) || 0;
+    const subtotal = valor * quantidade;
+    // Verificar se subtotal é válido antes de somar
+    if (isNaN(subtotal) || !isFinite(subtotal)) {
+      console.warn("Item com valor inválido ignorado:", item);
+      return sum;
+    }
+    return sum + subtotal;
+  }, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -265,7 +280,13 @@ export default function CheckoutPage() {
       console.log("🔄 Validando carrinho antes de finalizar pedido...");
       await forcarAtualizacao();
       
+      // 🐛 CORREÇÃO: Aguardar um tick para garantir que o contexto foi atualizado
+      // O cartItems do contexto será atualizado automaticamente após forcarAtualizacao
+      // Mas precisamos verificar novamente após a atualização
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Verificar se ainda há itens no carrinho após validação
+      // Usar cartItems do contexto que já foi atualizado
       if (cartItems.length === 0) {
         setError("Seu carrinho foi atualizado e não contém mais produtos válidos. Redirecionando para o carrinho...");
         setLoading(false);
@@ -297,17 +318,23 @@ export default function CheckoutPage() {
           setLoading(false);
           return;
         }
-      }
-
-      // Validar data e hora (tanto para entrega quanto retirada)
-      if (!dataEntrega || !horaEntrega) {
-        setError(`Data e hora ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} são obrigatórias`);
-        setLoading(false);
-        return;
+      } else {
+        // Para retirada, também validar data e hora
+        if (!dataEntrega || !horaEntrega) {
+          setError("Data e hora de retirada são obrigatórias");
+          setLoading(false);
+          return;
+        }
       }
 
       // Validar se a data não é no passado
+      // 🐛 CORREÇÃO: Validar se a data é válida antes de usar
       const dataHoraObj = new Date(dataEntrega + 'T' + horaEntrega);
+      if (isNaN(dataHoraObj.getTime())) {
+        setError("Data ou hora inválida");
+        setLoading(false);
+        return;
+      }
       const agora = new Date();
       if (dataHoraObj <= agora) {
         setError(`Data e hora ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} devem ser no futuro`);
@@ -319,6 +346,12 @@ export default function CheckoutPage() {
       const umMesDepois = new Date(agora);
       umMesDepois.setMonth(umMesDepois.getMonth() + 1);
       const dataSelecionadaObj = new Date(dataEntrega + 'T12:00:00');
+      // 🐛 CORREÇÃO: Validar se a data é válida antes de comparar
+      if (isNaN(dataSelecionadaObj.getTime())) {
+        setError("Data inválida");
+        setLoading(false);
+        return;
+      }
       if (dataSelecionadaObj > umMesDepois) {
         setError(`Pedidos só podem ser feitos para até 1 mês no futuro. Data máxima: ${umMesDepois.toLocaleDateString('pt-BR')}`);
         setLoading(false);
@@ -327,6 +360,12 @@ export default function CheckoutPage() {
 
       // Validar horário de funcionamento baseado no dia da semana
       const dataSelecionada = new Date(dataEntrega + 'T12:00:00');
+      // 🐛 CORREÇÃO: Validar se a data é válida antes de usar
+      if (isNaN(dataSelecionada.getTime())) {
+        setError("Data inválida");
+        setLoading(false);
+        return;
+      }
       const diaSemana = dataSelecionada.getDay(); // 0 = Domingo
       
       // Validar formato da hora
@@ -383,7 +422,21 @@ export default function CheckoutPage() {
         })
       });
 
-      const data = await response.json();
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        setLoading(false);
+        return;
+      }
       
       console.log("📋 Resposta da API:", { status: response.status, data });
 
@@ -844,13 +897,19 @@ export default function CheckoutPage() {
                           className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           required
                         />
-                        {dataEntrega && (
-                          <p className={`text-xs mt-1 font-medium ${new Date(dataEntrega + 'T12:00:00').getDay() === 0 ? 'text-red-600' : 'text-green-700'}`}>
-                            {new Date(dataEntrega + 'T12:00:00').getDay() === 0 
+                        {dataEntrega && (() => {
+                          // 🐛 CORREÇÃO: Validar data antes de usar getDay()
+                          const dataObj = new Date(dataEntrega + 'T12:00:00');
+                          if (isNaN(dataObj.getTime())) return null;
+                          const diaSemana = dataObj.getDay();
+                          return (
+                            <p className={`text-xs mt-1 font-medium ${diaSemana === 0 ? 'text-red-600' : 'text-green-700'}`}>
+                              {diaSemana === 0 
                               ? "❌ Domingo: NÃO é possível fazer pedidos" 
                               : "⏰ Seg-Sáb: 07h às 18:30h"}
-                          </p>
-                        )}
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
                     
@@ -1113,7 +1172,13 @@ export default function CheckoutPage() {
                     <p className="text-sm text-gray-600">Qtd: {item.quantidade}</p>
                   </div>
                   <p className="font-semibold">
-                    R$ {(item.valor * item.quantidade).toFixed(2).replace(".", ",")}
+                    {/* 🐛 CORREÇÃO: Validar valores antes de calcular para prevenir NaN */}
+                    R$ {(() => {
+                      const valor = Number(item.valor) || 0;
+                      const quantidade = Number(item.quantidade) || 0;
+                      const subtotal = valor * quantidade;
+                      return (isNaN(subtotal) || !isFinite(subtotal) ? 0 : subtotal).toFixed(2).replace(".", ",");
+                    })()}
                   </p>
                 </div>
               ))}
@@ -1121,7 +1186,8 @@ export default function CheckoutPage() {
               <div className="mt-4 pt-4 border-t border-gray-300">
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total:</span>
-                  <span>R$ {total.toFixed(2).replace(".", ",")}</span>
+                  {/* 🐛 CORREÇÃO: Validar total antes de formatar */}
+                  <span>R$ {(isNaN(total) || !isFinite(total) ? 0 : total).toFixed(2).replace(".", ",")}</span>
                 </div>
               </div>
             </div>

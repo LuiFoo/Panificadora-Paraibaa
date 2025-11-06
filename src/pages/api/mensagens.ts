@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId } from "mongodb";
 import { verificarAutenticacao } from "@/lib/adminAuth";
+import { sanitizeString } from "@/lib/validation";
 
 interface Conversa {
   userId: string;
@@ -167,10 +168,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // 🐛 CORREÇÃO: Sanitizar mensagem e userName para prevenir XSS
       const novaMensagem = {
-        userId,
-        userName,
-        mensagem: mensagem.trim(),
+        userId: sanitizeString(userId),
+        userName: sanitizeString(userName),
+        mensagem: sanitizeString(mensagem.trim()),
         remetente, // "cliente" ou "admin"
         dataEnvio: agora,
         lida: false

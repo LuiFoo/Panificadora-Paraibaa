@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, type ReactNode, useEffect, useCallback } from "react";
 import { useUser } from "@/context/UserContext";
-// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 
 // ---------------- Tipos ----------------
 export interface CartItem {
@@ -177,7 +176,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     };
 
     void fetchCart();
-  }, [login, verificarProdutosPausados]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [login]); // verificarProdutosPausados removido das dependências para evitar loops
 
   // Total de itens no carrinho
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantidade, 0);

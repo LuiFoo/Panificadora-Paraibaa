@@ -195,7 +195,21 @@ export default function ProdutosPage() {
     setError("");
     try {
       const response = await fetch("/api/admin/produtos/todos");
-      const data = await response.json();
+      
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        return;
+      }
       
       if (data.success) {
         startTransition(() => {
@@ -283,8 +297,14 @@ export default function ProdutosPage() {
     setSuccess("");
 
     try {
+      // 🐛 CORREÇÃO: Validar nome não vazio
+      if (!formData.nome || formData.nome.trim().length === 0) {
+        setError("Nome do produto é obrigatório");
+        return;
+      }
+      
       const produtoData = {
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         slug: formData.nome.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         descricao: formData.descricao,
         categoria: {
@@ -332,7 +352,20 @@ export default function ProdutosPage() {
         body: JSON.stringify(produtoData)
       });
 
-      const data = await response.json();
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        return;
+      }
       
       if (data.success) {
         setSuccess(produtoEditando ? "Produto atualizado com sucesso!" : "Produto criado com sucesso!");
@@ -413,7 +446,21 @@ export default function ProdutosPage() {
             method: "DELETE"
           });
 
-          const data = await response.json();
+          // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+          let data;
+          try {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              data = await response.json();
+            } else {
+              throw new Error("Resposta não é JSON");
+            }
+          } catch (jsonError) {
+            console.error("Erro ao parsear JSON:", jsonError);
+            setError("Erro ao processar resposta do servidor");
+            return;
+          }
+          
           if (data.success) {
             setSuccess("Produto deletado com sucesso!");
             setTimeout(() => setSuccess(""), 3000);
@@ -450,7 +497,21 @@ export default function ProdutosPage() {
         body: JSON.stringify({ status: newStatus })
       });
 
-      const data = await response.json();
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        return;
+      }
+      
       if (data.success) {
         setSuccess(`Produto ${newStatus === "ativo" ? "ativado" : "pausado"} com sucesso!`);
         setTimeout(() => setSuccess(""), 3000);
@@ -507,7 +568,21 @@ export default function ProdutosPage() {
         headers: { "Content-Type": "application/json" }
       });
 
-      const data = await response.json();
+      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        return;
+      }
+      
       if (data.success) {
         setSuccess(`Produto ${data.destaque ? "marcado como destaque" : "removido dos destaques"} com sucesso!`);
         setTimeout(() => setSuccess(""), 3000);

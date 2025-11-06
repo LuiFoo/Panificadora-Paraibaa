@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
-// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

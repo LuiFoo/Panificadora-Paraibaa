@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
-// import { useToast } from "@/context/ToastContext"; // Toast desabilitado
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/Header";
