@@ -269,7 +269,7 @@ export default function ProdutoDetalhePage() {
       nome: produto.nome,
       valor: produto.preco?.promocao?.ativo ? (produto.preco.promocao?.valorPromocional || produto.preco?.valor || 0) : produto.preco?.valor || 0,
       quantidade,
-      img: produto.imagem?.href || produto.img || '/images/placeholder.png',
+      img: produto.imagem?.href || '/images/placeholder.png',
     });
 
     setMensagem(resultado.message);
