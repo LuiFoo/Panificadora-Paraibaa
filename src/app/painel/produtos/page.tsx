@@ -609,41 +609,41 @@ export default function ProdutosPage() {
           className="mt-2"
         />
         
-        <div className="bg-white rounded-lg shadow-md">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Cabeçalho */}
-          <div className="p-6 border-b border-gray-200">
+          <div className="bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] p-6 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-2xl font-bold text-gray-800">Gerenciar Produtos</h1>
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-3xl md:text-4xl font-bold text-white">Gerenciar Produtos</h1>
+                    <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm font-bold rounded-full border border-white/30">
                       {totalProdutos} produtos
                     </span>
                   </div>
-                  <p className="text-gray-600">Gerencie o catálogo de produtos da padaria</p>
+                  <p className="text-white/90 text-sm md:text-base">Gerencie o catálogo completo de produtos da padaria</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Link
                   href="/painel"
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-xl font-semibold transition-all flex items-center gap-2 border border-white/30 hover:border-white/50 shadow-lg hover:shadow-xl"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Voltar
                 </Link>
                 <Link
                   href="/painel/produtos/novo-produto"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 bg-white hover:bg-gray-50 text-[var(--color-avocado-600)] rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   Novo Produto
@@ -684,41 +684,52 @@ export default function ProdutosPage() {
           )}
 
           {/* Estatísticas */}
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">📊 Resumo dos Produtos</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
+          <div className="p-6 md:p-8 bg-gray-50 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Resumo dos Produtos
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-blue-600">Total de Produtos</p>
-                    <p className="text-2xl font-bold text-blue-800">{totalProdutos}</p>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Total de Produtos</p>
+                    <p className="text-3xl font-bold text-blue-600">{totalProdutos}</p>
                   </div>
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-lg">🍞</span>
+                  <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-green-600">Produtos Ativos</p>
-                    <p className="text-2xl font-bold text-green-800">{produtosAtivos}</p>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Produtos Ativos</p>
+                    <p className="text-3xl font-bold text-green-600">{produtosAtivos}</p>
                   </div>
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-lg">✅</span>
+                  <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-r from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200">
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-amber-500 hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-amber-600">Produtos Pausados</p>
-                    <p className="text-2xl font-bold text-amber-800">{produtosPausados}</p>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Produtos Pausados</p>
+                    <p className="text-3xl font-bold text-amber-600">{produtosPausados}</p>
                   </div>
-                  <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-lg">⏸️</span>
+                  <div className="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <svg className="w-7 h-7 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -1109,15 +1120,20 @@ export default function ProdutosPage() {
           )}
 
           {/* Filtros */}
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">🔍 Filtros</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-6 md:p-8 bg-white border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filtros
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Subcategoria</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Subcategoria</label>
                 <select
                   value={filtroSubcategoria}
                   onChange={(e) => setFiltroSubcategoria(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
                 >
                   <option value="todos">Todas as subcategorias</option>
                   {subcategorias.map(sub => (
@@ -1126,11 +1142,11 @@ export default function ProdutosPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Status</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Status</label>
                 <select
                   value={filtroStatus}
                   onChange={(e) => setFiltroStatus(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
                 >
                   <option value="todos">Todos os status</option>
                   <option value="active">Apenas Ativos</option>
@@ -1141,15 +1157,21 @@ export default function ProdutosPage() {
           </div>
 
           {/* Lista de Produtos */}
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">🍞 Lista de Produtos</h2>
+          <div className="p-6 md:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <svg className="w-7 h-7 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                Lista de Produtos
+                <span className="text-lg font-normal text-gray-500">({produtosFiltrados.length})</span>
+              </h2>
               <button
                 onClick={handleCriarExemplo}
                 disabled={criandoExemplo}
-                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-semibold transition-all flex items-center gap-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 {criandoExemplo ? 'Criando...' : 'Criar Exemplo'}
@@ -1157,118 +1179,185 @@ export default function ProdutosPage() {
             </div>
 
             {produtosFiltrados.length === 0 ? (
-              <div className="text-center py-10">
-                <div className="text-gray-500 text-6xl mb-4">🍞</div>
-                <p className="text-gray-600 text-lg">Nenhum produto encontrado</p>
-                <p className="text-gray-500 text-sm">Tente ajustar os filtros ou criar um novo produto</p>
+              <div className="text-center py-16">
+                <div className="text-gray-400 text-7xl mb-4">🍞</div>
+                <p className="text-gray-700 text-xl font-semibold mb-2">Nenhum produto encontrado</p>
+                <p className="text-gray-500">Tente ajustar os filtros ou criar um novo produto</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {produtosFiltrados.map((produto) => (
-                  <div key={produto._id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
-                    <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                        {produto.img ? (
-                          <Image
-                            src={produto.img}
-                            alt={produto.nome}
-                            width={64}
-                            height={64}
-                            className="object-cover w-full h-full"
-                          />
+                  <div key={produto._id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group">
+                    {/* Imagem do Produto */}
+                    <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                      {produto.imagem?.href || produto.img ? (
+                        <Image
+                          src={produto.imagem?.href || produto.img || '/images/placeholder.png'}
+                          alt={produto.nome}
+                          width={400}
+                          height={200}
+                          className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-gray-400 text-6xl">🍞</span>
+                        </div>
+                      )}
+                      {/* Badges sobre a imagem */}
+                      <div className="absolute top-3 left-3 flex flex-col gap-2">
+                        {produto.destaque && (
+                          <span className="px-2 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full shadow-lg">
+                            ⭐ DESTAQUE
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-bold shadow-lg ${
+                            produto.status === "inativo"
+                              ? "bg-amber-500 text-white"
+                              : produto.status === "sazonal"
+                              ? "bg-blue-500 text-white"
+                              : "bg-green-500 text-white"
+                          }`}
+                        >
+                          {produto.status === "inativo" ? "⏸️ INATIVO" : 
+                           produto.status === "sazonal" ? "🌿 SAZONAL" : "✅ ATIVO"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Conteúdo do Card */}
+                    <div className="p-5">
+                      {/* Título e Categoria */}
+                      <div className="mb-3">
+                        <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-1">{produto.nome}</h3>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {produto.categoria?.nome && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                              {produto.categoria.nome}
+                            </span>
+                          )}
+                          {produto.subcategoria && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                              {produto.subcategoria}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Preço */}
+                      <div className="mb-4 pb-4 border-b border-gray-200">
+                        {produto.preco?.promocao?.ativo ? (
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-2xl font-bold text-[var(--color-avocado-600)]">
+                                R$ {produto.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")}
+                              </span>
+                              <span className="text-sm text-gray-400 line-through">
+                                R$ {(produto.preco?.valor || produto.valor || 0).toFixed(2).replace(".", ",")}
+                              </span>
+                              <span className="ml-auto px-2 py-1 bg-red-500 text-white text-xs font-bold rounded">
+                                PROMOÇÃO
+                              </span>
+                            </div>
+                          </div>
                         ) : (
-                          <span className="text-gray-500 text-2xl">🍞</span>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-bold text-[var(--color-avocado-600)]">
+                              R$ {(produto.preco?.valor || produto.valor || 0).toFixed(2).replace(".", ",")}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              / {produto.preco?.tipo || produto.vtipo || 'UN'}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-800 truncate">{produto.nome}</h3>
-                              {produto.destaque && (
-                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
-                                  ⭐ Destaque
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-600">
-                              R$ {(produto.preco?.valor || produto.valor || 0).toFixed(2)} / {produto.preco?.tipo || produto.vtipo || 'UN'}
-                              {produto.preco?.promocao?.ativo && (
-                                <span className="text-red-600 ml-2">
-                                  (Promoção: R$ {produto.preco.promocao.valorPromocional.toFixed(2)})
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {produto.subcategoria || produto.subc || 'Sem subcategoria'} • {produto.categoria?.nome || 'Sem categoria'}
-                            </p>
-                            {produto.estoque && (
-                              <p className="text-xs text-gray-500">
-                                Estoque: {produto.estoque.quantidade || 'N/A'} {produto.estoque.unidadeMedida}
-                                {produto.estoque.minimo && ` (Mín: ${produto.estoque.minimo})`}
-                              </p>
-                            )}
+
+                      {/* Informações Adicionais */}
+                      <div className="space-y-2 mb-4">
+                        {produto.estoque && (
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            <span>
+                              Estoque: <strong>{produto.estoque.quantidade || 'N/A'}</strong> {produto.estoque.unidadeMedida}
+                              {produto.estoque.minimo && ` (Mín: ${produto.estoque.minimo})`}
+                            </span>
                           </div>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              produto.status === "inativo"
-                                ? "bg-amber-100 text-amber-800"
-                                : produto.status === "sazonal"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {produto.status === "inativo" ? "⏸️ Inativo" : 
-                             produto.status === "sazonal" ? "🌿 Sazonal" : "✅ Ativo"}
-                          </span>
-                        </div>
-                        
-                        {produto.ingredientes && produto.ingredientes.length > 0 && (
-                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">
-                            Ingredientes: {Array.isArray(produto.ingredientes) ? produto.ingredientes.join(', ') : produto.ingredientes}
-                          </p>
                         )}
-                        {produto.alergicos && produto.alergicos.length > 0 && (
-                          <p className="text-xs text-red-600 mt-1">
-                            ⚠️ {Array.isArray(produto.alergicos) ? produto.alergicos.join(', ') : produto.alergicos}
-                          </p>
+                        {produto.ingredientes && Array.isArray(produto.ingredientes) && produto.ingredientes.length > 0 && (
+                          <div className="text-xs text-gray-600 line-clamp-2">
+                            <span className="font-medium">Ingredientes:</span> {produto.ingredientes.slice(0, 3).join(', ')}
+                            {produto.ingredientes.length > 3 && '...'}
+                          </div>
                         )}
-                        
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          <button
-                            onClick={() => handleEdit(produto)}
-                            className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600 transition-colors"
-                          >
-                            ✏️ Editar
-                          </button>
-                          <button
-                            onClick={() => handleToggleDestaque(produto)}
-                            className={`px-3 py-1 rounded-lg text-xs transition-colors ${
-                              produto.destaque
-                                ? "bg-yellow-500 hover:bg-yellow-600 text-white"
-                                : "bg-gray-400 hover:bg-gray-500 text-white"
-                            }`}
-                            title={produto.destaque ? "Remover dos destaques" : "Marcar como destaque"}
-                          >
-                            {produto.destaque ? "⭐ Destaque" : "⭐ Marcar"}
-                          </button>
-                          <button
-                            onClick={() => handleToggleStatus(produto)}
-                            className={`px-3 py-1 rounded-lg text-xs transition-colors ${
-                              produto.status === "inativo"
-                                ? "bg-green-500 hover:bg-green-600 text-white"
-                                : "bg-amber-500 hover:bg-amber-600 text-white"
-                            }`}
-                          >
-                            {produto.status === "inativo" ? "▶️ Ativar" : "⏸️ Pausar"}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(produto)}
-                            className="px-3 py-1 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 transition-colors"
-                          >
-                            🗑️ Deletar
-                          </button>
-                        </div>
+                        {produto.alergicos && Array.isArray(produto.alergicos) && produto.alergicos.length > 0 && (
+                          <div className="flex items-start gap-1 text-xs text-red-600">
+                            <span>⚠️</span>
+                            <span className="line-clamp-1">{produto.alergicos.slice(0, 2).join(', ')}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Botões de Ação */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => handleEdit(produto)}
+                          className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleToggleDestaque(produto)}
+                          className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1 ${
+                            produto.destaque
+                              ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                              : "bg-gray-400 hover:bg-gray-500 text-white"
+                          }`}
+                          title={produto.destaque ? "Remover dos destaques" : "Marcar como destaque"}
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {produto.destaque ? "Destaque" : "Marcar"}
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(produto)}
+                          className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1 ${
+                            produto.status === "inativo"
+                              ? "bg-green-500 hover:bg-green-600 text-white"
+                              : "bg-amber-500 hover:bg-amber-600 text-white"
+                          }`}
+                        >
+                          {produto.status === "inativo" ? (
+                            <>
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Ativar
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Pausar
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(produto)}
+                          className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Deletar
+                        </button>
                       </div>
                     </div>
                   </div>
