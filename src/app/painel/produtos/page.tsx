@@ -394,40 +394,7 @@ export default function ProdutosPage() {
   };
 
   const handleEdit = (produto: Produto) => {
-    setProdutoEditando(produto);
-    setFormData({
-      nome: produto.nome,
-      descricao: produto.descricao || "",
-      categoria: produto.categoria?.slug || "doces",
-      subcategoria: produto.subcategoria || produto.subc || "",
-      preco: {
-        valor: (produto.preco?.valor || produto.valor || 0).toString(),
-        tipo: produto.preco?.tipo || produto.vtipo || "UN",
-        custoProducao: produto.preco?.custoProducao?.toString() || "",
-        promocao: {
-          ativo: produto.preco?.promocao?.ativo || false,
-          valorPromocional: produto.preco?.promocao?.valorPromocional?.toString() || "",
-          inicio: produto.preco?.promocao?.inicio ? new Date(produto.preco.promocao.inicio).toISOString().split('T')[0] : "",
-          fim: produto.preco?.promocao?.fim ? new Date(produto.preco.promocao.fim).toISOString().split('T')[0] : ""
-        }
-      },
-      estoque: {
-        disponivel: produto.estoque?.disponivel ?? true,
-        quantidade: produto.estoque?.quantidade?.toString() || "",
-        minimo: produto.estoque?.minimo?.toString() || "",
-        unidadeMedida: produto.estoque?.unidadeMedida || "UN"
-      },
-      imagem: {
-        href: produto.imagem?.href || produto.img || "",
-        alt: produto.imagem?.alt || produto.nome
-      },
-      ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : (produto.ingredientes ? [produto.ingredientes] : []),
-      alergicos: Array.isArray(produto.alergicos) ? produto.alergicos : (produto.alergicos ? [produto.alergicos] : []),
-      destaque: produto.destaque || false,
-      tags: Array.isArray(produto.tags) ? produto.tags : (produto.tags ? [produto.tags] : []),
-      status: produto.status || "ativo"
-    });
-    setMostrarFormulario(true);
+    router.push(`/painel/produtos/editar/${produto._id}`);
   };
 
   const handleDelete = (produto: Produto) => {
@@ -480,6 +447,30 @@ export default function ProdutosPage() {
       }
     } catch (err) {
       console.error("Erro ao alterar status:", err);
+      setError("Erro ao conectar com o servidor");
+    }
+  };
+
+  const handleToggleDestaque = async (produto: Produto) => {
+    try {
+      const response = await fetch(`/api/admin/produtos/toggle-destaque?id=${produto._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSuccess(`Produto ${data.destaque ? "marcado como destaque" : "removido dos destaques"} com sucesso!`);
+        setTimeout(() => setSuccess(""), 3000);
+        // Atualização otimista
+        setProdutos(prev => prev.map(p => 
+          p._id === produto._id ? { ...p, destaque: data.destaque } : p
+        ));
+      } else {
+        setError(data.error || "Erro ao alterar destaque do produto");
+      }
+    } catch (err) {
+      console.error("Erro ao alterar destaque:", err);
       setError("Erro ao conectar com o servidor");
     }
   };
@@ -1243,12 +1234,23 @@ export default function ProdutosPage() {
                           </p>
                         )}
                         
-                        <div className="flex gap-2 mt-3">
+                        <div className="flex flex-wrap gap-2 mt-3">
                           <button
                             onClick={() => handleEdit(produto)}
                             className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600 transition-colors"
                           >
                             ✏️ Editar
+                          </button>
+                          <button
+                            onClick={() => handleToggleDestaque(produto)}
+                            className={`px-3 py-1 rounded-lg text-xs transition-colors ${
+                              produto.destaque
+                                ? "bg-yellow-500 hover:bg-yellow-600 text-white"
+                                : "bg-gray-400 hover:bg-gray-500 text-white"
+                            }`}
+                            title={produto.destaque ? "Remover dos destaques" : "Marcar como destaque"}
+                          >
+                            {produto.destaque ? "⭐ Destaque" : "⭐ Marcar"}
                           </button>
                           <button
                             onClick={() => handleToggleStatus(produto)}

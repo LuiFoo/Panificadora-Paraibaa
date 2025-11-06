@@ -27,10 +27,37 @@ export default async function handler(
       })
       .toArray();
 
+    // Normalizar produtos para garantir estrutura consistente
+    const produtosFormatados = produtos.map(produto => ({
+      ...produto,
+      _id: produto._id.toString(),
+      // Garantir que imagem existe e tem a estrutura correta
+      imagem: produto.imagem || {
+        href: produto.img || '/images/placeholder.png',
+        alt: produto.nome || 'Produto'
+      },
+      // Manter compatibilidade com produtos antigos
+      img: produto.img || produto.imagem?.href || '/images/placeholder.png',
+      // Normalizar preço
+      preco: produto.preco || {
+        valor: produto.valor || 0,
+        tipo: produto.vtipo || "UN"
+      },
+      // Normalizar categoria
+      categoria: produto.categoria || {
+        nome: "",
+        slug: ""
+      },
+      // Garantir arrays
+      ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : [],
+      alergicos: Array.isArray(produto.alergicos) ? produto.alergicos : [],
+      tags: Array.isArray(produto.tags) ? produto.tags : []
+    }));
+
     return res.status(200).json({
       categoria: slug,
-      produtos,
-      total: produtos.length
+      produtos: produtosFormatados,
+      total: produtosFormatados.length
     });
   } catch (error) {
     console.error("Erro ao buscar produtos por categoria:", error);

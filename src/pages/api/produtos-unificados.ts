@@ -131,19 +131,19 @@ export default async function handler(
             unidadeMedida: produto.vtipo || "UN"
           },
           imagem: produto.imagem || {
-            href: produto.img || "https://via.placeholder.com/300x200?text=Sem+Imagem",
-            alt: produto.nome
+            href: produto.img || '/images/placeholder.png',
+            alt: produto.nome || 'Produto'
           },
           ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : 
-            (produto.ingredientes ? produto.ingredientes.split(',').map((i: string) => i.trim()) : []),
-          alergicos: produto.alergicos || [],
+            (typeof produto.ingredientes === 'string' ? produto.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean) : []),
+          alergicos: Array.isArray(produto.alergicos) ? produto.alergicos : [],
           avaliacao: produto.avaliacao || {
             media: produto.mediaAvaliacao || 0,
             quantidade: produto.totalAvaliacoes || 0,
             usuarios: []
           },
           destaque: produto.destaque || false,
-          tags: produto.tags || [],
+          tags: Array.isArray(produto.tags) ? produto.tags : [],
           status: produto.status === "pause" ? "inativo" : "ativo",
           criadoEm: produto.criadoEm || produto.dataCriacao || new Date(),
           atualizadoEm: produto.atualizadoEm || produto.dataAtualizacao || new Date()

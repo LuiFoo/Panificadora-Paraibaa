@@ -5,15 +5,58 @@ import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition, useMemo } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import { safeParseFloat, safeParseInt } from "@/lib/validation";
 
-export default function NovoProdutoPage() {
+interface Produto {
+  _id: string;
+  nome: string;
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    custoProducao?: number;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+      inicio: Date;
+      fim: Date;
+    };
+  };
+  estoque: {
+    disponivel: boolean;
+    quantidade?: number;
+    minimo?: number;
+    unidadeMedida: string;
+  };
+  imagem: {
+    href: string;
+    alt: string;
+    galeria?: string[];
+  };
+  ingredientes: string[];
+  alergicos: string[];
+  destaque: boolean;
+  tags: string[];
+  status: "ativo" | "inativo" | "sazonal";
+}
+
+export default function EditarProdutoPage() {
   const router = useRouter();
+  const params = useParams();
+  const produtoId = params.id as string;
   const [, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(true);
+  
   const CATEGORIAS_CANONICAS = useMemo(() => ([
     { nome: "BOLOS DOCES ESPECIAIS", slug: "bolos-doces-especiais" },
     { nome: "DOCES INDIVIDUAIS", slug: "doces-individuais" },
@@ -42,8 +85,64 @@ export default function NovoProdutoPage() {
     alergicos: [] as string[],
     destaque: false,
     tags: [] as string[],
-    status: "ativo"
+    status: "ativo" as "ativo" | "inativo" | "sazonal"
   });
+
+  useEffect(() => {
+    async function carregarProduto() {
+      try {
+        const res = await fetch(`/api/admin/produtos/${produtoId}`);
+        const data = await res.json();
+        
+        if (res.ok && data.success && data.produto) {
+          const produto: Produto = data.produto;
+          setFormData({
+            nome: produto.nome || "",
+            descricao: produto.descricao || "",
+            categoria: produto.categoria?.slug || "bolos-doces-especiais",
+            subcategoria: produto.subcategoria || "",
+            preco: {
+              valor: (produto.preco?.valor || produto.valor || 0).toString(),
+              tipo: produto.preco?.tipo || produto.vtipo || "UN",
+              custoProducao: produto.preco?.custoProducao?.toString() || "",
+              promocao: {
+                ativo: produto.preco?.promocao?.ativo || false,
+                valorPromocional: produto.preco?.promocao?.valorPromocional?.toString() || "",
+                inicio: produto.preco?.promocao?.inicio ? new Date(produto.preco.promocao.inicio).toISOString().split('T')[0] : "",
+                fim: produto.preco?.promocao?.fim ? new Date(produto.preco.promocao.fim).toISOString().split('T')[0] : ""
+              }
+            },
+            estoque: {
+              disponivel: produto.estoque?.disponivel ?? true,
+              quantidade: produto.estoque?.quantidade?.toString() || "",
+              minimo: produto.estoque?.minimo?.toString() || "",
+              unidadeMedida: produto.estoque?.unidadeMedida || "UN"
+            },
+            imagem: {
+              href: produto.imagem?.href || produto.img || "",
+              alt: produto.imagem?.alt || produto.nome || "",
+              galeria: Array.isArray(produto.imagem?.galeria) ? produto.imagem.galeria : []
+            },
+            ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : [],
+            alergicos: Array.isArray(produto.alergicos) ? produto.alergicos : [],
+            destaque: produto.destaque || false,
+            tags: Array.isArray(produto.tags) ? produto.tags : [],
+            status: produto.status || "ativo"
+          });
+        } else {
+          setError(data.error || "Produto não encontrado");
+        }
+      } catch {
+        setError("Erro ao carregar produto");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (produtoId) {
+      carregarProduto();
+    }
+  }, [produtoId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -114,7 +213,6 @@ export default function NovoProdutoPage() {
     setSuccess("");
     try {
       const cat = CATEGORIAS_CANONICAS.find(c => c.slug === formData.categoria);
-      // Validar valores numéricos antes de enviar
       const precoValor = safeParseFloat(formData.preco.valor);
       if (precoValor <= 0) {
         setError("Preço deve ser maior que zero");
@@ -155,22 +253,36 @@ export default function NovoProdutoPage() {
         status: formData.status
       };
 
-      const res = await fetch('/api/admin/produtos', {
-        method: 'POST',
+      const res = await fetch(`/api/admin/produtos/${produtoId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setSuccess('Produto criado com sucesso!');
-        startTransition(() => router.push('/painel/produtos'));
+        setSuccess('Produto atualizado com sucesso!');
+        setTimeout(() => {
+          startTransition(() => router.push('/painel/produtos'));
+        }, 1000);
       } else {
-        setError(data.error || 'Erro ao criar produto');
+        setError(data.error || 'Erro ao atualizar produto');
       }
     } catch {
       setError('Erro ao conectar com o servidor');
     }
   };
+
+  if (loading) {
+    return (
+      <ProtectedRoute requiredPermission="administrador" redirectTo="/">
+        <Header />
+        <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </main>
+        <Footer showMap={false} />
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
@@ -181,13 +293,13 @@ export default function NovoProdutoPage() {
             items={[
               { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
               { label: "Produtos", href: "/painel/produtos", icon: "🛍️", color: "orange" },
-              { label: "Novo", icon: "➕", color: "green" }
+              { label: "Editar", icon: "✏️", color: "purple" }
             ]}
           />
 
           <div className="bg-white rounded-lg shadow-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-800">Novo Produto</h1>
+              <h1 className="text-2xl font-bold text-gray-800">Editar Produto</h1>
               <Link href="/painel/produtos" className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">Voltar</Link>
             </div>
 
@@ -199,18 +311,18 @@ export default function NovoProdutoPage() {
                 {/* Informações Básicas */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">📝 Informações Básicas</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Produto *</label>
                       <input name="nome" value={formData.nome} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
-                  <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm">
-                    {CATEGORIAS_CANONICAS.map(c => (
-                      <option key={c.slug} value={c.slug}>{c.nome}</option>
-                    ))}
-                  </select>
+                      <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm">
+                        {CATEGORIAS_CANONICAS.map(c => (
+                          <option key={c.slug} value={c.slug}>{c.nome}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="mt-4">
@@ -320,7 +432,7 @@ export default function NovoProdutoPage() {
                       <div className="flex gap-2 mb-2">
                         <input
                           type="text"
-                          id="ingrediente-input"
+                          id="ingrediente-input-edit"
                           placeholder="Digite um ingrediente e pressione Enter"
                           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                           onKeyDown={(e) => {
@@ -335,7 +447,7 @@ export default function NovoProdutoPage() {
                         <button
                           type="button"
                           onClick={(e) => {
-                            const input = document.getElementById('ingrediente-input') as HTMLInputElement;
+                            const input = document.getElementById('ingrediente-input-edit') as HTMLInputElement;
                             if (input?.value) {
                               handleAddItem('ingredientes', input.value);
                               input.value = '';
@@ -369,7 +481,7 @@ export default function NovoProdutoPage() {
                       <div className="flex gap-2 mb-2">
                         <input
                           type="text"
-                          id="alergico-input"
+                          id="alergico-input-edit"
                           placeholder="Digite um alérgeno e pressione Enter"
                           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                           onKeyDown={(e) => {
@@ -384,7 +496,7 @@ export default function NovoProdutoPage() {
                         <button
                           type="button"
                           onClick={(e) => {
-                            const input = document.getElementById('alergico-input') as HTMLInputElement;
+                            const input = document.getElementById('alergico-input-edit') as HTMLInputElement;
                             if (input?.value) {
                               handleAddItem('alergicos', input.value);
                               input.value = '';
@@ -434,7 +546,7 @@ export default function NovoProdutoPage() {
                     <div className="flex gap-2 mb-2">
                       <input
                         type="url"
-                        id="galeria-input"
+                        id="galeria-input-edit"
                         placeholder="Cole a URL da imagem e pressione Enter"
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                         onKeyDown={(e) => {
@@ -449,7 +561,7 @@ export default function NovoProdutoPage() {
                       <button
                         type="button"
                         onClick={(e) => {
-                          const input = document.getElementById('galeria-input') as HTMLInputElement;
+                          const input = document.getElementById('galeria-input-edit') as HTMLInputElement;
                           if (input?.value) {
                             handleAddItem('galeria', input.value);
                             input.value = '';
@@ -487,7 +599,7 @@ export default function NovoProdutoPage() {
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"
-                      id="tag-input"
+                      id="tag-input-edit"
                       placeholder="Digite uma tag e pressione Enter"
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                       onKeyDown={(e) => {
@@ -502,7 +614,7 @@ export default function NovoProdutoPage() {
                     <button
                       type="button"
                       onClick={(e) => {
-                        const input = document.getElementById('tag-input') as HTMLInputElement;
+                        const input = document.getElementById('tag-input-edit') as HTMLInputElement;
                         if (input?.value) {
                           handleAddItem('tags', input.value);
                           input.value = '';
@@ -533,7 +645,7 @@ export default function NovoProdutoPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button type="submit" className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">Salvar</button>
+                  <button type="submit" className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">Salvar Alterações</button>
                   <Link href="/painel/produtos" className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium">Cancelar</Link>
                 </div>
               </form>
@@ -545,5 +657,4 @@ export default function NovoProdutoPage() {
     </ProtectedRoute>
   );
 }
-
 

@@ -302,8 +302,8 @@ export default function CardapioPage() {
                     >
                       <div className="relative overflow-hidden">
                         <OptimizedImage
-                          src={item.imagem.href}
-                          alt={item.imagem.alt}
+                          src={item.imagem?.href || item.img || '/images/placeholder.png'}
+                          alt={item.imagem?.alt || item.nome || 'Produto'}
                           width={300}
                           height={300}
                           className="object-cover w-full h-64 group-hover:scale-110 transition-transform duration-300"
@@ -350,28 +350,28 @@ export default function CardapioPage() {
                         
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex flex-col">
-                            {item.preco.promocao?.ativo ? (
+                            {item.preco?.promocao?.ativo ? (
                               <>
                                 <p className="text-lg font-bold text-[var(--color-avocado-600)]">
-                                  R${item.preco.promocao.valorPromocional.toFixed(2).replace(".", ",")}
+                                  R${(item.preco.promocao?.valorPromocional || 0).toFixed(2).replace(".", ",")}
                                 </p>
                                 <p className="text-sm text-gray-400 line-through">
-                                  R${item.preco.valor.toFixed(2).replace(".", ",")}
+                                  R${(item.preco?.valor || 0).toFixed(2).replace(".", ",")}
                                 </p>
                               </>
                             ) : (
                               <p className="text-2xl font-bold text-[var(--color-avocado-600)]">
-                                R${item.preco.valor.toFixed(2).replace(".", ",")}
+                                R${(item.preco?.valor || 0).toFixed(2).replace(".", ",")}
                               </p>
                             )}
                           </div>
                           <span className="text-sm text-gray-500 font-medium">
-                            {item.preco.tipo}
+                            {item.preco?.tipo || 'UN'}
                           </span>
                         </div>
                         
                         <Link
-                          href={`/produtos/${item.slug}`}
+                          href={`/produtos/${item._id}`}
                           className="block w-full text-center font-semibold bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
                         >
                           Ver Detalhes

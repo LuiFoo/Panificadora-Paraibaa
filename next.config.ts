@@ -39,7 +39,7 @@ const nextConfig: NextConfig = {
   compress: true,
   
   // Configuração de servidor
-  serverExternalPackages: ['mongodb'],
+  serverExternalPackages: ['mongodb', 'lightningcss', 'lightningcss-win32-x64-msvc'],
   
   // Otimizações de build (swcMinify é padrão no Next.js 15)
   

@@ -55,25 +55,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (method === "PUT") {
-      const { subc, nome, valor, vtipo, ingredientes, img, status } = req.body;
-
-      // 🐛 CORREÇÃO: Validações mais robustas
-      if (!subc || !nome || !valor || !vtipo || !ingredientes || !img) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
-      }
-
-      if (typeof nome !== 'string' || nome.trim().length === 0) {
-        return res.status(400).json({ error: "Nome inválido" });
-      }
-
-      if (nome.length > 200) {
-        return res.status(400).json({ error: "Nome muito longo (máximo 200 caracteres)" });
-      }
-
-      if (typeof valor !== 'number' || valor <= 0 || isNaN(valor) || !isFinite(valor)) {
-        return res.status(400).json({ error: "Valor deve ser um número válido e maior que zero" });
-      }
-
+      const body = req.body;
+      
       // Verificar se o produto existe
       const { produto: produtoExistente } = await buscarProduto(db, id);
       
@@ -81,35 +64,90 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Produto não encontrado" });
       }
 
+      // Validações básicas
+      if (!body.nome || typeof body.nome !== 'string' || body.nome.trim().length === 0) {
+        return res.status(400).json({ error: "Nome é obrigatório" });
+      }
+
+      if (body.nome.length > 200) {
+        return res.status(400).json({ error: "Nome muito longo (máximo 200 caracteres)" });
+      }
+
       // Verificar se já existe outro produto com o mesmo nome
       const produtoComMesmoNome = await db.collection("produtos").findOne({ 
-        nome, 
+        nome: body.nome, 
         _id: { $ne: new ObjectId(id) } 
       });
       if (produtoComMesmoNome) {
         return res.status(400).json({ error: "Já existe outro produto com este nome" });
       }
 
-      // Atualizar na coleção unificada
-      const updateData: Record<string, unknown> = { 
-        subcategoria: subc,
-        nome,
-        preco: {
-          valor: safeParseFloat(valor, 0),
-          tipo: vtipo
-        },
-        ingredientes,
+      // Normalizar arrays para garantir que sejam sempre arrays
+      const ingredientesArr: string[] = Array.isArray(body.ingredientes)
+        ? body.ingredientes
+        : (typeof body.ingredientes === 'string' ? body.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean) : []);
+      const alergicosArr: string[] = Array.isArray(body.alergicos) ? body.alergicos : [];
+      const tagsArr: string[] = Array.isArray(body.tags) ? body.tags : [];
+      
+      // Normalizar galeria dentro de imagem
+      const imagemGaleria: string[] = Array.isArray(body.imagem?.galeria) 
+        ? body.imagem.galeria 
+        : (body.imagem?.galeria && typeof body.imagem.galeria === 'string' 
+          ? body.imagem.galeria.split(',').map((s: string) => s.trim()).filter(Boolean) 
+          : (Array.isArray(produtoExistente.imagem?.galeria) ? produtoExistente.imagem.galeria : []));
+
+      // Preparar dados de atualização
+      const updateData: Record<string, unknown> = {
+        nome: body.nome,
+        descricao: body.descricao || "",
+        categoria: body.categoria || produtoExistente.categoria,
+        subcategoria: body.subcategoria || "",
+        preco: body.preco || produtoExistente.preco,
+        estoque: body.estoque || produtoExistente.estoque,
         imagem: {
-          href: img,
-          alt: nome
+          ...(body.imagem || produtoExistente.imagem),
+          galeria: imagemGaleria
         },
+        ingredientes: ingredientesArr,
+        alergicos: alergicosArr,
+        destaque: body.destaque !== undefined ? body.destaque : produtoExistente.destaque,
+        tags: tagsArr,
+        status: body.status || "ativo",
         atualizadoEm: new Date()
       };
 
-      // Incluir status se fornecido
-      if (status !== undefined) {
-        updateData.status = status;
+      // Gerar/atualizar slug baseado no nome (mesma lógica da criação)
+      const slugBase = body.nome.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .trim();
+      
+      let slug = slugBase;
+      let counter = 1;
+      const MAX_TENTATIVAS = 100;
+      
+      // Verificar se já existe outro produto com este slug (exceto o atual)
+      while (counter < MAX_TENTATIVAS) {
+        const produtoComMesmoSlug = await db.collection("produtos").findOne({ 
+          slug,
+          _id: { $ne: new ObjectId(id) }
+        });
+        
+        if (!produtoComMesmoSlug) {
+          break; // Slug único encontrado
+        }
+        
+        slug = `${slugBase}-${counter}`;
+        counter++;
       }
+      
+      if (counter >= MAX_TENTATIVAS) {
+        return res.status(500).json({ error: "Erro ao gerar slug único. Tente outro nome." });
+      }
+      
+      updateData.slug = slug;
 
       const result = await db.collection("produtos").updateOne(
         { _id: new ObjectId(id) },
