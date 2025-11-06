@@ -153,7 +153,7 @@ export default function ProdutoDetalhePage() {
             : []);
         
         setProduto(produtoEncontrado);
-        setImagemSelecionada(produtoEncontrado.imagem?.href || produtoEncontrado.img || '/images/placeholder.png');
+        setImagemSelecionada(produtoEncontrado.imagem?.href || '/images/placeholder.png');
         
         // Buscar produtos relacionados
         if (produtoEncontrado.categoria?.slug) {
@@ -375,7 +375,7 @@ export default function ProdutoDetalhePage() {
   }
 
   const todasImagens = [
-    produto.imagem?.href || produto.img || '/images/placeholder.png',
+    produto.imagem?.href || '/images/placeholder.png',
     ...(produto.imagem?.galeria || [])
   ].filter(Boolean);
 
@@ -726,7 +726,7 @@ export default function ProdutoDetalhePage() {
                 >
                   <div className="relative aspect-square overflow-hidden">
                     <OptimizedImage 
-                      src={item.imagem?.href || item.img || '/images/placeholder.png'} 
+                      src={item.imagem?.href || '/images/placeholder.png'} 
                       alt={item.nome || 'Produto'} 
                       width={400} 
                       height={400} 
