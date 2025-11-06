@@ -108,8 +108,8 @@ export default function EditarProdutoPage() {
             categoria: produto.categoria?.slug || "bolos-doces-especiais",
             subcategoria: produto.subcategoria || "",
             preco: {
-              valor: (produto.preco?.valor || produto.valor || 0).toString(),
-              tipo: produto.preco?.tipo || produto.vtipo || "UN",
+              valor: (produto.preco?.valor || 0).toString(),
+              tipo: produto.preco?.tipo || "UN",
               custoProducao: produto.preco?.custoProducao?.toString() || "",
               promocao: {
                 ativo: produto.preco?.promocao?.ativo || false,
