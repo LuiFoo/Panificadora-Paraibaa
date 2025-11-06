@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import StarRating from "@/components/StarRating";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
@@ -184,7 +184,7 @@ export default function ProdutoDetalhePage() {
         } else {
           setError(errorData.error || "Erro ao carregar produto");
         }
-      } catch (jsonError) {
+      } catch {
         if (response.status === 404) {
           setError("Produto não encontrado");
         } else {
@@ -197,7 +197,7 @@ export default function ProdutoDetalhePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buscarAvaliacoes]);
 
   useEffect(() => {
     if (params?.id) {

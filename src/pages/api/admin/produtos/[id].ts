@@ -2,7 +2,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import clientPromise from "@/modules/mongodb";
 import { ObjectId, Db } from "mongodb";
 import { protegerApiAdmin } from "@/lib/adminAuth";
-import { safeParseFloat } from "@/lib/validation";
 
 // Função para buscar produto na coleção unificada
 async function buscarProduto(db: Db, id: string) {

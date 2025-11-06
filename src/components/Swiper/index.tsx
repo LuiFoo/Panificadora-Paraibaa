@@ -5,7 +5,6 @@ import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';

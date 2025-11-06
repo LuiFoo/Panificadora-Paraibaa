@@ -214,7 +214,7 @@ export default function ProdutosPage() {
       if (data.success) {
         startTransition(() => {
         // Normalizar produtos para garantir que destaque seja sempre boolean
-        const produtosNormalizados = (data.produtos || []).map((p: any) => ({
+        const produtosNormalizados = (data.produtos || []).map((p: Produto) => ({
           ...p,
           destaque: p.destaque === true
         })) as Produto[];

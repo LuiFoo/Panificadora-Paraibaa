@@ -349,7 +349,7 @@ export default function NovoProdutoPage() {
                         />
                         <button
                           type="button"
-                          onClick={(e) => {
+                          onClick={() => {
                             const input = document.getElementById('ingrediente-input') as HTMLInputElement;
                             if (input?.value) {
                               handleAddItem('ingredientes', input.value);
@@ -398,7 +398,7 @@ export default function NovoProdutoPage() {
                         />
                         <button
                           type="button"
-                          onClick={(e) => {
+                          onClick={() => {
                             const input = document.getElementById('alergico-input') as HTMLInputElement;
                             if (input?.value) {
                               handleAddItem('alergicos', input.value);
@@ -463,7 +463,7 @@ export default function NovoProdutoPage() {
                       />
                       <button
                         type="button"
-                        onClick={(e) => {
+                        onClick={() => {
                           const input = document.getElementById('galeria-input') as HTMLInputElement;
                           if (input?.value) {
                             handleAddItem('galeria', input.value);
@@ -516,7 +516,7 @@ export default function NovoProdutoPage() {
                     />
                     <button
                       type="button"
-                      onClick={(e) => {
+                      onClick={() => {
                         const input = document.getElementById('tag-input') as HTMLInputElement;
                         if (input?.value) {
                           handleAddItem('tags', input.value);

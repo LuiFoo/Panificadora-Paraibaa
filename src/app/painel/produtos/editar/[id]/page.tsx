@@ -446,7 +446,7 @@ export default function EditarProdutoPage() {
                         />
                         <button
                           type="button"
-                          onClick={(e) => {
+                          onClick={() => {
                             const input = document.getElementById('ingrediente-input-edit') as HTMLInputElement;
                             if (input?.value) {
                               handleAddItem('ingredientes', input.value);
@@ -495,7 +495,7 @@ export default function EditarProdutoPage() {
                         />
                         <button
                           type="button"
-                          onClick={(e) => {
+                          onClick={() => {
                             const input = document.getElementById('alergico-input-edit') as HTMLInputElement;
                             if (input?.value) {
                               handleAddItem('alergicos', input.value);
@@ -560,7 +560,7 @@ export default function EditarProdutoPage() {
                       />
                       <button
                         type="button"
-                        onClick={(e) => {
+                        onClick={() => {
                           const input = document.getElementById('galeria-input-edit') as HTMLInputElement;
                           if (input?.value) {
                             handleAddItem('galeria', input.value);
@@ -613,7 +613,7 @@ export default function EditarProdutoPage() {
                     />
                     <button
                       type="button"
-                      onClick={(e) => {
+                      onClick={() => {
                         const input = document.getElementById('tag-input-edit') as HTMLInputElement;
                         if (input?.value) {
                           handleAddItem('tags', input.value);
