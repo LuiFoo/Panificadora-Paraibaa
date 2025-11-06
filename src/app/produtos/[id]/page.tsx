@@ -6,7 +6,7 @@ import BreadcrumbNav from "@/components/BreadcrumbNav";
 import StarRating from "@/components/StarRating";
 import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { safeParseInt, clamp } from "@/lib/validation";
 import { useUser } from "@/context/UserContext";
@@ -58,6 +58,8 @@ interface ItemCardapio {
 
 export default function ProdutoDetalhePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const fromPanel = searchParams?.get('from') === 'panel';
   const [produto, setProduto] = useState<ItemCardapio | null>(null);
   const [produtosRelacionados, setProdutosRelacionados] = useState<ItemCardapio[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -117,22 +119,24 @@ export default function ProdutoDetalhePage() {
       if (response.ok) {
         const produtoEncontrado = await response.json();
         
-        // Normalizar arrays
-        if (!Array.isArray(produtoEncontrado.ingredientes)) {
-          produtoEncontrado.ingredientes = typeof produtoEncontrado.ingredientes === 'string' && produtoEncontrado.ingredientes.trim()
+        // Normalizar arrays - sempre garantir que sejam arrays (mesmo vazios)
+        produtoEncontrado.ingredientes = Array.isArray(produtoEncontrado.ingredientes) 
+          ? produtoEncontrado.ingredientes 
+          : (typeof produtoEncontrado.ingredientes === 'string' && produtoEncontrado.ingredientes.trim()
             ? produtoEncontrado.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean)
-            : [];
-        }
-        if (!Array.isArray(produtoEncontrado.alergicos)) {
-          produtoEncontrado.alergicos = typeof produtoEncontrado.alergicos === 'string' && produtoEncontrado.alergicos.trim()
+            : []);
+        
+        produtoEncontrado.alergicos = Array.isArray(produtoEncontrado.alergicos) 
+          ? produtoEncontrado.alergicos 
+          : (typeof produtoEncontrado.alergicos === 'string' && produtoEncontrado.alergicos.trim()
             ? produtoEncontrado.alergicos.split(',').map((a: string) => a.trim()).filter(Boolean)
-            : [];
-        }
-        if (!Array.isArray(produtoEncontrado.tags)) {
-          produtoEncontrado.tags = typeof produtoEncontrado.tags === 'string' && produtoEncontrado.tags.trim()
+            : []);
+        
+        produtoEncontrado.tags = Array.isArray(produtoEncontrado.tags) 
+          ? produtoEncontrado.tags 
+          : (typeof produtoEncontrado.tags === 'string' && produtoEncontrado.tags.trim()
             ? produtoEncontrado.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-            : [];
-        }
+            : []);
         
         setProduto(produtoEncontrado);
         setImagemSelecionada(produtoEncontrado.imagem?.href || produtoEncontrado.img || '/images/placeholder.png');
@@ -249,34 +253,96 @@ export default function ProdutoDetalhePage() {
     return (
       <>
         <Header />
-        <div className="min-h-screen flex items-center justify-center">
-          <Loading size="lg" text="Carregando produto..." />
-        </div>
+        <main className="bg-gray-50 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+            {/* Breadcrumb durante carregamento */}
+            <BreadcrumbNav 
+              items={fromPanel ? [
+                { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+                { label: "Produtos", href: "/painel/produtos", icon: "🛍️", color: "orange" },
+                { label: "Carregando...", icon: "🍞", color: "gray" }
+              ] : [
+                { label: "Início", href: "/", icon: "🏠", color: "blue" },
+                { label: "Produtos", href: "/produtos", icon: "🛍️", color: "orange" },
+                { label: "Carregando...", icon: "🍞", color: "gray" }
+              ]}
+            />
+            <div className="min-h-screen flex items-center justify-center">
+              <Loading size="lg" text="Carregando produto..." />
+            </div>
+          </div>
+        </main>
       </>
     );
   }
 
-  if (error || !produto) {
+  if (error) {
     return (
       <>
         <Header />
-        <div className="min-h-screen flex items-center justify-center px-4">
-          <div className="text-center max-w-md">
-            <div className="mb-6">
-              <svg className="w-24 h-24 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <main className="bg-gray-50 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+            {/* Breadcrumb mesmo em caso de erro */}
+            <BreadcrumbNav 
+              items={fromPanel ? [
+                { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+                { label: "Produtos", href: "/painel/produtos", icon: "🛍️", color: "orange" },
+                { label: "Produto não encontrado", icon: "🍞", color: "red" }
+              ] : [
+                { label: "Início", href: "/", icon: "🏠", color: "blue" },
+                { label: "Produtos", href: "/produtos", icon: "🛍️", color: "orange" },
+                { label: "Produto não encontrado", icon: "🍞", color: "red" }
+              ]}
+            />
+            <div className="min-h-screen flex items-center justify-center px-4">
+              <div className="text-center max-w-md">
+                <div className="mb-6">
+                  <svg className="w-24 h-24 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h1 className="text-3xl font-bold mb-4 text-gray-800">Produto não encontrado</h1>
+                <p className="text-gray-600 mb-8">{error || "O produto que você está procurando não existe."}</p>
+                <Link
+                  href={fromPanel ? "/painel/produtos" : "/produtos"}
+                  className="inline-block bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-700)] text-white px-8 py-3 rounded-xl font-semibold transition-colors shadow-lg hover:shadow-xl"
+                >
+                  {fromPanel ? "Voltar ao Painel" : "Voltar ao Cardápio"}
+                </Link>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold mb-4 text-gray-800">Produto não encontrado</h1>
-            <p className="text-gray-600 mb-8">{error || "O produto que você está procurando não existe."}</p>
-            <Link
-              href="/produtos"
-              className="inline-block bg-[var(--color-avocado-600)] hover:bg-[var(--color-avocado-700)] text-white px-8 py-3 rounded-xl font-semibold transition-colors shadow-lg hover:shadow-xl"
-            >
-              Voltar ao Cardápio
-            </Link>
           </div>
-        </div>
+        </main>
+      </>
+    );
+  }
+
+  if (!produto) {
+    return (
+      <>
+        <Header />
+        <main className="bg-gray-50 min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+            {/* Breadcrumb durante carregamento */}
+            <BreadcrumbNav 
+              items={fromPanel ? [
+                { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+                { label: "Produtos", href: "/painel/produtos", icon: "🛍️", color: "orange" },
+                { label: "Carregando...", icon: "🍞", color: "gray" }
+              ] : [
+                { label: "Início", href: "/", icon: "🏠", color: "blue" },
+                { label: "Produtos", href: "/produtos", icon: "🛍️", color: "orange" },
+                { label: "Carregando...", icon: "🍞", color: "gray" }
+              ]}
+            />
+            <div className="min-h-screen flex items-center justify-center px-4">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--color-avocado-600)] mx-auto mb-4"></div>
+                <p className="text-gray-600">Carregando produto...</p>
+              </div>
+            </div>
+          </div>
+        </main>
       </>
     );
   }
@@ -294,10 +360,14 @@ export default function ProdutoDetalhePage() {
         <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
           {/* Breadcrumb */}
           <BreadcrumbNav 
-            items={[
+            items={fromPanel ? [
+              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Produtos", href: "/painel/produtos", icon: "🛍️", color: "orange" },
+              { label: produto?.nome || "Carregando...", icon: "🍞", color: "green" }
+            ] : [
               { label: "Início", href: "/", icon: "🏠", color: "blue" },
               { label: "Produtos", href: "/produtos", icon: "🛍️", color: "orange" },
-              { label: produto.nome, icon: "🍞", color: "green" }
+              { label: produto?.nome || "Carregando...", icon: "🍞", color: "green" }
             ]}
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -344,7 +414,7 @@ export default function ProdutoDetalhePage() {
 
               {/* Ingredientes e Alérgenos */}
               <div className="space-y-4">
-                {/* Ingredientes */}
+                {/* Ingredientes - Sempre visível */}
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -352,7 +422,7 @@ export default function ProdutoDetalhePage() {
                     </svg>
                     Ingredientes
                   </h3>
-                  {(produto.ingredientes && Array.isArray(produto.ingredientes) && produto.ingredientes.length > 0) ? (
+                  {produto.ingredientes && Array.isArray(produto.ingredientes) && produto.ingredientes.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {produto.ingredientes.map((ingrediente: string, index: number) => (
                         <span key={index} className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium border border-blue-200">
@@ -361,11 +431,13 @@ export default function ProdutoDetalhePage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm italic">Nenhum ingrediente informado</p>
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-sm italic text-center">Nenhum ingrediente informado</p>
+                    </div>
                   )}
                 </div>
 
-                {/* Alérgenos */}
+                {/* Alérgenos - Sempre visível */}
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -373,7 +445,7 @@ export default function ProdutoDetalhePage() {
                     </svg>
                     Alérgenos
                   </h3>
-                  {(produto.alergicos && Array.isArray(produto.alergicos) && produto.alergicos.length > 0) ? (
+                  {produto.alergicos && Array.isArray(produto.alergicos) && produto.alergicos.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {produto.alergicos.map((alergico: string, index: number) => (
                         <span key={index} className="px-4 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-200">
@@ -382,7 +454,9 @@ export default function ProdutoDetalhePage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm italic">Nenhum alérgeno informado</p>
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-sm italic text-center">Nenhum alérgeno informado</p>
+                    </div>
                   )}
                 </div>
               </div>

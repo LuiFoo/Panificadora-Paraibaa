@@ -31,7 +31,7 @@ function SectionTexImg() {
         <section 
             ref={sectionRef}
             aria-labelledby="sobre-padaria" 
-            className="py-20 max-[1190px]:flex-col flex justify-center gap-[6rem] items-center"
+            className="pt-0 pb-20 bg-white max-[1190px]:flex-col flex justify-center gap-[6rem] items-center"
         >
             
             <article className={`max-[1190px]:py-5 max-[1190px]:px-5 w-[34rem] max-[1190px]:w-full max-[1190px]:flex max-[1190px]:flex-col max-[1190px]:items-center transition-all duration-1000 ${

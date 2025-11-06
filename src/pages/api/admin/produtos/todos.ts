@@ -27,6 +27,7 @@ interface ProdutoExistente {
   colecaoOrigem: string;
   subcategoria: string;
   status?: string;
+  destaque?: boolean;
   dataCriacao?: Date;
   dataAtualizacao?: Date;
 }
@@ -66,6 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         colecaoOrigem: "produtos",
         subcategoria: produto.subcategoria || produto.subc || "Categoria",
         status: produto.status,
+        destaque: produto.destaque === true, // Garantir que seja boolean
         dataCriacao: produto.criadoEm || produto.dataCriacao,
         dataAtualizacao: produto.atualizadoEm || produto.dataAtualizacao
       });

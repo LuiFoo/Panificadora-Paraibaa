@@ -10,18 +10,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const client = await clientPromise;
     const db = client.db("paraiba");
 
-    // Buscar produtos destacados e ativos
+    // Buscar produtos destacados - garantir que destaque seja exatamente true
     const produtos = await db.collection("produtos")
       .find({ 
-        destaque: true, // Apenas produtos com destaque: true
-        $or: [
-          { status: "ativo" },
-          { status: { $exists: false } }
-        ]
+        destaque: { $eq: true } // Buscar apenas onde destaque é exatamente true
       })
-      .sort({ atualizadoEm: -1, criadoEm: -1 }) // Mais recentes primeiro
+      .sort({ 
+        atualizadoEm: -1, 
+        criadoEm: -1 
+      })
       .limit(20) // Limitar a 20 produtos destacados
       .toArray();
+    
+    console.log(`📊 Produtos em destaque encontrados: ${produtos.length}`);
 
     // Formatar produtos para o frontend
     const produtosFormatados = produtos.map(produto => ({

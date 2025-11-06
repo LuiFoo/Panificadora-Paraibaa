@@ -134,16 +134,33 @@ export default async function handler(
             href: produto.img || '/images/placeholder.png',
             alt: produto.nome || 'Produto'
           },
-          ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : 
-            (typeof produto.ingredientes === 'string' ? produto.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean) : []),
-          alergicos: Array.isArray(produto.alergicos) ? produto.alergicos : [],
+          ingredientes: produto.ingredientes === null || produto.ingredientes === undefined
+            ? []
+            : (Array.isArray(produto.ingredientes) 
+              ? produto.ingredientes 
+              : (typeof produto.ingredientes === 'string' && produto.ingredientes.trim() 
+                ? produto.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean)
+                : [])),
+          alergicos: produto.alergicos === null || produto.alergicos === undefined
+            ? []
+            : (Array.isArray(produto.alergicos) 
+              ? produto.alergicos 
+              : (typeof produto.alergicos === 'string' && produto.alergicos.trim() 
+                ? produto.alergicos.split(',').map((a: string) => a.trim()).filter(Boolean)
+                : [])),
           avaliacao: produto.avaliacao || {
             media: produto.mediaAvaliacao || 0,
             quantidade: produto.totalAvaliacoes || 0,
             usuarios: []
           },
           destaque: produto.destaque || false,
-          tags: Array.isArray(produto.tags) ? produto.tags : [],
+          tags: produto.tags === null || produto.tags === undefined
+            ? []
+            : (Array.isArray(produto.tags) 
+              ? produto.tags 
+              : (typeof produto.tags === 'string' && produto.tags.trim() 
+                ? produto.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+                : [])),
           status: produto.status === "pause" ? "inativo" : "ativo",
           criadoEm: produto.criadoEm || produto.dataCriacao || new Date(),
           atualizadoEm: produto.atualizadoEm || produto.dataAtualizacao || new Date()

@@ -35,8 +35,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Produto não encontrado" });
     }
 
-    // Alternar o valor de destaque (tratar caso onde campo não existe)
-    const novoDestaque = !(produto.destaque === true);
+    // Alternar o valor de destaque (tratar caso onde campo não existe ou é null/undefined)
+    const destaqueAtual = produto.destaque === true;
+    const novoDestaque = !destaqueAtual;
+    
+    console.log(`Produto ${id}: destaque atual = ${destaqueAtual}, novo destaque = ${novoDestaque}`);
 
     // Atualizar o destaque na coleção
     const result = await db.collection("produtos").updateOne(

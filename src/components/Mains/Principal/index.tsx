@@ -75,7 +75,7 @@ function MainPrincipal() {
           <section 
             id="hero"
             ref={(el) => { sectionsRef.current['hero'] = el; }}
-            className="relative w-full h-120 max-[400px]:h-36 max-[500px]:h-45 max-[700px]:h-55 max-[1000px]:h-70 max-[1500px]:h-90"
+            className="relative w-full h-120 max-[400px]:h-36 max-[500px]:h-45 max-[700px]:h-55 max-[1000px]:h-70 max-[1500px]:h-90" 
           > 
             <Image 
               src="/images/back-inicial.png" 
@@ -92,7 +92,7 @@ function MainPrincipal() {
           <section 
             id="features"
             ref={(el) => { sectionsRef.current['features'] = el; }}
-            className={`py-12 md:py-16 lg:py-20 px-4 transition-all duration-1000 delay-200 ${
+            className={`py-12 md:py-16 lg:py-20 px-4 bg-white transition-all duration-1000 delay-200 ${
                 isVisible['features'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}
           >
@@ -127,7 +127,7 @@ function MainPrincipal() {
           <section 
             id="produtos"
             ref={(el) => { sectionsRef.current['produtos'] = el; }}
-            className={`py-12 md:py-16 lg:py-20 bg-white transition-all duration-1000 delay-300 ${
+            className={`pt-12 md:pt-16 lg:pt-20 bg-white transition-all duration-1000 delay-300 ${
                 isVisible['produtos'] ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
             }`}
           >

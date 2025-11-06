@@ -74,22 +74,28 @@ export default async function handler(
         minimo: undefined,
         unidadeMedida: produto.vtipo || "UN"
       },
-      // Garantir arrays - normalizar strings para arrays
-      ingredientes: Array.isArray(produto.ingredientes) 
-        ? produto.ingredientes 
-        : (typeof produto.ingredientes === 'string' && produto.ingredientes.trim() 
-          ? produto.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean)
-          : []),
-      alergicos: Array.isArray(produto.alergicos) 
-        ? produto.alergicos 
-        : (typeof produto.alergicos === 'string' && produto.alergicos.trim() 
-          ? produto.alergicos.split(',').map((a: string) => a.trim()).filter(Boolean)
-          : []),
-      tags: Array.isArray(produto.tags) 
-        ? produto.tags 
-        : (typeof produto.tags === 'string' && produto.tags.trim() 
-          ? produto.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-          : [])
+      // Garantir arrays - sempre retornar array (mesmo vazio) quando campo não existe ou é null/undefined
+      ingredientes: produto.ingredientes === null || produto.ingredientes === undefined
+        ? []
+        : (Array.isArray(produto.ingredientes) 
+          ? produto.ingredientes 
+          : (typeof produto.ingredientes === 'string' && produto.ingredientes.trim() 
+            ? produto.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean)
+            : [])),
+      alergicos: produto.alergicos === null || produto.alergicos === undefined
+        ? []
+        : (Array.isArray(produto.alergicos) 
+          ? produto.alergicos 
+          : (typeof produto.alergicos === 'string' && produto.alergicos.trim() 
+            ? produto.alergicos.split(',').map((a: string) => a.trim()).filter(Boolean)
+            : [])),
+      tags: produto.tags === null || produto.tags === undefined
+        ? []
+        : (Array.isArray(produto.tags) 
+          ? produto.tags 
+          : (typeof produto.tags === 'string' && produto.tags.trim() 
+            ? produto.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+            : []))
     };
 
     return res.status(200).json(produtoFormatado);
