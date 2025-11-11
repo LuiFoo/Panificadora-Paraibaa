@@ -7,6 +7,7 @@ import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface DashboardStats {
   pedidosHoje: number;
@@ -25,6 +26,7 @@ export default function Painel() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const router = useRouter();
 
   const fetchStats = async () => {
     setLoading(true);
@@ -76,6 +78,11 @@ export default function Painel() {
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Redirecionar automaticamente para /painel/cliente
+  useEffect(() => {
+    router.push("/painel/cliente");
+  }, [router]);
 
   if (loading) {
     return (

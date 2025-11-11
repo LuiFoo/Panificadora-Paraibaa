@@ -206,7 +206,7 @@ function PaginaQuemSomos() {
                                             <div className="flex-shrink-0 w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] rounded-full flex items-center justify-center text-white font-bold text-sm md:text-lg shadow-lg">
                                                 {item.year}
                                             </div>
-                                            <div className="flex-1 bg-white p-4 md:p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300">
+                                            <div className="flex-1 bg-white p-4 md:p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 text-center">
                                                 <h3 className="text-lg md:text-xl font-bold text-[var(--color-fonte-100)] mb-2">{item.title}</h3>
                                                 <p className="text-sm md:text-base text-[var(--color-alavaco-100)]">{item.description}</p>
                                             </div>

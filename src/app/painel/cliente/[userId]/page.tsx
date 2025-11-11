@@ -192,6 +192,9 @@ export default function ClienteProfilePage() {
               ...(from === 'usuarios' ? [
                 { label: "Usuários", href: "/painel/usuarios", icon: "👥", color: "purple" }
               ] : []),
+              ...(from === 'clientes' ? [
+                { label: "Clientes", href: "/painel/cliente", icon: "👥", color: "pink" }
+              ] : []),
               { label: "Perfil do Cliente", icon: "👤", color: "orange" }
             ]}
           />
