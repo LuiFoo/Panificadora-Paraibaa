@@ -157,12 +157,16 @@ export default function CardapioPage() {
   };
 
   // Filtrar itens com base na busca
-  const filteredItems = itens.filter((item) =>
-    item.nome.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    item.descricao.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    item.subcategoria.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    item.tags.some(tag => tag.toLowerCase().includes(debouncedSearch.toLowerCase()))
-  );
+  const filteredItems = itens.filter((item) => {
+    if (!debouncedSearch) return true;
+    const searchLower = debouncedSearch.toLowerCase();
+    return (
+      item.nome.toLowerCase().includes(searchLower) ||
+      item.descricao?.toLowerCase().includes(searchLower) ||
+      item.subcategoria?.toLowerCase().includes(searchLower) ||
+      (item.tags && Array.isArray(item.tags) && item.tags.some(tag => tag.toLowerCase().includes(searchLower)))
+    );
+  });
 
   return (
     <>

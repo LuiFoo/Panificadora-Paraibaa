@@ -70,6 +70,7 @@ export default async function handler(
 
     // Mapeamento de categorias para os grupos principais
     const mapeamentoCategorias: Record<string, string> = {
+      // Categorias antigas (slugs)
       "bolos-doces-especiais": "doces",
       "doces-individuais": "doces",
       "paes-doces": "doces",
@@ -77,6 +78,14 @@ export default async function handler(
       "paes-salgados-especiais": "paes",
       "roscas-paes-especiais": "paes",
       "salgados-assados-lanches": "salgados",
+      "bebidas": "bebidas",
+      // Novas subcategorias
+      "doces & sobremesas": "doces",
+      "doces-e-sobremesas": "doces",
+      "pães & especiais": "paes",
+      "paes-e-especiais": "paes",
+      "salgados & lanches": "salgados",
+      "salgados-e-lanches": "salgados",
       "bebidas": "bebidas"
     };
 
@@ -95,18 +104,47 @@ export default async function handler(
     // Processar produtos e agrupar por categoria
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     produtos.forEach((produto: any) => {
-      let categoriaSlug: string;
-      let grupoPrincipal: string;
+      let categoriaSlug: string = '';
+      let grupoPrincipal: string | null = null;
 
-      // Verificar se tem categoria estruturada
+      // Verificar se tem categoria estruturada (produtos antigos)
       if (produto.categoria?.slug) {
         categoriaSlug = produto.categoria.slug;
         grupoPrincipal = mapeamentoCategorias[categoriaSlug];
-      } else {
-        // Usar subcategoria para determinar categoria
-        const subc = produto.subc || produto.subcategoria || '';
-        categoriaSlug = subc.toLowerCase().replace(/\s+/g, '-');
-        grupoPrincipal = mapeamentoCategorias[categoriaSlug];
+      }
+      
+      // Se não encontrou pela categoria, usar subcategoria (produtos novos)
+      if (!grupoPrincipal) {
+        const subc = produto.subcategoria || produto.subc || '';
+        if (subc) {
+          // Normalizar subcategoria para busca no mapeamento
+          const subcNormalizada = subc.toLowerCase().trim();
+          const subcComHifen = subcNormalizada.replace(/\s+/g, '-');
+          const subcComE = subcNormalizada.replace(/\s*&\s*/g, ' & ');
+          
+          // Tentar diferentes variações no mapeamento
+          grupoPrincipal = mapeamentoCategorias[subcNormalizada] || 
+                          mapeamentoCategorias[subcComHifen] || 
+                          mapeamentoCategorias[subcComE];
+          
+          // Se ainda não encontrou, fazer mapeamento inteligente por palavras-chave
+          if (!grupoPrincipal) {
+            if (subcNormalizada.includes('doce') || subcNormalizada.includes('sobremesa')) {
+              grupoPrincipal = 'doces';
+            } else if (subcNormalizada.includes('pão') || subcNormalizada.includes('paes') || subcNormalizada.includes('especial')) {
+              grupoPrincipal = 'paes';
+            } else if (subcNormalizada.includes('salgado') || subcNormalizada.includes('lanche')) {
+              grupoPrincipal = 'salgados';
+            } else if (subcNormalizada.includes('bebida')) {
+              grupoPrincipal = 'bebidas';
+            }
+          }
+          
+          // Definir categoriaSlug baseado na subcategoria se não foi definido
+          if (!categoriaSlug && grupoPrincipal) {
+            categoriaSlug = subcComHifen;
+          }
+        }
       }
       
       if (grupoPrincipal && produtosAgrupados[grupoPrincipal]) {
