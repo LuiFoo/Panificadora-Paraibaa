@@ -327,7 +327,7 @@ function PaginaQuemSomos() {
                         <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4">
                             <Link 
                                 href="/produtos" 
-                                className="bg-white text-[var(--color-avocado-600)] hover:bg-gray-100 py-3 md:py-4 px-6 md:px-8 font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm md:text-base"
+                                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[var(--color-avocado-600)] py-3 md:py-4 px-6 md:px-8 font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm md:text-base"
                             >
                                 Ver Produtos
                             </Link>
