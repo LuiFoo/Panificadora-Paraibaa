@@ -50,13 +50,13 @@ function SectionTexImg() {
                 <div className="pt-7 flex flex-col sm:flex-row gap-5">
                     <Link 
                         href="/produtos" 
-                        className="max-[600px]:text-[0.9rem] text-center uppercase bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] py-4 px-5 font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                     >
                         ver produtos
                     </Link>
                     <Link 
                         href="/quem-somos" 
-                        className="max-[600px]:text-[0.9rem] uppercase bg-[var(--background)] hover:bg-[var(--background2)] py-4 px-5 font-bold border-2 border-black rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                     >
                         nossa história
                     </Link>

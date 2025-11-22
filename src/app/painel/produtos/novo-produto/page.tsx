@@ -171,7 +171,7 @@ export default function NovoProdutoPage() {
           <div className="bg-white rounded-lg shadow-md">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h1 className="text-2xl font-bold text-gray-800">Novo Produto</h1>
-              <Link href="/painel/produtos" className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">Voltar</Link>
+              <Link href="/painel/produtos" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-gray-600 hover:shadow-xl border-2 border-gray-300 hover:border-gray-400">Voltar</Link>
             </div>
 
             <div className="p-6">
@@ -340,8 +340,8 @@ export default function NovoProdutoPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button type="submit" className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">Salvar</button>
-                  <Link href="/painel/produtos" className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors font-medium">Cancelar</Link>
+                  <button type="submit" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]">Salvar</button>
+                  <Link href="/painel/produtos" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-gray-600 hover:shadow-xl border-2 border-gray-300 hover:border-gray-400">Cancelar</Link>
                 </div>
               </form>
             </div>

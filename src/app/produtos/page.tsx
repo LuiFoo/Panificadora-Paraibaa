@@ -344,7 +344,7 @@ export default function CardapioPage() {
                         
                         <Link
                           href={`/produtos/${item._id}`}
-                          className="block w-full text-center font-semibold bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
+                          className="block w-full text-center font-bold bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)] px-4 py-2.5 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105"
                         >
                           Ver Detalhes
                         </Link>

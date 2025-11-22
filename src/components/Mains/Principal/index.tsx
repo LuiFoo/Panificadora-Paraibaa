@@ -197,13 +197,13 @@ function MainPrincipal() {
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4">
                     <Link 
                         href="/produtos" 
-                        className="bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white py-3 md:py-4 px-6 md:px-8 font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm md:text-base"
+                        className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                     >
                         Ver Cardápio Completo
                     </Link>
                     <Link 
                         href="/fale-conosco" 
-                        className="bg-white hover:bg-gray-50 text-[var(--color-avocado-600)] py-3 md:py-4 px-6 md:px-8 font-bold rounded-lg border-2 border-[var(--color-avocado-600)] shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm md:text-base"
+                        className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                     >
                         Fale Conosco
                     </Link>
