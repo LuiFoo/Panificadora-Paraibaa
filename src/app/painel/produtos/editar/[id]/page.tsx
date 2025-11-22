@@ -18,23 +18,11 @@ export default function EditarProdutoPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
-  
-  const CATEGORIAS_CANONICAS = useMemo(() => ([
-    { nome: "BOLOS DOCES ESPECIAIS", slug: "bolos-doces-especiais" },
-    { nome: "DOCES INDIVIDUAIS", slug: "doces-individuais" },
-    { nome: "PAES DOCES", slug: "paes-doces" },
-    { nome: "PAES SALGADOS ESPECIAIS", slug: "paes-salgados-especiais" },
-    { nome: "ROSCAS PAES ESPECIAIS", slug: "roscas-paes-especiais" },
-    { nome: "SALGADOS ASSADOS LANCHES", slug: "salgados-assados-lanches" },
-    { nome: "SOBREMESAS TORTAS", slug: "sobremesas-tortas" },
-    { nome: "BEBIDAS", slug: "bebidas" }
-  ]), []);
 
   const [formData, setFormData] = useState({
     nome: "",
     descricao: "",
-    categoria: "bolos-doces-especiais",
-    subcategoria: "",
+    categoria: "",
     preco: {
       valor: "",
       tipo: "UN",
@@ -59,11 +47,12 @@ export default function EditarProdutoPage() {
         
         if (res.ok && data.success && data.produto) {
           const produto: Produto = data.produto;
+          // Usar categoria.nome ou subcategoria (para compatibilidade)
+          const categoriaNome = produto.categoria?.nome || produto.subcategoria || "";
           setFormData({
             nome: produto.nome || "",
             descricao: produto.descricao || "",
-            categoria: produto.categoria?.slug || "bolos-doces-especiais",
-            subcategoria: produto.subcategoria || "",
+            categoria: categoriaNome,
             preco: {
               valor: (produto.preco?.valor || 0).toString(),
               tipo: produto.preco?.tipo || "UN",
@@ -143,18 +132,30 @@ export default function EditarProdutoPage() {
     setError("");
     setSuccess("");
     try {
-      const cat = CATEGORIAS_CANONICAS.find(c => c.slug === formData.categoria);
       const precoValor = safeParseFloat(formData.preco.valor);
       if (precoValor <= 0) {
         setError("Preço deve ser maior que zero");
         return;
       }
       
+      if (!formData.categoria) {
+        setError("Categoria é obrigatória");
+        return;
+      }
+      
+      // Gerar slug da categoria
+      const categoriaSlug = formData.categoria
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/&/g, 'e');
+      
       const payload = {
         nome: formData.nome,
         descricao: formData.descricao,
-        categoria: { nome: cat?.nome || "", slug: cat?.slug || formData.categoria },
-        subcategoria: formData.subcategoria,
+        categoria: { nome: formData.categoria, slug: categoriaSlug },
+        subcategoria: formData.categoria, // Manter para compatibilidade
         preco: {
           valor: precoValor,
           tipo: formData.preco.tipo,
@@ -251,9 +252,9 @@ export default function EditarProdutoPage() {
                       <input name="nome" value={formData.nome} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
-                      <select name="subcategoria" value={formData.subcategoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm">
-                        <option value="">Selecione uma subcategoria</option>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
+                      <select name="categoria" value={formData.categoria} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm">
+                        <option value="">Selecione uma categoria</option>
                         <option value="Doces & Sobremesas">🍰 Doces & Sobremesas</option>
                         <option value="Pães & Especiais">🥖 Pães & Especiais</option>
                         <option value="Salgados & Lanches">🥐 Salgados & Lanches</option>

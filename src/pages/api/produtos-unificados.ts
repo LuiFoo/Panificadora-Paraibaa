@@ -104,54 +104,38 @@ export default async function handler(
       let categoriaSlug: string = '';
       let grupoPrincipal: string | null = null;
 
-      // Verificar se tem categoria estruturada (produtos antigos)
-      if (produto.categoria?.slug) {
-        categoriaSlug = produto.categoria.slug;
-        grupoPrincipal = mapeamentoCategorias[categoriaSlug];
-      }
+      // Usar categoria.nome (produtos novos) ou categoria.slug (produtos antigos)
+      const categoriaNome = produto.categoria?.nome || produto.subcategoria || '';
+      const categoriaSlugAntigo = produto.categoria?.slug || '';
       
-      // Se não encontrou pela categoria, usar subcategoria (produtos novos)
-      if (!grupoPrincipal) {
-        const subc = produto.subcategoria || produto.subc || '';
-        if (subc) {
-          // Usar o valor exato da subcategoria (vem do select)
-          grupoPrincipal = mapeamentoCategorias[subc];
-          
-          // Fallback: se não encontrou no mapeamento exato, tentar normalizar (para produtos antigos)
-          if (!grupoPrincipal) {
-            const subcNormalizada = subc
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-              .trim();
-            
-            if (subcNormalizada.includes('doce') || subcNormalizada.includes('sobremesa')) {
-              grupoPrincipal = 'doces';
-            } else if (subcNormalizada.includes('pao') || subcNormalizada.includes('paes') || subcNormalizada.includes('especial')) {
-              grupoPrincipal = 'paes';
-            } else if (subcNormalizada.includes('salgado') || subcNormalizada.includes('lanche')) {
-              grupoPrincipal = 'salgados';
-            } else if (subcNormalizada.includes('bebida')) {
-              grupoPrincipal = 'bebidas';
-            }
-          }
-          
-          // Definir categoriaSlug baseado na subcategoria se não foi definido
-          if (!categoriaSlug && grupoPrincipal) {
-            categoriaSlug = subc.toLowerCase().replace(/\s+/g, '-');
-          }
+      // Primeiro tentar usar categoria.nome (produtos novos)
+      if (categoriaNome) {
+        grupoPrincipal = mapeamentoCategorias[categoriaNome];
+        if (grupoPrincipal) {
+          categoriaSlug = categoriaNome
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/&/g, 'e');
         }
       }
       
-      // Filtrar produtos: apenas incluir se:
-      // 1. Produtos novos: têm subcategoria exata válida ("Doces & Sobremesas", etc.)
-      // 2. Produtos antigos: têm categoria.slug válida (mapeada para grupos)
-      const subcategoriasValidas = ["Doces & Sobremesas", "Pães & Especiais", "Salgados & Lanches", "Bebidas"];
-      const temSubcategoriaValida = produto.subcategoria && subcategoriasValidas.includes(produto.subcategoria);
-      const ehProdutoAntigo = produto.categoria?.slug && mapeamentoCategorias[produto.categoria.slug] && !temSubcategoriaValida;
+      // Se não encontrou, tentar categoria.slug (produtos antigos)
+      if (!grupoPrincipal && categoriaSlugAntigo) {
+        grupoPrincipal = mapeamentoCategorias[categoriaSlugAntigo];
+        if (grupoPrincipal) {
+          categoriaSlug = categoriaSlugAntigo;
+        }
+      }
       
-      // Só incluir se tem grupoPrincipal definido E (tem subcategoria válida OU é produto antigo)
-      if (grupoPrincipal && produtosAgrupados[grupoPrincipal] && (temSubcategoriaValida || ehProdutoAntigo)) {
+      // Filtrar: apenas incluir produtos com categoria válida
+      const categoriasValidas = ["Doces & Sobremesas", "Pães & Especiais", "Salgados & Lanches", "Bebidas"];
+      const temCategoriaValida = categoriaNome && categoriasValidas.includes(categoriaNome);
+      const ehProdutoAntigo = categoriaSlugAntigo && mapeamentoCategorias[categoriaSlugAntigo];
+      
+      // Só incluir se tem grupoPrincipal definido E (tem categoria válida OU é produto antigo)
+      if (grupoPrincipal && produtosAgrupados[grupoPrincipal] && (temCategoriaValida || ehProdutoAntigo)) {
         const produtoUnificado: ProdutoUnificado = {
           _id: produto._id.toString(),
           nome: produto.nome,
