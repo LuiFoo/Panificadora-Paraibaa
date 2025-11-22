@@ -12,56 +12,14 @@ import { safeParseInt, clamp } from "@/lib/validation";
 import { useUser } from "@/context/UserContext";
 import Loading from "@/components/Loading";
 import OptimizedImage from "@/components/OptimizedImage";
-
-interface ItemCardapio {
-  _id: string;
-  nome: string;
-  slug: string;
-  descricao: string;
-  categoria: {
-    nome: string;
-    slug: string;
-  };
-  subcategoria: string;
-  preco: {
-    valor: number;
-    tipo: string;
-    custoProducao?: number;
-    promocao?: {
-      ativo: boolean;
-      valorPromocional: number;
-      inicio?: Date;
-      fim?: Date;
-    };
-  };
-  estoque?: {
-    disponivel: boolean;
-    quantidade?: number;
-    minimo?: number;
-    unidadeMedida: string;
-  };
-  imagem: {
-    href: string;
-    alt: string;
-    galeria?: string[];
-  };
-  ingredientes: string[];
-  alergicos: string[];
-  avaliacao: {
-    media: number;
-    quantidade: number;
-  };
-  destaque: boolean;
-  tags: string[];
-  status: string;
-}
+import type { Produto } from "@/types/Produto";
 
 export default function ProdutoDetalhePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const fromPanel = searchParams?.get('from') === 'panel';
-  const [produto, setProduto] = useState<ItemCardapio | null>(null);
-  const [produtosRelacionados, setProdutosRelacionados] = useState<ItemCardapio[]>([]);
+  const [produto, setProduto] = useState<Produto | null>(null);
+  const [produtosRelacionados, setProdutosRelacionados] = useState<Produto[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [quantidade, setQuantidade] = useState<number>(1);
@@ -160,7 +118,7 @@ export default function ProdutoDetalhePage() {
           const categoriaResponse = await fetch(`/api/produtos/categoria/${produtoEncontrado.categoria.slug}`);
           if (categoriaResponse.ok) {
             const data = await categoriaResponse.json();
-            const relacionados = data.produtos.filter((item: ItemCardapio) => item._id !== produtoEncontrado._id).slice(0, 4);
+            const relacionados = data.produtos.filter((item: Produto) => item._id !== produtoEncontrado._id).slice(0, 4);
             setProdutosRelacionados(relacionados);
           }
         }

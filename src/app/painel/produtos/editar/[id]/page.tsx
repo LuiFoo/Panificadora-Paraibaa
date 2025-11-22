@@ -8,45 +8,7 @@ import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useTransition, useMemo, useEffect } from "react";
 import { safeParseFloat, safeParseInt } from "@/lib/validation";
-
-interface Produto {
-  _id: string;
-  nome: string;
-  slug: string;
-  descricao: string;
-  categoria: {
-    nome: string;
-    slug: string;
-  };
-  subcategoria: string;
-  preco: {
-    valor: number;
-    tipo: string;
-    custoProducao?: number;
-    promocao?: {
-      ativo: boolean;
-      valorPromocional: number;
-      inicio: Date;
-      fim: Date;
-    };
-  };
-  estoque: {
-    disponivel: boolean;
-    quantidade?: number;
-    minimo?: number;
-    unidadeMedida: string;
-  };
-  imagem: {
-    href: string;
-    alt: string;
-    galeria?: string[];
-  };
-  ingredientes: string[];
-  alergicos: string[];
-  destaque: boolean;
-  tags: string[];
-  status: "ativo" | "inativo" | "sazonal";
-}
+import type { Produto } from "@/types/Produto";
 
 export default function EditarProdutoPage() {
   const router = useRouter();

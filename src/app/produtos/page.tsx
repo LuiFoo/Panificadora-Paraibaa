@@ -8,37 +8,7 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import Loading, { LoadingSkeleton } from "@/components/Loading";
 import OptimizedImage from "@/components/OptimizedImage";
-
-interface ItemCardapio {
-  _id: string;
-  nome: string;
-  slug: string;
-  descricao: string;
-  categoria: {
-    nome: string;
-    slug: string;
-  };
-  subcategoria: string;
-  preco: {
-    valor: number;
-    tipo: string;
-    promocao?: {
-      ativo: boolean;
-      valorPromocional: number;
-    };
-  };
-  imagem: {
-    href: string;
-    alt: string;
-  };
-  avaliacao: {
-    media: number;
-    quantidade: number;
-  };
-  destaque: boolean;
-  tags: string[];
-  status: string;
-}
+import type { Produto } from "@/types/Produto";
 
 // Categorias simplificadas e agrupadas de forma lógica
 const categoriasMenu = [
@@ -72,7 +42,7 @@ const categoriaPadrao = categoriasMenu[0].id;
 
 export default function CardapioPage() {
   const [categoriaAtual, setCategoriaAtual] = useState<string>(categoriaPadrao);
-  const [itens, setItens] = useState<ItemCardapio[]>([]);
+  const [itens, setItens] = useState<Produto[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [isClient, setIsClient] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -112,7 +82,7 @@ export default function CardapioPage() {
   // Cache de produtos por categoria
   // const categoriaUrl = useMemo(() => categoriaAtual, [categoriaAtual]);
 
-  const [produtosCache, setProdutosCache] = useState<ItemCardapio[]>([]);
+  const [produtosCache, setProdutosCache] = useState<Produto[]>([]);
   const [cacheLoading, setCacheLoading] = useState(false);
 
   // Fetch de produtos
@@ -160,7 +130,7 @@ export default function CardapioPage() {
     }
   }, [produtosCache]);
 
-  const buscarAvaliacoesEAtualizar = async (itensData: ItemCardapio[]) => {
+  const buscarAvaliacoesEAtualizar = async (itensData: Produto[]) => {
     setLoading(true);
 
     try {

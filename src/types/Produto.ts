@@ -29,6 +29,7 @@ export interface Produto {
   imagem: {
     href: string;
     alt: string;
+    galeria?: string[]; // Galeria de imagens adicionais
   };
   ingredientes: string[];
   alergicos: string[];

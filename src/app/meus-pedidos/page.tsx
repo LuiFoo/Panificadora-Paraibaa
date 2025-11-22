@@ -7,39 +7,7 @@ import { useUser } from "@/context/UserContext";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-interface Pedido {
-  _id: string;
-  numeroPedido?: string; // Número sequencial (00001, 00002, etc.)
-  produtos: Array<{
-    produtoId: string;
-    nome: string;
-    valor: number;
-    quantidade: number;
-    img?: string;
-  }>;
-  total: number;
-  status: 'pendente' | 'confirmado' | 'preparando' | 'pronto' | 'entregue' | 'cancelado';
-  modalidadeEntrega: 'entrega' | 'retirada';
-  endereco?: {
-    rua: string;
-    numero: string;
-    bairro: string;
-    cidade: string;
-    cep: string;
-    complemento?: string;
-  };
-  dataRetirada?: string;
-  horaRetirada?: string;
-  telefone?: string;
-  observacoes?: string;
-  dataPedido: string;
-  ultimaAtualizacao: string;
-  historico?: Array<{
-    status: string;
-    data: string;
-  }>;
-}
+import type { Pedido } from "@/types/Pedido";
 
 export default function MeusPedidosPage() {
   const { user, loading } = useUser();

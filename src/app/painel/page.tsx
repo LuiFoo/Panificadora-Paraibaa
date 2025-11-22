@@ -5,7 +5,6 @@ import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import { useUser } from "@/context/UserContext";
-import Link from "next/link";
 import { useState, useEffect } from "react";
 
 interface DashboardStats {
