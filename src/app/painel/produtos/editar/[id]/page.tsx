@@ -6,7 +6,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { useState, useTransition, useMemo, useEffect } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { safeParseFloat, safeParseInt } from "@/lib/validation";
 import type { Produto } from "@/types/Produto";
 
