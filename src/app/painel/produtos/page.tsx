@@ -40,7 +40,7 @@ export default function ProdutosPage() {
   const deferredProdutos = useDeferredValue(produtos);
   const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
-  const [filtroSubcategoria, setFiltroSubcategoria] = useState<string>("todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("todos");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
@@ -551,14 +551,14 @@ export default function ProdutosPage() {
 
   const produtosFiltrados = useMemo(() => {
     return deferredProdutos.filter(produto => {
-    const matchSubcategoria = filtroSubcategoria === "todos" || 
-      (produto.subcategoria || produto.subc) === filtroSubcategoria;
+    const categoriaNome = produto.categoria?.nome || produto.subcategoria || "";
+    const matchCategoria = filtroCategoria === "todos" || categoriaNome === filtroCategoria;
     const matchStatus = filtroStatus === "todos" || 
       (filtroStatus === "active" && (produto.status === "ativo" || !produto.status)) ||
       (filtroStatus === "pause" && produto.status === "inativo");
-    return matchSubcategoria && matchStatus;
+    return matchCategoria && matchStatus;
   });
-  }, [deferredProdutos, filtroSubcategoria, filtroStatus]);
+  }, [deferredProdutos, filtroCategoria, filtroStatus]);
 
   const { totalProdutos, produtosAtivos, produtosPausados } = useMemo(() => {
     const total = deferredProdutos.length;
@@ -1064,16 +1064,17 @@ export default function ProdutosPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Subcategoria</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Categoria</label>
                 <select
-                  value={filtroSubcategoria}
-                  onChange={(e) => setFiltroSubcategoria(e.target.value)}
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
                   className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
                 >
-                  <option value="todos">Todas as subcategorias</option>
-                  {subcategorias.map(sub => (
-                    <option key={sub} value={sub}>{sub}</option>
-                  ))}
+                  <option value="todos">Todas as categorias</option>
+                  <option value="Doces & Sobremesas">🍰 Doces & Sobremesas</option>
+                  <option value="Pães & Especiais">🥖 Pães & Especiais</option>
+                  <option value="Salgados & Lanches">🥐 Salgados & Lanches</option>
+                  <option value="Bebidas">🥤 Bebidas</option>
                 </select>
               </div>
               <div>
