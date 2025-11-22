@@ -188,7 +188,13 @@ export default function NovoProdutoPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
-                      <input name="subcategoria" value={formData.subcategoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm" />
+                      <select name="subcategoria" value={formData.subcategoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm">
+                        <option value="">Selecione uma subcategoria</option>
+                        <option value="Doces & Sobremesas">🍰 Doces & Sobremesas</option>
+                        <option value="Pães & Especiais">🥖 Pães & Especiais</option>
+                        <option value="Salgados & Lanches">🥐 Salgados & Lanches</option>
+                        <option value="Bebidas">🥤 Bebidas</option>
+                      </select>
                     </div>
                   </div>
                   <div className="mt-4">

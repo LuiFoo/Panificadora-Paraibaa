@@ -24,7 +24,6 @@ export default function ProdutoDetalhePage() {
   const [error, setError] = useState<string | null>(null);
   const [quantidade, setQuantidade] = useState<number>(1);
   const [mensagem, setMensagem] = useState<string>("");
-  const [imagemSelecionada, setImagemSelecionada] = useState<string>("");
   
   // Estados para avaliações
   const [mediaAvaliacao, setMediaAvaliacao] = useState<number>(0);
@@ -98,20 +97,9 @@ export default function ProdutoDetalhePage() {
             ? produtoEncontrado.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean)
             : []);
         
-        produtoEncontrado.alergicos = Array.isArray(produtoEncontrado.alergicos) 
-          ? produtoEncontrado.alergicos 
-          : (typeof produtoEncontrado.alergicos === 'string' && produtoEncontrado.alergicos.trim()
-            ? produtoEncontrado.alergicos.split(',').map((a: string) => a.trim()).filter(Boolean)
-            : []);
-        
-        produtoEncontrado.tags = Array.isArray(produtoEncontrado.tags) 
-          ? produtoEncontrado.tags 
-          : (typeof produtoEncontrado.tags === 'string' && produtoEncontrado.tags.trim()
-            ? produtoEncontrado.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-            : []);
+        // Campos removidos: alergicos e tags não são mais processados
         
         setProduto(produtoEncontrado);
-        setImagemSelecionada(produtoEncontrado.imagem?.href || '/images/placeholder.png');
         
         // Buscar produtos relacionados
         if (produtoEncontrado.categoria?.slug) {
@@ -332,10 +320,8 @@ export default function ProdutoDetalhePage() {
     );
   }
 
-  const todasImagens = [
-    produto.imagem?.href || '/images/placeholder.png',
-    ...(produto.imagem?.galeria || [])
-  ].filter(Boolean);
+  // Galeria removida - usando apenas imagem principal
+  const imagemPrincipal = produto.imagem?.href || '/images/placeholder.png';
 
   return (
     <>
@@ -362,7 +348,7 @@ export default function ProdutoDetalhePage() {
               {/* Imagem Principal */}
               <div className="bg-white rounded-2xl shadow-lg overflow-hidden aspect-square">
                 <OptimizedImage 
-                  src={imagemSelecionada} 
+                  src={imagemPrincipal} 
                   alt={produto.imagem?.alt || produto.nome || 'Produto'} 
                   width={800} 
                   height={800} 
@@ -371,35 +357,8 @@ export default function ProdutoDetalhePage() {
                 />
               </div>
 
-              {/* Galeria de Miniaturas */}
-              {todasImagens.length > 1 && (
-                <div className="grid grid-cols-4 gap-3">
-                  {todasImagens.map((url: string, index: number) => (
-                    <button
-                      key={index}
-                      onClick={() => setImagemSelecionada(url)}
-                      className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                        imagemSelecionada === url
-                          ? 'border-[var(--color-avocado-600)] ring-2 ring-[var(--color-avocado-200)]'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <OptimizedImage 
-                        src={url} 
-                        alt={`${produto.nome} - Imagem ${index + 1}`} 
-                        width={200} 
-                        height={200} 
-                        className="w-full h-full object-cover"
-                        quality={70}
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Ingredientes e Alérgenos */}
-              <div className="space-y-4">
-                {/* Ingredientes - Sempre visível */}
+              {/* Ingredientes */}
+              {produto.ingredientes && Array.isArray(produto.ingredientes) && produto.ingredientes.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -407,44 +366,15 @@ export default function ProdutoDetalhePage() {
                     </svg>
                     Ingredientes
                   </h3>
-                  {produto.ingredientes && Array.isArray(produto.ingredientes) && produto.ingredientes.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {produto.ingredientes.map((ingrediente: string, index: number) => (
-                        <span key={index} className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium border border-blue-200">
-                          {ingrediente}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-gray-500 text-sm italic text-center">Nenhum ingrediente informado</p>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {produto.ingredientes.map((ingrediente: string, index: number) => (
+                      <span key={index} className="px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-800 rounded-lg text-sm font-medium border border-blue-200 shadow-sm hover:shadow-md transition-shadow">
+                        {ingrediente}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-
-                {/* Alérgenos - Sempre visível */}
-                <div className="bg-white rounded-2xl shadow-lg p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    Alérgenos
-                  </h3>
-                  {produto.alergicos && Array.isArray(produto.alergicos) && produto.alergicos.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {produto.alergicos.map((alergico: string, index: number) => (
-                        <span key={index} className="px-4 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium border border-red-200">
-                          ⚠️ {alergico}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-gray-500 text-sm italic text-center">Nenhum alérgeno informado</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Coluna Direita - Informações */}
@@ -541,6 +471,22 @@ export default function ProdutoDetalhePage() {
                   </div>
                 )}
 
+                {/* Informações de Estoque */}
+                {produto.estoque?.quantidade !== undefined && (
+                  <div className="mb-4 pb-4 border-b border-gray-200">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      <span>
+                        {produto.estoque.quantidade > 0 
+                          ? `${produto.estoque.quantidade} unidade${produto.estoque.quantidade > 1 ? 's' : ''} disponível${produto.estoque.quantidade > 1 ? 'eis' : ''}`
+                          : 'Produto esgotado'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Quantidade e Botão */}
                 <div className="space-y-4">
                   <div>
@@ -548,8 +494,9 @@ export default function ProdutoDetalhePage() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
-                        className="w-12 h-12 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-300 flex items-center justify-center font-bold text-xl transition-colors"
+                        className="w-12 h-12 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-300 flex items-center justify-center font-bold text-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Diminuir quantidade"
+                        disabled={quantidade <= 1}
                       >
                         -
                       </button>
@@ -564,8 +511,9 @@ export default function ProdutoDetalhePage() {
                       />
                       <button
                         onClick={() => setQuantidade(Math.min(produto.estoque?.quantidade || 20, quantidade + 1))}
-                        className="w-12 h-12 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-300 flex items-center justify-center font-bold text-xl transition-colors"
+                        className="w-12 h-12 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-300 flex items-center justify-center font-bold text-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Aumentar quantidade"
+                        disabled={produto.estoque?.quantidade !== undefined && quantidade >= produto.estoque.quantidade}
                       >
                         +
                       </button>
@@ -643,24 +591,6 @@ export default function ProdutoDetalhePage() {
                 )}
               </div>
 
-              {/* Tags */}
-              {produto.tags && Array.isArray(produto.tags) && produto.tags.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                    Tags
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {produto.tags.map((tag: string, index: number) => (
-                      <span key={index} className="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium border border-purple-200">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
