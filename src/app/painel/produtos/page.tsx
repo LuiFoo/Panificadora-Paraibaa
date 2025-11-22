@@ -33,18 +33,6 @@ const SUBCATEGORIAS_PADRAO = [
   "Sazonal"
 ];
 
-const ALERGENOS_COMUNS = [
-  "Contém glúten",
-  "Contém leite",
-  "Contém ovos",
-  "Contém soja",
-  "Contém amendoim",
-  "Contém castanhas",
-  "Contém sulfitos",
-  "Pode conter traços de amendoim",
-  "Pode conter traços de castanhas"
-];
-
 export default function ProdutosPage() {
   const { isAdmin, loading } = useUser();
   const router = useRouter();
