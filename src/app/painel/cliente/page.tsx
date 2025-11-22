@@ -232,11 +232,11 @@ export default function GerenciarClientes() {
     return (
       <ProtectedRoute requiredPermission="administrador" redirectTo="/">
         <Header />
-        <main className="min-h-screen bg-gray-50 p-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando clientes...</p>
+        <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white rounded-3xl shadow-xl p-12 text-center border border-gray-100">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--color-avocado-600)] mx-auto mb-6"></div>
+              <p className="text-gray-600 text-lg font-medium">Carregando clientes...</p>
             </div>
           </div>
         </main>
@@ -248,34 +248,40 @@ export default function GerenciarClientes() {
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-6xl mx-auto">
+      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           <BreadcrumbNav 
             items={[
-              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
-              { label: "Clientes", icon: "👥", color: "pink" }
+              { label: "Painel Administrativo", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Clientes", icon: "👤", color: "pink" }
             ]}
           />
           
-          <div className="bg-white rounded-lg shadow-md">
-            {/* Cabeçalho */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          {/* Hero Section */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-[var(--color-avocado-600)] via-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-3xl shadow-2xl p-6 md:p-10 lg:p-12">
+            <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-10"></div>
+            <div className="relative z-10">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="flex items-center gap-4 md:gap-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/30">
+                    <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
                     </svg>
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h1 className="text-2xl font-bold text-gray-800">Gerenciar Clientes</h1>
-                      <span className="px-2 py-1 bg-pink-100 text-pink-800 text-xs font-medium rounded-full">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                        Gerenciar Clientes
+                      </h1>
+                      <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs md:text-sm font-bold rounded-full border border-white/30 shadow-lg">
                         {mostrarTodos ? `${todosUsuarios.length} usuários` : `${clientes.length} clientes`}
                       </span>
                     </div>
-                    <p className="text-gray-600">Visualize e gerencie todos os clientes do sistema</p>
-                    <p className="text-xs text-pink-600 mt-1 flex items-center gap-1">
+                    <p className="text-white/90 text-sm md:text-base lg:text-lg">
+                      Visualize e gerencie todos os clientes do sistema
+                    </p>
+                    <p className="text-white/80 text-xs md:text-sm mt-1 flex items-center gap-2">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -283,12 +289,12 @@ export default function GerenciarClientes() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Link
                     href="/painel"
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/30 hover:shadow-xl"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Voltar
@@ -296,9 +302,9 @@ export default function GerenciarClientes() {
                   <button
                     onClick={fetchClientes}
                     disabled={loading}
-                    className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors flex items-center gap-2"
+                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     Atualizar
@@ -306,102 +312,103 @@ export default function GerenciarClientes() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Mensagens */}
-            {error && (
-              <div className="p-4 bg-red-50 border-l-4 border-red-400">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
+          {/* Mensagens */}
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 rounded-xl shadow-lg p-4">
+              <p className="text-red-700 font-medium">❌ {error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border-l-4 border-green-500 rounded-xl shadow-lg p-4">
+              <p className="text-green-700 font-medium">{success}</p>
+            </div>
+          )}
+
+          {/* Estatísticas Principais */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            {/* Total de Clientes */}
+            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-pink-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-100 to-pink-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
+                    👥
                   </div>
                 </div>
-              </div>
-            )}
-
-            {success && (
-              <div className="p-4 bg-green-50 border-l-4 border-green-400">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-green-700">{success}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Estatísticas */}
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">📊 Resumo dos Clientes</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-r from-pink-50 to-pink-100 p-4 rounded-lg border border-pink-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-pink-600">Total de Clientes</p>
-                      <p className="text-2xl font-bold text-pink-800">{clientes.length}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-pink-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-lg">👥</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-blue-600">Com Email</p>
-                      <p className="text-2xl font-bold text-blue-800">
-                        {clientes.filter(c => c.email).length}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-lg">📧</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-green-600">Com Telefone</p>
-                      <p className="text-2xl font-bold text-green-800">
-                        {clientes.filter(c => c.telefone).length}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-lg">📱</span>
-                    </div>
-                  </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Total de Clientes</p>
+                  <p className="text-4xl md:text-5xl font-bold text-pink-600 mb-1">{clientes.length}</p>
+                  <p className="text-xs text-gray-500">Clientes cadastrados</p>
                 </div>
               </div>
             </div>
 
-            {/* Filtros */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">🔍 Buscar {mostrarTodos ? "Usuário" : "Cliente"}</h2>
-                {clientes.length === 0 && todosUsuarios.length > 0 && (
-                  <label className="flex items-center gap-2 cursor-pointer">
+            {/* Com Email */}
+            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-blue-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
+                    📧
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Com Email</p>
+                  <p className="text-4xl md:text-5xl font-bold text-blue-600 mb-1">{clientes.filter(c => c.email).length}</p>
+                  <p className="text-xs text-gray-500">Com email cadastrado</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Com Telefone */}
+            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-green-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-green-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
+                    📱
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Com Telefone</p>
+                  <p className="text-4xl md:text-5xl font-bold text-green-600 mb-1">{clientes.filter(c => c.telefone).length}</p>
+                  <p className="text-xs text-gray-500">Com telefone cadastrado</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtros e Busca */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center border border-amber-300">
+                <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                Buscar {mostrarTodos ? "Usuário" : "Cliente"}
+              </h2>
+            </div>
+            <div className="space-y-4">
+              {clientes.length === 0 && todosUsuarios.length > 0 && (
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4 border-2 border-yellow-200">
+                  <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={mostrarTodos}
                       onChange={(e) => setMostrarTodos(e.target.checked)}
-                      className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                      className="w-5 h-5 text-[var(--color-avocado-600)] border-gray-300 rounded focus:ring-[var(--color-avocado-500)]"
                     />
-                    <span className="text-sm text-gray-700">Mostrar todos os usuários (incluindo administradores)</span>
+                    <span className="text-sm font-semibold text-gray-700">Mostrar todos os usuários (incluindo administradores)</span>
                   </label>
-                )}
-              </div>
+                </div>
+              )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">
                   Buscar por nome, login, email ou telefone
                 </label>
                 <input
@@ -409,39 +416,54 @@ export default function GerenciarClientes() {
                   value={filtro}
                   onChange={(e) => setFiltro(e.target.value)}
                   placeholder="Digite para buscar..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:border-[var(--color-avocado-500)] transition-all font-medium bg-white hover:border-gray-400"
                 />
               </div>
             </div>
+            <div className="mt-6 flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-200">
+              <p className="font-semibold">
+                <strong className="text-[var(--color-avocado-600)] text-lg">{clientesFiltrados.length}</strong> {mostrarTodos ? "usuário(s)" : "cliente(s)"} encontrado(s)
+              </p>
+            </div>
+          </div>
 
-            {/* Lista de Clientes */}
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">👥 Lista de {mostrarTodos ? "Usuários" : "Clientes"}</h2>
-              {clientesFiltrados.length === 0 ? (
-                <div className="text-center py-10">
-                  <div className="text-gray-500 text-6xl mb-4">👤</div>
-                  {listaParaExibir.length === 0 ? (
-                    <>
-                      <p className="text-gray-600 text-lg font-semibold mb-2">Nenhum {mostrarTodos ? "usuário" : "cliente"} cadastrado</p>
-                      <p className="text-gray-500 text-sm">
-                        {mostrarTodos 
-                          ? "Não há usuários no sistema"
-                          : "Não há clientes (usuários com permissão \"usuario\") no sistema"
-                        }
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-gray-600 text-lg font-semibold mb-2">Nenhum {mostrarTodos ? "usuário" : "cliente"} encontrado</p>
-                      <p className="text-gray-500 text-sm">Tente ajustar o filtro de busca</p>
-                      <p className="text-gray-400 text-xs mt-2">Total: {listaParaExibir.length}</p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {clientesFiltrados.map((cliente) => (
-                    <div key={cliente.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
+          {/* Lista de Clientes */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center border border-amber-300">
+                <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                Lista de {mostrarTodos ? "Usuários" : "Clientes"}
+              </h2>
+            </div>
+            {clientesFiltrados.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-7xl mb-4">👤</div>
+                {listaParaExibir.length === 0 ? (
+                  <>
+                    <h3 className="text-2xl font-bold text-gray-700 mb-2" style={{ fontFamily: "var(--fonte-secundaria)" }}>Nenhum {mostrarTodos ? "usuário" : "cliente"} cadastrado</h3>
+                    <p className="text-gray-500">
+                      {mostrarTodos 
+                        ? "Não há usuários no sistema"
+                        : "Não há clientes (usuários com permissão \"usuario\") no sistema"
+                      }
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-2xl font-bold text-gray-700 mb-2" style={{ fontFamily: "var(--fonte-secundaria)" }}>Nenhum {mostrarTodos ? "usuário" : "cliente"} encontrado</h3>
+                    <p className="text-gray-500">Tente ajustar o filtro de busca</p>
+                    <p className="text-gray-400 text-sm mt-2">Total: {listaParaExibir.length}</p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4 md:space-y-6">
+                {clientesFiltrados.map((cliente) => (
+                  <div key={cliente.id} className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-4 md:p-6 hover:shadow-xl hover:border-gray-300 transition-all duration-300">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex items-center gap-4">
                           {/* Foto do cliente (Google) ou avatar padrão */}
@@ -457,39 +479,39 @@ export default function GerenciarClientes() {
                               />
                             </div>
                           ) : (
-                            <div className="w-14 h-14 bg-gradient-to-r from-pink-400 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                              <span className="text-white text-2xl">👤</span>
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-pink-400 to-pink-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl border-2 border-pink-300/50">
+                              <span className="text-white text-3xl">👤</span>
                             </div>
                           )}
                           
                           <div>
                             <button
                               onClick={() => router.push(`/painel/cliente/${cliente.login}?from=clientes`)}
-                              className="font-semibold text-gray-800 hover:text-pink-600 hover:underline cursor-pointer text-left flex items-center gap-1"
+                              className="font-bold text-lg md:text-xl text-gray-800 hover:text-pink-600 hover:underline cursor-pointer text-left flex items-center gap-2 mb-1 transition-colors"
                               title="Clique para ver o perfil completo"
                             >
                               {cliente.name}
-                              <svg className="w-3 h-3 text-gray-400 hover:text-pink-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 text-gray-400 hover:text-pink-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                               </svg>
                             </button>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm text-gray-600">@{cliente.login}</p>
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <p className="text-sm text-gray-600 font-medium">@{cliente.login}</p>
                               {cliente.googleId && (
-                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full flex items-center gap-1">
+                                <span className="px-2 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 text-xs font-bold rounded-full flex items-center gap-1 border border-blue-300">
                                   🔵 Google
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-4 mt-1">
+                            <div className="flex flex-wrap items-center gap-3 mt-2">
                               {cliente.email && (
-                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                <span className="text-xs text-gray-600 flex items-center gap-1 bg-white rounded-lg px-3 py-1.5 shadow-sm border border-gray-200">
                                   <span>📧</span>
                                   {cliente.email}
                                 </span>
                               )}
                               {cliente.telefone && (
-                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                <span className="text-xs text-gray-600 flex items-center gap-1 bg-white rounded-lg px-3 py-1.5 shadow-sm border border-gray-200">
                                   <span>📱</span>
                                   {cliente.telefone}
                                 </span>
@@ -499,31 +521,31 @@ export default function GerenciarClientes() {
                         </div>
                         
                         <div className="flex flex-col md:flex-row md:items-center gap-4">
-                          <div className="flex items-center gap-4">
-                            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className={`px-3 py-1.5 rounded-full text-sm font-bold border-2 ${
                               cliente.permission === "administrador"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-green-100 text-green-800"
+                                ? "bg-purple-100 text-purple-800 border-purple-300"
+                                : "bg-green-100 text-green-800 border-green-300"
                             }`}>
                               {cliente.permission === "administrador" ? "👑 Admin" : "👤 Cliente"}
                             </span>
                             
-                            <span className="text-xs text-gray-500">
-                              {cliente.dataCriacao 
+                            <span className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-1.5 font-medium">
+                              📅 {cliente.dataCriacao 
                                 ? new Date(cliente.dataCriacao).toLocaleDateString('pt-BR')
                                 : "Sem data"
                               }
                             </span>
                           </div>
                           
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {/* Apenas Super Admin pode alterar permissões */}
                             {isSuperAdmin && (
                               <>
                                 {cliente.permission === "administrador" ? (
                                   <button
                                     onClick={() => handleUpdatePermission(cliente.id, cliente.permission)}
-                                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-yellow-500 hover:bg-yellow-600 text-white"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-gradient-to-br from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg"
                                     title="Remover permissão de administrador"
                                   >
                                     ⬇️ Remover Admin
@@ -531,7 +553,7 @@ export default function GerenciarClientes() {
                                 ) : (
                                   <button
                                     onClick={() => handleUpdatePermission(cliente.id, cliente.permission)}
-                                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-green-500 hover:bg-green-600 text-white"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-gradient-to-br from-[var(--color-avocado-500)] to-[var(--color-avocado-600)] hover:from-[var(--color-avocado-600)] hover:to-[var(--color-avocado-700)] text-white shadow-lg"
                                     title="Promover a administrador"
                                   >
                                     ⬆️ Promover Admin
@@ -546,7 +568,7 @@ export default function GerenciarClientes() {
                                 {/* Não pode deletar a si mesmo */}
                                 {currentUser?._id === cliente.id ? (
                                   <span 
-                                    className="px-3 py-2 rounded-lg text-sm bg-gray-200 text-gray-600 cursor-not-allowed"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl shadow-md bg-gradient-to-br from-gray-400 to-gray-500 text-white cursor-not-allowed"
                                     title="Você não pode deletar sua própria conta"
                                   >
                                     🔒 Você mesmo
@@ -554,7 +576,7 @@ export default function GerenciarClientes() {
                                 ) : (
                                   <button
                                     onClick={() => handleDeleteUser(cliente.id, cliente.name)}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg"
                                     title="Deletar usuário permanentemente"
                                   >
                                     🗑️ Deletar
@@ -571,18 +593,31 @@ export default function GerenciarClientes() {
               )}
             </div>
 
-            {/* Informações */}
-            <div className="p-6 bg-pink-50 border-t border-pink-200">
-              <h3 className="font-semibold text-pink-900 mb-2 flex items-center gap-2">
-                <span>ℹ️</span>
+          {/* Informações */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-pink-100 to-pink-200 rounded-xl flex items-center justify-center border border-pink-300">
+                <svg className="w-6 h-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl md:text-2xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
                 Informações
               </h3>
-              <ul className="text-sm text-pink-800 space-y-1">
-                <li>• <strong>Clientes:</strong> Usuários cadastrados que podem fazer pedidos e visualizar seu histórico</li>
-                <li>• <strong>Perfil:</strong> Clique no nome do cliente para ver informações completas e histórico de pedidos</li>
-                <li>• <strong>Data de cadastro:</strong> Registrada automaticamente quando o cliente se cadastra</li>
-                <li>• Use o filtro de busca para encontrar clientes específicos rapidamente</li>
-              </ul>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-4 border border-pink-200">
+                <p className="text-sm text-pink-800"><strong>👤 Clientes:</strong> Usuários cadastrados que podem fazer pedidos e visualizar seu histórico</p>
+              </div>
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                <p className="text-sm text-blue-800"><strong>📋 Perfil:</strong> Clique no nome do cliente para ver informações completas e histórico de pedidos</p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                <p className="text-sm text-green-800"><strong>📅 Data de cadastro:</strong> Registrada automaticamente quando o cliente se cadastra</p>
+              </div>
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
+                <p className="text-sm text-amber-800"><strong>🔍 Busca:</strong> Use o filtro de busca para encontrar clientes específicos rapidamente</p>
+              </div>
             </div>
           </div>
         </div>

@@ -213,11 +213,11 @@ export default function GerenciarUsuarios() {
     return (
       <ProtectedRoute requiredPermission="administrador" redirectTo="/">
         <Header />
-        <main className="min-h-screen bg-gray-50 p-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando usuários...</p>
+        <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white rounded-3xl shadow-xl p-12 text-center border border-gray-100">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--color-avocado-600)] mx-auto mb-6"></div>
+              <p className="text-gray-600 text-lg font-medium">Carregando usuários...</p>
             </div>
           </div>
         </main>
@@ -229,64 +229,65 @@ export default function GerenciarUsuarios() {
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-6xl mx-auto">
+      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
           <BreadcrumbNav 
             items={[
-              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Painel Administrativo", href: "/painel", icon: "🏠", color: "blue" },
               { label: "Usuários", icon: "👥", color: "purple" }
             ]}
           />
           
-          <div className="bg-white rounded-lg shadow-md">
-            {/* Cabeçalho */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+          {/* Hero Section */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-[var(--color-avocado-600)] via-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-3xl shadow-2xl p-6 md:p-10 lg:p-12">
+            <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-10"></div>
+            <div className="relative z-10">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                <div className="flex items-center gap-4 md:gap-6">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/30">
+                    <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      {/* Usuário central maior */}
+                      <circle cx="12" cy="7" r="4"/>
+                      <path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/>
+                      {/* Usuário à esquerda (menor) */}
+                      <circle cx="3" cy="5" r="2.5" opacity="0.7"/>
+                      <path d="M0 16v-1.5a2.5 2.5 0 0 1 2.5-2.5h1a2.5 2.5 0 0 1 2.5 2.5V16" opacity="0.7"/>
+                      {/* Usuário à direita (menor) */}
+                      <circle cx="21" cy="5" r="2.5" opacity="0.7"/>
+                      <path d="M24 16v-1.5a2.5 2.5 0 0 0-2.5-2.5h-1a2.5 2.5 0 0 0-2.5 2.5V16" opacity="0.7"/>
                     </svg>
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h1 className="text-2xl font-bold text-gray-800">Gerenciar Usuários</h1>
-                      <span className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-medium rounded-full">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                        Gerenciar Usuários
+                      </h1>
+                      <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs md:text-sm font-bold rounded-full border border-white/30 shadow-lg">
                         {usuarios.length} usuários
                       </span>
                     </div>
-                    <p className="text-gray-600">Visualize e gerencie todos os usuários do sistema</p>
-                    <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Clique no nome do usuário para ver o perfil completo
+                    <p className="text-white/90 text-sm md:text-base lg:text-lg">
+                      Visualize e gerencie todos os usuários do sistema
                     </p>
-                    
-                    {/* Aviso sobre Permissão Suprema */}
                     {isSuperAdmin ? (
-                      <div className="mt-2 p-2 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg">
-                        <p className="text-xs text-yellow-800 font-semibold flex items-center gap-1">
-                          <span>⭐</span>
-                          Você tem <strong>Permissão Suprema</strong> e pode promover/rebaixar administradores
-                        </p>
-                      </div>
+                      <p className="text-white/80 text-xs md:text-sm mt-1 flex items-center gap-2">
+                        <span>⭐</span>
+                        Você tem <strong>Permissão Suprema</strong> e pode promover/rebaixar administradores
+                      </p>
                     ) : (
-                      <div className="mt-2 p-2 bg-gray-50 border border-gray-300 rounded-lg">
-                        <p className="text-xs text-gray-600 flex items-center gap-1">
-                          <span>🔒</span>
-                          Apenas usuários com <strong>Permissão Suprema</strong> podem alterar permissões
-                        </p>
-                      </div>
+                      <p className="text-white/80 text-xs md:text-sm mt-1 flex items-center gap-2">
+                        <span>🔒</span>
+                        Apenas usuários com <strong>Permissão Suprema</strong> podem alterar permissões
+                      </p>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Link
                     href="/painel"
-                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
+                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/30 hover:shadow-xl"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Voltar
@@ -294,9 +295,9 @@ export default function GerenciarUsuarios() {
                   <button
                     onClick={fetchUsuarios}
                     disabled={loading}
-                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     Atualizar
@@ -304,140 +305,166 @@ export default function GerenciarUsuarios() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Mensagens */}
-            {error && (
-              <div className="p-4 bg-red-50 border-l-4 border-red-400">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
+          {/* Mensagens */}
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 rounded-xl shadow-lg p-4">
+              <p className="text-red-700 font-medium">❌ {error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border-l-4 border-green-500 rounded-xl shadow-lg p-4">
+              <p className="text-green-700 font-medium">{success}</p>
+            </div>
+          )}
+
+          {/* Estatísticas Principais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {/* Total de Usuários */}
+            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-blue-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
+                    👥
                   </div>
                 </div>
-              </div>
-            )}
-
-            {success && (
-              <div className="p-4 bg-green-50 border-l-4 border-green-400">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-green-700">{success}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Estatísticas */}
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">📊 Resumo dos Usuários</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-blue-600">Total de Usuários</p>
-                      <p className="text-2xl font-bold text-blue-800">{usuarios.length}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-lg">👥</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-100 p-4 rounded-lg border-2 border-yellow-400 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-orange-600 font-semibold">Super Admins</p>
-                      <p className="text-2xl font-bold text-orange-800">{totalSuperAdmins}</p>
-                      <p className="text-xs text-orange-500 mt-1">⭐ Controle Total</p>
-                    </div>
-                    <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center shadow-md">
-                      <span className="text-white text-lg">⭐</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-purple-600">Administradores</p>
-                      <p className="text-2xl font-bold text-purple-800">{totalAdmins}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-lg">👑</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-green-600">Usuários Padrão</p>
-                      <p className="text-2xl font-bold text-green-800">{totalClientes}</p>
-                    </div>
-                    <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-lg">👤</span>
-                    </div>
-                  </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Total de Usuários</p>
+                  <p className="text-4xl md:text-5xl font-bold text-blue-600 mb-1">{usuarios.length}</p>
+                  <p className="text-xs text-gray-500">Usuários cadastrados</p>
                 </div>
               </div>
             </div>
 
-            {/* Filtros */}
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">🔍 Filtros e Busca</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Buscar por nome, login ou email
-                  </label>
-                  <input
-                    type="text"
-                    value={filtro}
-                    onChange={(e) => setFiltro(e.target.value)}
-                    placeholder="Digite para buscar..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                  />
+            {/* Super Admins */}
+            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-yellow-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-100 to-orange-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
+                    ⭐
+                  </div>
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Filtrar por permissão
-                  </label>
-                  <select
-                    value={filtroPermissao}
-                    onChange={(e) => setFiltroPermissao(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                  >
-                    <option value="todos">Todos</option>
-                    <option value="usuario">Apenas Usuários</option>
-                    <option value="administrador">Apenas Administradores</option>
-                  </select>
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Super Admins</p>
+                  <p className="text-4xl md:text-5xl font-bold text-orange-600 mb-1">{totalSuperAdmins}</p>
+                  <p className="text-xs text-orange-600 font-medium">⭐ Controle Total</p>
                 </div>
               </div>
             </div>
 
-            {/* Lista de Usuários */}
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">👥 Lista de Usuários</h2>
-              {usuariosFiltrados.length === 0 ? (
-                <div className="text-center py-10">
-                  <div className="text-gray-500 text-6xl mb-4">👤</div>
-                  <p className="text-gray-600 text-lg">Nenhum usuário encontrado</p>
-                  <p className="text-gray-500 text-sm">Tente ajustar os filtros de busca</p>
+            {/* Administradores */}
+            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-purple-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
+                    👑
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {usuariosFiltrados.map((user) => (
-                    <div key={user.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Administradores</p>
+                  <p className="text-4xl md:text-5xl font-bold text-purple-600 mb-1">{totalAdmins}</p>
+                  <p className="text-xs text-gray-500">Com acesso ao painel</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Usuários Padrão */}
+            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-green-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-green-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
+                    👤
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Usuários Padrão</p>
+                  <p className="text-4xl md:text-5xl font-bold text-green-600 mb-1">{totalClientes}</p>
+                  <p className="text-xs text-gray-500">Clientes do sistema</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filtros e Busca */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center border border-amber-300">
+                <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                Filtros e Busca
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                  Buscar por nome, login ou email
+                </label>
+                <input
+                  type="text"
+                  value={filtro}
+                  onChange={(e) => setFiltro(e.target.value)}
+                  placeholder="Digite para buscar..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:border-[var(--color-avocado-500)] transition-all font-medium bg-white hover:border-gray-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">
+                  Filtrar por permissão
+                </label>
+                <select
+                  value={filtroPermissao}
+                  onChange={(e) => setFiltroPermissao(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:border-[var(--color-avocado-500)] transition-all font-medium bg-white hover:border-gray-400"
+                >
+                  <option value="todos">Todos</option>
+                  <option value="usuario">Apenas Usuários</option>
+                  <option value="administrador">Apenas Administradores</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-200">
+              <p className="font-semibold">
+                <strong className="text-[var(--color-avocado-600)] text-lg">{usuariosFiltrados.length}</strong> usuário(s) encontrado(s)
+              </p>
+            </div>
+          </div>
+
+          {/* Lista de Usuários */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center border border-amber-300">
+                <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                  {/* Ícone de lista com usuários */}
+                  <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
+                  <circle cx="5.5" cy="6" r="1.5"/>
+                  <circle cx="5.5" cy="12" r="1.5"/>
+                  <circle cx="5.5" cy="18" r="1.5"/>
+                </svg>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                Lista de Usuários
+              </h2>
+            </div>
+            {usuariosFiltrados.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-400 text-7xl mb-4">👤</div>
+                <h3 className="text-2xl font-bold text-gray-700 mb-2" style={{ fontFamily: "var(--fonte-secundaria)" }}>Nenhum usuário encontrado</h3>
+                <p className="text-gray-500">Tente ajustar os filtros de busca</p>
+              </div>
+            ) : (
+              <div className="space-y-4 md:space-y-6">
+                {usuariosFiltrados.map((user) => (
+                  <div key={user.id} className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl p-4 md:p-6 hover:shadow-xl hover:border-gray-300 transition-all duration-300">
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex items-center gap-4">
                           {/* Foto do usuário (Google) ou avatar padrão */}
@@ -599,20 +626,36 @@ export default function GerenciarUsuarios() {
               )}
             </div>
 
-            {/* Informações */}
-            <div className="p-6 bg-blue-50 border-t border-blue-200">
-              <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                <span>ℹ️</span>
+          {/* Informações */}
+          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center border border-blue-300">
+                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl md:text-2xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
                 Informações
               </h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• <strong>Usuários:</strong> Podem fazer pedidos e visualizar seu histórico</li>
-                <li>• <strong>Administradores:</strong> Têm acesso total ao painel administrativo</li>
-                <li>• <strong>Permissões:</strong> Podem ser alteradas clicando nos botões de ação</li>
-                <li>• <strong>Data de cadastro:</strong> Registrada automaticamente quando o usuário se cadastra</li>
-                <li>• Use o filtro de busca para encontrar usuários específicos rapidamente</li>
-                <li>• A exclusão de usuários é permanente e não pode ser desfeita</li>
-              </ul>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+                <p className="text-sm text-blue-800"><strong>👤 Usuários:</strong> Podem fazer pedidos e visualizar seu histórico</p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+                <p className="text-sm text-purple-800"><strong>👑 Administradores:</strong> Têm acesso total ao painel administrativo</p>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200">
+                <p className="text-sm text-yellow-800"><strong>⭐ Permissões:</strong> Podem ser alteradas clicando nos botões de ação</p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+                <p className="text-sm text-green-800"><strong>📅 Data de cadastro:</strong> Registrada automaticamente quando o usuário se cadastra</p>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-sm text-gray-700">
+                <strong>💡 Dica:</strong> Use o filtro de busca para encontrar usuários específicos rapidamente. A exclusão de usuários é permanente e não pode ser desfeita.
+              </p>
             </div>
           </div>
         </div>

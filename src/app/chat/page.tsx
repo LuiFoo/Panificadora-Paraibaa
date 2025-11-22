@@ -376,7 +376,7 @@ function ChatContent() {
                   <div className="flex items-center gap-2 mb-1">
                     <h1 className="text-lg md:text-2xl font-bold text-gray-800">Chat com a Panificadora Paraíba</h1>
                     <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                      💬 Chat
+                      Chat
                     </span>
                   </div>
                   <p className="text-sm text-gray-600">

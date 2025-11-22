@@ -11,7 +11,58 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { safeParseFloat, safeParseInt } from "@/lib/validation";
-import type { Produto } from "@/types/Produto";
+
+interface Produto {
+  _id: string;
+  nome: string;
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    custoProducao?: number;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+      inicio: Date;
+      fim: Date;
+    };
+  };
+  estoque: {
+    disponivel: boolean;
+    quantidade?: number;
+    minimo?: number;
+    unidadeMedida: string;
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  ingredientes: string[];
+  alergicos: string[];
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: "ativo" | "inativo" | "sazonal";
+  criadoEm: Date;
+  atualizadoEm: Date;
+  // Campos de compatibilidade com sistema antigo
+  subc?: string;
+  valor?: number;
+  vtipo?: string;
+  img?: string;
+  colecaoOrigem?: string;
+  dataCriacao?: string | Date;
+  dataAtualizacao?: string | Date;
+}
 
 const TIPOS_VENDA = ["UN", "KG", "PCT", "DZ", "CENTO", "LITRO", "GRAMAS"];
 
@@ -22,14 +73,37 @@ const CATEGORIAS = [
   { nome: "Bebidas", slug: "bebidas" }
 ];
 
+const SUBCATEGORIAS_PADRAO = [
+  "Tradicional",
+  "Diet",
+  "Sem Glúten",
+  "Vegano",
+  "Integral",
+  "Artístico",
+  "Especial",
+  "Sazonal"
+];
+
+const ALERGENOS_COMUNS = [
+  "Contém glúten",
+  "Contém leite",
+  "Contém ovos",
+  "Contém soja",
+  "Contém amendoim",
+  "Contém castanhas",
+  "Contém sulfitos",
+  "Pode conter traços de amendoim",
+  "Pode conter traços de castanhas"
+];
 
 export default function ProdutosPage() {
   const { isAdmin, loading } = useUser();
   const router = useRouter();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const deferredProdutos = useDeferredValue(produtos);
+  const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
-  const [filtroCategoria, setFiltroCategoria] = useState<string>("todos");
+  const [filtroSubcategoria, setFiltroSubcategoria] = useState<string>("todos");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
@@ -43,6 +117,7 @@ export default function ProdutosPage() {
     preco: {
       valor: "",
       tipo: "UN",
+      custoProducao: "",
       promocao: {
         ativo: false,
         valorPromocional: "",
@@ -60,7 +135,11 @@ export default function ProdutosPage() {
       href: "",
       alt: ""
     },
-    ingredientes: [] as string[]
+    ingredientes: [] as string[],
+    alergicos: [] as string[],
+    destaque: false,
+    tags: [] as string[],
+    status: "ativo"
   });
 
   // Persistência de rascunho no localStorage
@@ -130,7 +209,6 @@ export default function ProdutosPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
-        setIsSubmitting(false);
         return;
       }
       
@@ -142,6 +220,11 @@ export default function ProdutosPage() {
           destaque: p.destaque === true
         })) as Produto[];
         setProdutos(produtosNormalizados);
+        // Extrair subcategorias únicas dos produtos
+        const subcats = [...new Set(produtosNormalizados.map((p: Produto) => p.subcategoria || p.subc).filter(Boolean))] as string[];
+        if (subcats.length > 0) {
+            setSubcategorias([...SUBCATEGORIAS_PADRAO, ...subcats.filter(sub => !SUBCATEGORIAS_PADRAO.includes(sub))]);
+        }
         });
       } else {
         console.error("❌ API retornou success: false:", data.error);
@@ -189,7 +272,7 @@ export default function ProdutosPage() {
     });
   };
 
-  const handleArrayChange = (field: 'ingredientes', value: string) => {
+  const handleArrayChange = (field: 'ingredientes' | 'alergicos' | 'tags', value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value.split(',').map(item => item.trim()).filter(Boolean)
@@ -239,6 +322,7 @@ export default function ProdutosPage() {
         preco: {
           valor: safeParseFloat(formData.preco.valor),
           tipo: formData.preco.tipo,
+          custoProducao: formData.preco.custoProducao ? safeParseFloat(formData.preco.custoProducao) : undefined,
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
             valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
@@ -257,10 +341,10 @@ export default function ProdutosPage() {
           alt: formData.imagem.alt || formData.nome
         },
         ingredientes: formData.ingredientes,
-        alergicos: [], // Campo removido do formulário, mas mantido para compatibilidade
-        destaque: false, // Campo removido do formulário, mas mantido para compatibilidade
-        tags: [], // Campo removido do formulário, mas mantido para compatibilidade
-        status: "ativo"
+        alergicos: formData.alergicos,
+        destaque: formData.destaque,
+        tags: formData.tags,
+        status: formData.status
       };
 
       const url = produtoEditando 
@@ -302,9 +386,6 @@ export default function ProdutosPage() {
           setProdutos(prev => [{
             _id: data.produtoId,
             ...produtoData,
-            alergicos: [], // Campo removido do formulário, mas mantido para compatibilidade
-            destaque: false, // Campo removido do formulário, mas mantido para compatibilidade
-            tags: [], // Campo removido do formulário, mas mantido para compatibilidade
             avaliacao: { media: 0, quantidade: 0, usuarios: [] },
             criadoEm: new Date(),
             atualizadoEm: new Date()
@@ -334,6 +415,7 @@ export default function ProdutosPage() {
       preco: {
         valor: "",
         tipo: "UN",
+        custoProducao: "",
         promocao: {
           ativo: false,
           valorPromocional: "",
@@ -351,7 +433,11 @@ export default function ProdutosPage() {
         href: "",
         alt: ""
       },
-      ingredientes: [] as string[]
+      ingredientes: [] as string[],
+      alergicos: [] as string[],
+      destaque: false,
+      tags: [] as string[],
+      status: "ativo"
     });
   };
 
@@ -434,7 +520,6 @@ export default function ProdutosPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
-        setIsSubmitting(false);
         return;
       }
       
@@ -506,7 +591,6 @@ export default function ProdutosPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
-        setIsSubmitting(false);
         return;
       }
       
@@ -549,14 +633,14 @@ export default function ProdutosPage() {
 
   const produtosFiltrados = useMemo(() => {
     return deferredProdutos.filter(produto => {
-    const categoriaNome = produto.categoria?.nome || produto.subcategoria || "";
-    const matchCategoria = filtroCategoria === "todos" || categoriaNome === filtroCategoria;
+    const matchSubcategoria = filtroSubcategoria === "todos" || 
+      (produto.subcategoria || produto.subc) === filtroSubcategoria;
     const matchStatus = filtroStatus === "todos" || 
       (filtroStatus === "active" && (produto.status === "ativo" || !produto.status)) ||
       (filtroStatus === "pause" && produto.status === "inativo");
-    return matchCategoria && matchStatus;
+    return matchSubcategoria && matchStatus;
   });
-  }, [deferredProdutos, filtroCategoria, filtroStatus]);
+  }, [deferredProdutos, filtroSubcategoria, filtroStatus]);
 
   const { totalProdutos, produtosAtivos, produtosPausados } = useMemo(() => {
     const total = deferredProdutos.length;
@@ -575,9 +659,13 @@ export default function ProdutosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <ProtectedRoute requiredPermission="administrador" redirectTo="/">
+        <Header />
+        <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 flex items-center justify-center p-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--color-avocado-600)]"></div>
+        </main>
+        <Footer showMap={false} />
+      </ProtectedRoute>
     );
   }
 
@@ -587,22 +675,26 @@ export default function ProdutosPage() {
 
   if (loadingProdutos) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Carregando produtos...</p>
+      <ProtectedRoute requiredPermission="administrador" redirectTo="/">
+        <Header />
+        <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white rounded-3xl shadow-2xl p-12 text-center border border-gray-100">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--color-avocado-600)] mx-auto mb-6"></div>
+              <p className="text-gray-600 text-lg font-medium">Carregando produtos...</p>
+            </div>
           </div>
-        </div>
-      </div>
+        </main>
+        <Footer showMap={false} />
+      </ProtectedRoute>
     );
   }
 
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
         <BreadcrumbNav 
           items={[
             { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
@@ -610,41 +702,46 @@ export default function ProdutosPage() {
           ]}
         />
         
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
-          {/* Cabeçalho */}
-          <div className="bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] p-6 md:p-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
-                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-[var(--color-avocado-600)] via-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-3xl shadow-2xl p-6 md:p-10 lg:p-12">
+          <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-10"></div>
+          <div className="relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div className="flex items-center gap-4 md:gap-6">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/30">
+                  <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl md:text-4xl font-bold text-white">Gerenciar Produtos</h1>
-                    <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-sm font-bold rounded-full border border-white/30">
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: "var(--fonte-secundaria)" }}>
+                      Gerenciar Produtos
+                    </h1>
+                    <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs md:text-sm font-bold rounded-full border border-white/30 shadow-lg">
                       {totalProdutos} produtos
                     </span>
                   </div>
-                  <p className="text-white/90 text-sm md:text-base">Gerencie o catálogo completo de produtos da padaria</p>
+                  <p className="text-white/90 text-sm md:text-base lg:text-lg">
+                    Gerencie o catálogo completo de produtos da padaria
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Link
                   href="/painel"
-                  className="px-5 py-2.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-xl font-semibold transition-all flex items-center gap-2 border border-white/30 hover:border-white/50 shadow-lg hover:shadow-xl"
+                  className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Voltar
                 </Link>
                 <Link
                   href="/painel/produtos/novo-produto"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
+                  className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   Novo Produto
@@ -652,10 +749,14 @@ export default function ProdutosPage() {
               </div>
             </div>
           </div>
+        </div>
+        
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
 
           {/* Mensagens */}
           {error && (
-            <div className="mx-6 mt-6 p-4 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 rounded-xl shadow-lg">
+            <div className="p-6 md:p-8 border-b border-gray-200">
+              <div className="p-4 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 rounded-xl shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
@@ -677,10 +778,12 @@ export default function ProdutosPage() {
                 </button>
               </div>
             </div>
+            </div>
           )}
 
           {success && (
-            <div className="mx-6 mt-6 p-4 bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 rounded-xl shadow-lg">
+            <div className="p-6 md:p-8 border-b border-gray-200">
+              <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 rounded-xl shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0">
                   <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
@@ -702,63 +805,73 @@ export default function ProdutosPage() {
                 </button>
               </div>
             </div>
+            </div>
           )}
 
           {/* Estatísticas */}
-          <div className="p-6 md:p-8 bg-gradient-to-br from-gray-50 to-white border-b border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="w-10 h-10 bg-[var(--color-avocado-100)] rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
+          <div className="p-6 md:p-8 lg:p-10 bg-white border-b border-gray-200">
+            <div className="flex items-center gap-3 mb-6 md:mb-8">
+              <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-avocado-100)] to-[var(--color-avocado-200)] rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
                 Resumo dos Produtos
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="group bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-blue-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-blue-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Total de Produtos</p>
-                  <p className="text-4xl font-bold text-blue-600 mb-1">{totalProdutos}</p>
-                  <p className="text-xs text-gray-500">No catálogo</p>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Total de Produtos</p>
+                    <p className="text-4xl md:text-5xl font-bold text-blue-600 mb-1">{totalProdutos}</p>
+                    <p className="text-xs text-gray-500">No catálogo</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="group bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-green-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+              <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-green-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-green-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Produtos Ativos</p>
-                  <p className="text-4xl font-bold text-green-600 mb-1">{produtosAtivos}</p>
-                  <p className="text-xs text-gray-500">Disponíveis para venda</p>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Produtos Ativos</p>
+                    <p className="text-4xl md:text-5xl font-bold text-green-600 mb-1">{produtosAtivos}</p>
+                    <p className="text-xs text-gray-500">Disponíveis para venda</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="group bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-amber-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+              <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-amber-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-100 to-amber-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Produtos Pausados</p>
-                  <p className="text-4xl font-bold text-amber-600 mb-1">{produtosPausados}</p>
-                  <p className="text-xs text-gray-500">Temporariamente indisponíveis</p>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Produtos Pausados</p>
+                    <p className="text-4xl md:text-5xl font-bold text-amber-600 mb-1">{produtosPausados}</p>
+                    <p className="text-xs text-gray-500">Temporariamente indisponíveis</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -787,15 +900,18 @@ export default function ProdutosPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
-                      <input
-                        type="text"
-                        name="subcategoria"
-                        value={formData.subcategoria}
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
+                      <select
+                        name="categoria"
+                        value={formData.categoria}
                         onChange={handleInputChange}
+                        required
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="Digite a subcategoria"
-                      />
+                      >
+                        {CATEGORIAS.map(cat => (
+                          <option key={cat.slug} value={cat.slug}>{cat.nome}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   
@@ -840,6 +956,18 @@ export default function ProdutosPage() {
                           <option key={tipo} value={tipo}>{tipo}</option>
                         ))}
                       </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Custo de Produção (R$)</label>
+                      <input
+                        type="number"
+                        name="preco.custoProducao"
+                        value={formData.preco.custoProducao}
+                        onChange={handleInputChange}
+                        step="0.01"
+                        min="0"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      />
                     </div>
                   </div>
                   
@@ -943,34 +1071,95 @@ export default function ProdutosPage() {
                   </div>
                 </div>
 
-                {/* Subcategoria */}
+                {/* Categoria e Status */}
                 <div className="bg-purple-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">📋 Subcategoria</h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
-                    <input
-                      type="text"
-                      name="subcategoria"
-                      value={formData.subcategoria}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      placeholder="Digite a subcategoria"
-                    />
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🏷️ Categoria e Status</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
+                      <select
+                        name="subcategoria"
+                        value={formData.subcategoria}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        <option value="">Selecione uma subcategoria</option>
+                        {subcategorias.map(sub => (
+                          <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                      <select
+                        name="status"
+                        value={formData.status}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                        <option value="sazonal">Sazonal</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        name="destaque"
+                        checked={formData.destaque}
+                        onChange={handleInputChange}
+                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                      <label className="text-sm font-medium text-gray-700">Produto em Destaque</label>
+                    </div>
                   </div>
                 </div>
 
-                {/* Ingredientes */}
+                {/* Ingredientes e Alérgenos */}
                 <div className="bg-orange-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🥘 Ingredientes</h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes (separados por vírgula)</label>
-                    <textarea
-                      value={Array.isArray(formData.ingredientes) ? formData.ingredientes.join(', ') : (formData.ingredientes || '')}
-                      onChange={(e) => handleArrayChange('ingredientes', e.target.value)}
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      placeholder="Farinha de trigo, açúcar, ovos, leite..."
-                    />
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🥘 Ingredientes e Alérgenos</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes (separados por vírgula)</label>
+                      <textarea
+                        value={Array.isArray(formData.ingredientes) ? formData.ingredientes.join(', ') : (formData.ingredientes || '')}
+                        onChange={(e) => handleArrayChange('ingredientes', e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                        placeholder="Farinha de trigo, açúcar, ovos, leite..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Alérgenos (separados por vírgula)</label>
+                      <textarea
+                        value={Array.isArray(formData.alergicos) ? formData.alergicos.join(', ') : (formData.alergicos || '')}
+                        onChange={(e) => handleArrayChange('alergicos', e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                        placeholder="Contém glúten, contém leite..."
+                      />
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-500 mb-2">Alérgenos comuns:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {ALERGENOS_COMUNS.map(alergeno => (
+                            <button
+                              key={alergeno}
+                              type="button"
+                              onClick={() => {
+                                const novosAlergicos = [...formData.alergicos];
+                                if (!novosAlergicos.includes(alergeno)) {
+                                  novosAlergicos.push(alergeno);
+                                  setFormData(prev => ({ ...prev, alergicos: novosAlergicos }));
+                                }
+                              }}
+                              className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full hover:bg-orange-200 transition-colors"
+                            >
+                              + {alergeno}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1001,12 +1190,26 @@ export default function ProdutosPage() {
                   </div>
                 </div>
 
+                {/* Tags */}
+                <div className="bg-pink-50 p-4 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🏷️ Tags</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Tags (separadas por vírgula)</label>
+                    <input
+                      type="text"
+                      value={Array.isArray(formData.tags) ? formData.tags.join(', ') : (formData.tags || '')}
+                      onChange={(e) => handleArrayChange('tags', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      placeholder="tradicional, caseiro, artesanal..."
+                    />
+                  </div>
+                </div>
 
                 <div className="flex gap-3">
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   >
                     {isSubmitting ? 'Salvando...' : (produtoEditando ? 'Atualizar Produto' : 'Criar Produto')}
                   </button>
@@ -1023,6 +1226,7 @@ export default function ProdutosPage() {
                         preco: {
                           valor: "",
                           tipo: "UN",
+                          custoProducao: "",
                           promocao: {
                             ativo: false,
                             valorPromocional: "",
@@ -1040,11 +1244,15 @@ export default function ProdutosPage() {
                           href: "",
                           alt: ""
                         },
-                        ingredientes: []
+                        ingredientes: [],
+                        alergicos: [],
+                        destaque: false,
+                        tags: [],
+                        status: "ativo"
                       });
                     try { localStorage.removeItem("painel_produto_draft"); } catch {}
                     }}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-gray-600 hover:shadow-xl border-2 border-gray-300 hover:border-gray-400"
+                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-gray-600 hover:shadow-xl border-2 border-gray-300 hover:border-gray-400"
                   >
                     Cancelar
                   </button>
@@ -1063,17 +1271,16 @@ export default function ProdutosPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Categoria</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Subcategoria</label>
                 <select
-                  value={filtroCategoria}
-                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  value={filtroSubcategoria}
+                  onChange={(e) => setFiltroSubcategoria(e.target.value)}
                   className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
                 >
-                  <option value="todos">Todas as categorias</option>
-                  <option value="Doces & Sobremesas">🍰 Doces & Sobremesas</option>
-                  <option value="Pães & Especiais">🥖 Pães & Especiais</option>
-                  <option value="Salgados & Lanches">🥐 Salgados & Lanches</option>
-                  <option value="Bebidas">🥤 Bebidas</option>
+                  <option value="todos">Todas as subcategorias</option>
+                  {subcategorias.map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -1138,7 +1345,7 @@ export default function ProdutosPage() {
                       <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                         {produto.destaque === true && (
                           <span className="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white text-xs font-bold rounded-full shadow-xl backdrop-blur-sm border border-yellow-300/50">
-                            ⭐ DESTAQUE
+                            DESTAQUE
                           </span>
                         )}
                         <span
@@ -1150,8 +1357,8 @@ export default function ProdutosPage() {
                               : "bg-gradient-to-r from-green-400 to-green-500 text-white border-green-300/50"
                           }`}
                         >
-                          {produto.status === "inativo" ? "⏸️ INATIVO" : 
-                           produto.status === "sazonal" ? "🌿 SAZONAL" : "✅ ATIVO"}
+                          {produto.status === "inativo" ? "INATIVO" : 
+                           produto.status === "sazonal" ? "SAZONAL" : "ATIVO"}
                         </span>
                       </div>
                       {/* Overlay de ação rápida no hover */}
@@ -1274,41 +1481,41 @@ export default function ProdutosPage() {
                       </div>
 
                       {/* Botões de Ação */}
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => handleEdit(produto)}
-                          className="group/btn px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                         >
-                          <svg className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                           Editar
                         </button>
                         <button
                           onClick={() => handleToggleDestaque(produto)}
-                          className={`group/btn px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                          className={`flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 hover:shadow-xl border-2 ${
                             produto.destaque === true
-                              ? "bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white"
-                              : "bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white"
+                              ? "bg-white text-yellow-600 border-yellow-600 hover:border-yellow-500"
+                              : "bg-white text-[var(--color-avocado-600)] border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                           }`}
                           title={produto.destaque === true ? "Remover dos destaques" : "Marcar como destaque"}
                         >
-                          <svg className={`w-5 h-5 group-hover/btn:scale-125 transition-transform ${produto.destaque === true ? 'animate-pulse' : ''}`} fill="currentColor" viewBox="0 0 20 20">
+                          <svg className={`w-4 h-4 ${produto.destaque === true ? 'animate-pulse' : ''}`} fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
-                          {produto.destaque === true ? "Desmarcar" : "Marcar"}
+                          {produto.destaque === true ? "Destaque" : "Marcar"}
                         </button>
                         <button
                           onClick={() => handleToggleStatus(produto)}
-                          className={`group/btn px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                          className={`flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 hover:shadow-xl border-2 ${
                             produto.status === "inativo"
-                              ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                              : "bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white"
+                              ? "bg-white text-green-600 border-green-600 hover:border-green-500"
+                              : "bg-white text-amber-600 border-amber-600 hover:border-amber-500"
                           }`}
                         >
                           {produto.status === "inativo" ? (
                             <>
-                              <svg className="w-5 h-5 group-hover/btn:scale-125 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
@@ -1316,7 +1523,7 @@ export default function ProdutosPage() {
                             </>
                           ) : (
                             <>
-                              <svg className="w-5 h-5 group-hover/btn:scale-125 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                               Pausar
@@ -1325,9 +1532,9 @@ export default function ProdutosPage() {
                         </button>
                         <button
                           onClick={() => handleDelete(produto)}
-                          className="group/btn px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
+                          className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-red-600 hover:shadow-xl border-2 border-red-600 hover:border-red-500"
                         >
-                          <svg className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                           Deletar
