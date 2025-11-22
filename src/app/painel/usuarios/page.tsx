@@ -284,7 +284,7 @@ export default function GerenciarUsuarios() {
                 <div className="flex gap-3">
                   <Link
                     href="/painel"
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-gray-600 hover:shadow-xl border-2 border-gray-300 hover:border-gray-400"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -294,7 +294,7 @@ export default function GerenciarUsuarios() {
                   <button
                     onClick={fetchUsuarios}
                     disabled={loading}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -535,7 +535,7 @@ export default function GerenciarUsuarios() {
                                 {user.permission === "administrador" ? (
                                   <button
                                     onClick={() => handleUpdatePermission(user.id, user.permission)}
-                                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-yellow-500 hover:bg-yellow-600 text-white"
+                                    className="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-yellow-600 hover:shadow-xl border-2 border-yellow-600 hover:border-yellow-500"
                                     title="Remover permissão de administrador"
                                   >
                                     ⬇️ Remover Admin
@@ -543,7 +543,7 @@ export default function GerenciarUsuarios() {
                                 ) : (
                                   <button
                                     onClick={() => handleUpdatePermission(user.id, user.permission)}
-                                    className="px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-green-500 hover:bg-green-600 text-white"
+                                    className="inline-flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                                     title="Promover a administrador"
                                   >
                                     ⬆️ Promover Admin
@@ -554,7 +554,7 @@ export default function GerenciarUsuarios() {
                             
                             {/* Mostrar badge se NÃO tem permissão suprema */}
                             {!isSuperAdmin && user.permission === "administrador" && (
-                              <span className="px-3 py-2 rounded-lg text-sm bg-gray-200 text-gray-600">
+                              <span className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md bg-white text-gray-600 border-2 border-gray-300">
                                 🔒 Apenas Super Admin pode alterar
                               </span>
                             )}
@@ -565,7 +565,7 @@ export default function GerenciarUsuarios() {
                                 {/* Não pode deletar a si mesmo */}
                                 {currentUser?._id === user.id ? (
                                   <span 
-                                    className="px-3 py-2 rounded-lg text-sm bg-gray-200 text-gray-600 cursor-not-allowed"
+                                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md bg-white text-gray-600 border-2 border-gray-300 cursor-not-allowed"
                                     title="Você não pode deletar sua própria conta"
                                   >
                                     🔒 Você mesmo
@@ -573,7 +573,7 @@ export default function GerenciarUsuarios() {
                                 ) : user.permissaoSuprema && totalSuperAdmins <= 1 ? (
                                   /* Não pode deletar o último Super Admin */
                                   <span 
-                                    className="px-3 py-2 rounded-lg text-sm bg-yellow-200 text-yellow-800 cursor-not-allowed"
+                                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md bg-white text-yellow-800 border-2 border-yellow-300 cursor-not-allowed"
                                     title="Não é possível deletar o último Super Admin. Promova outro usuário primeiro."
                                   >
                                     ⚠️ Último Super Admin
@@ -582,7 +582,7 @@ export default function GerenciarUsuarios() {
                                   /* Pode deletar */
                                   <button
                                     onClick={() => handleDeleteUser(user.id, user.name)}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-red-600 hover:shadow-xl border-2 border-red-600 hover:border-red-500"
                                     title="Deletar usuário permanentemente"
                                   >
                                     🗑️ Deletar
