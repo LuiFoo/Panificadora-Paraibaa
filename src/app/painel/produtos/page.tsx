@@ -265,6 +265,9 @@ export default function ProdutosPage() {
           alt: formData.imagem.alt || formData.nome
         },
         ingredientes: formData.ingredientes,
+        alergicos: [], // Campo removido do formulário, mas mantido para compatibilidade
+        destaque: false, // Campo removido do formulário, mas mantido para compatibilidade
+        tags: [], // Campo removido do formulário, mas mantido para compatibilidade
         status: "ativo"
       };
 
@@ -306,6 +309,9 @@ export default function ProdutosPage() {
           setProdutos(prev => [{
             _id: data.produtoId,
             ...produtoData,
+            alergicos: [], // Campo removido do formulário, mas mantido para compatibilidade
+            destaque: false, // Campo removido do formulário, mas mantido para compatibilidade
+            tags: [], // Campo removido do formulário, mas mantido para compatibilidade
             avaliacao: { media: 0, quantidade: 0, usuarios: [] },
             criadoEm: new Date(),
             atualizadoEm: new Date()

@@ -176,6 +176,9 @@ export default function EditarProdutoPage() {
           alt: formData.imagem.alt || formData.nome
         },
         ingredientes: Array.isArray(formData.ingredientes) ? formData.ingredientes : [],
+        alergicos: [], // Campo removido do formulário, mas mantido para compatibilidade
+        destaque: false, // Campo removido do formulário, mas mantido para compatibilidade
+        tags: [], // Campo removido do formulário, mas mantido para compatibilidade
         status: "ativo"
       };
 
