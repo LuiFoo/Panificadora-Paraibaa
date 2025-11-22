@@ -18,6 +18,7 @@ export default function EditarProdutoPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -129,6 +130,11 @@ export default function EditarProdutoPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevenir múltiplos cliques
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     setError("");
     setSuccess("");
     try {
@@ -201,9 +207,11 @@ export default function EditarProdutoPage() {
         }, 1000);
       } else {
         setError(data.error || 'Erro ao atualizar produto');
+        setIsSubmitting(false);
       }
     } catch {
       setError('Erro ao conectar com o servidor');
+      setIsSubmitting(false);
     }
   };
 
@@ -404,7 +412,13 @@ export default function EditarProdutoPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button type="submit" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]">Salvar Alterações</button>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
+                  </button>
                   <Link href="/painel/produtos" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-gray-600 hover:shadow-xl border-2 border-gray-300 hover:border-gray-400">Cancelar</Link>
                 </div>
               </form>

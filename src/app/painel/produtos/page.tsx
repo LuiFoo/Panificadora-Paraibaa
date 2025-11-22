@@ -109,6 +109,7 @@ export default function ProdutosPage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const draftTimerRef = useRef<number | null>(null);
 
   const fetchProdutos = useCallback(async () => {
@@ -129,6 +130,7 @@ export default function ProdutosPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
+        setIsSubmitting(false);
         return;
       }
       
@@ -209,6 +211,11 @@ export default function ProdutosPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevenir múltiplos cliques
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     setError("");
     setSuccess("");
 
@@ -216,6 +223,7 @@ export default function ProdutosPage() {
       // 🐛 CORREÇÃO: Validar nome não vazio
       if (!formData.nome || formData.nome.trim().length === 0) {
         setError("Nome do produto é obrigatório");
+        setIsSubmitting(false);
         return;
       }
       
@@ -279,6 +287,7 @@ export default function ProdutosPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
+        setIsSubmitting(false);
         return;
       }
       
@@ -304,12 +313,15 @@ export default function ProdutosPage() {
         setProdutoEditando(null);
         resetForm();
         try { localStorage.removeItem("painel_produto_draft"); } catch {}
+        setIsSubmitting(false);
       } else {
         setError(data.error || "Erro ao salvar produto");
+        setIsSubmitting(false);
       }
     } catch (err) {
       console.error("Erro ao salvar produto:", err);
       setError("Erro ao conectar com o servidor");
+      setIsSubmitting(false);
     }
   };
 
@@ -422,6 +434,7 @@ export default function ProdutosPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
+        setIsSubmitting(false);
         return;
       }
       
@@ -493,6 +506,7 @@ export default function ProdutosPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
+        setIsSubmitting(false);
         return;
       }
       
@@ -991,9 +1005,10 @@ export default function ProdutosPage() {
                 <div className="flex gap-3">
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                    disabled={isSubmitting}
+                    className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {produtoEditando ? 'Atualizar Produto' : 'Criar Produto'}
+                    {isSubmitting ? 'Salvando...' : (produtoEditando ? 'Atualizar Produto' : 'Criar Produto')}
                   </button>
                   <button
                     type="button"
