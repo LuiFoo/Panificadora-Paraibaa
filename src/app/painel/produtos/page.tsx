@@ -66,7 +66,6 @@ export default function ProdutosPage() {
     preco: {
       valor: "",
       tipo: "UN",
-      custoProducao: "",
       promocao: {
         ativo: false,
         valorPromocional: "",
@@ -84,11 +83,7 @@ export default function ProdutosPage() {
       href: "",
       alt: ""
     },
-    ingredientes: [] as string[],
-    alergicos: [] as string[],
-    destaque: false,
-    tags: [] as string[],
-    status: "ativo"
+    ingredientes: [] as string[]
   });
 
   // Persistência de rascunho no localStorage
@@ -220,7 +215,7 @@ export default function ProdutosPage() {
     });
   };
 
-  const handleArrayChange = (field: 'ingredientes' | 'alergicos' | 'tags', value: string) => {
+  const handleArrayChange = (field: 'ingredientes', value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value.split(',').map(item => item.trim()).filter(Boolean)
@@ -264,7 +259,6 @@ export default function ProdutosPage() {
         preco: {
           valor: safeParseFloat(formData.preco.valor),
           tipo: formData.preco.tipo,
-          custoProducao: formData.preco.custoProducao ? safeParseFloat(formData.preco.custoProducao) : undefined,
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
             valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
@@ -283,10 +277,7 @@ export default function ProdutosPage() {
           alt: formData.imagem.alt || formData.nome
         },
         ingredientes: formData.ingredientes,
-        alergicos: formData.alergicos,
-        destaque: formData.destaque,
-        tags: formData.tags,
-        status: formData.status
+        status: "ativo"
       };
 
       const url = produtoEditando 
@@ -353,7 +344,6 @@ export default function ProdutosPage() {
       preco: {
         valor: "",
         tipo: "UN",
-        custoProducao: "",
         promocao: {
           ativo: false,
           valorPromocional: "",
@@ -371,11 +361,7 @@ export default function ProdutosPage() {
         href: "",
         alt: ""
       },
-      ingredientes: [] as string[],
-      alergicos: [] as string[],
-      destaque: false,
-      tags: [] as string[],
-      status: "ativo"
+      ingredientes: [] as string[]
     });
   };
 
@@ -809,18 +795,15 @@ export default function ProdutosPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
-                      <select
-                        name="categoria"
-                        value={formData.categoria}
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
+                      <input
+                        type="text"
+                        name="subcategoria"
+                        value={formData.subcategoria}
                         onChange={handleInputChange}
-                        required
                         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      >
-                        {CATEGORIAS.map(cat => (
-                          <option key={cat.slug} value={cat.slug}>{cat.nome}</option>
-                        ))}
-                      </select>
+                        placeholder="Digite a subcategoria"
+                      />
                     </div>
                   </div>
                   
@@ -865,18 +848,6 @@ export default function ProdutosPage() {
                           <option key={tipo} value={tipo}>{tipo}</option>
                         ))}
                       </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Custo de Produção (R$)</label>
-                      <input
-                        type="number"
-                        name="preco.custoProducao"
-                        value={formData.preco.custoProducao}
-                        onChange={handleInputChange}
-                        step="0.01"
-                        min="0"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      />
                     </div>
                   </div>
                   
@@ -980,95 +951,34 @@ export default function ProdutosPage() {
                   </div>
                 </div>
 
-                {/* Categoria e Status */}
+                {/* Subcategoria */}
                 <div className="bg-purple-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🏷️ Categoria e Status</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
-                      <select
-                        name="subcategoria"
-                        value={formData.subcategoria}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      >
-                        <option value="">Selecione uma subcategoria</option>
-                        {subcategorias.map(sub => (
-                          <option key={sub} value={sub}>{sub}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                      <select
-                        name="status"
-                        value={formData.status}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      >
-                        <option value="ativo">Ativo</option>
-                        <option value="inativo">Inativo</option>
-                        <option value="sazonal">Sazonal</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="destaque"
-                        checked={formData.destaque}
-                        onChange={handleInputChange}
-                        className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                      />
-                      <label className="text-sm font-medium text-gray-700">Produto em Destaque</label>
-                    </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">📋 Subcategoria</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
+                    <input
+                      type="text"
+                      name="subcategoria"
+                      value={formData.subcategoria}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      placeholder="Digite a subcategoria"
+                    />
                   </div>
                 </div>
 
-                {/* Ingredientes e Alérgenos */}
+                {/* Ingredientes */}
                 <div className="bg-orange-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🥘 Ingredientes e Alérgenos</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes (separados por vírgula)</label>
-                      <textarea
-                        value={Array.isArray(formData.ingredientes) ? formData.ingredientes.join(', ') : (formData.ingredientes || '')}
-                        onChange={(e) => handleArrayChange('ingredientes', e.target.value)}
-                        rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="Farinha de trigo, açúcar, ovos, leite..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Alérgenos (separados por vírgula)</label>
-                      <textarea
-                        value={Array.isArray(formData.alergicos) ? formData.alergicos.join(', ') : (formData.alergicos || '')}
-                        onChange={(e) => handleArrayChange('alergicos', e.target.value)}
-                        rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                        placeholder="Contém glúten, contém leite..."
-                      />
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-500 mb-2">Alérgenos comuns:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {ALERGENOS_COMUNS.map(alergeno => (
-                            <button
-                              key={alergeno}
-                              type="button"
-                              onClick={() => {
-                                const novosAlergicos = [...formData.alergicos];
-                                if (!novosAlergicos.includes(alergeno)) {
-                                  novosAlergicos.push(alergeno);
-                                  setFormData(prev => ({ ...prev, alergicos: novosAlergicos }));
-                                }
-                              }}
-                              className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full hover:bg-orange-200 transition-colors"
-                            >
-                              + {alergeno}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🥘 Ingredientes</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes (separados por vírgula)</label>
+                    <textarea
+                      value={Array.isArray(formData.ingredientes) ? formData.ingredientes.join(', ') : (formData.ingredientes || '')}
+                      onChange={(e) => handleArrayChange('ingredientes', e.target.value)}
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      placeholder="Farinha de trigo, açúcar, ovos, leite..."
+                    />
                   </div>
                 </div>
 
@@ -1099,20 +1009,6 @@ export default function ProdutosPage() {
                   </div>
                 </div>
 
-                {/* Tags */}
-                <div className="bg-pink-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🏷️ Tags</h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tags (separadas por vírgula)</label>
-                    <input
-                      type="text"
-                      value={Array.isArray(formData.tags) ? formData.tags.join(', ') : (formData.tags || '')}
-                      onChange={(e) => handleArrayChange('tags', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      placeholder="tradicional, caseiro, artesanal..."
-                    />
-                  </div>
-                </div>
 
                 <div className="flex gap-3">
                   <button
@@ -1134,7 +1030,6 @@ export default function ProdutosPage() {
                         preco: {
                           valor: "",
                           tipo: "UN",
-                          custoProducao: "",
                           promocao: {
                             ativo: false,
                             valorPromocional: "",
@@ -1152,11 +1047,7 @@ export default function ProdutosPage() {
                           href: "",
                           alt: ""
                         },
-                        ingredientes: [],
-                        alergicos: [],
-                        destaque: false,
-                        tags: [],
-                        status: "ativo"
+                        ingredientes: []
                       });
                     try { localStorage.removeItem("painel_produto_draft"); } catch {}
                     }}

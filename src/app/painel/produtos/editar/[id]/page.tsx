@@ -38,16 +38,11 @@ export default function EditarProdutoPage() {
     preco: {
       valor: "",
       tipo: "UN",
-      custoProducao: "",
       promocao: { ativo: false, valorPromocional: "", inicio: "", fim: "" }
     },
     estoque: { disponivel: true, quantidade: "", minimo: "", unidadeMedida: "UN" },
-    imagem: { href: "", alt: "", galeria: [] as string[] },
-    ingredientes: [] as string[],
-    alergicos: [] as string[],
-    destaque: false,
-    tags: [] as string[],
-    status: "ativo" as "ativo" | "inativo" | "sazonal"
+    imagem: { href: "", alt: "" },
+    ingredientes: [] as string[]
   });
 
   useEffect(() => {
@@ -72,7 +67,6 @@ export default function EditarProdutoPage() {
             preco: {
               valor: (produto.preco?.valor || 0).toString(),
               tipo: produto.preco?.tipo || "UN",
-              custoProducao: produto.preco?.custoProducao?.toString() || "",
               promocao: {
                 ativo: produto.preco?.promocao?.ativo || false,
                 valorPromocional: produto.preco?.promocao?.valorPromocional?.toString() || "",
@@ -88,14 +82,9 @@ export default function EditarProdutoPage() {
             },
             imagem: {
               href: produto.imagem?.href || "",
-              alt: produto.imagem?.alt || produto.nome || "",
-              galeria: Array.isArray(produto.imagem?.galeria) ? produto.imagem.galeria : []
+              alt: produto.imagem?.alt || produto.nome || ""
             },
-            ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : [],
-            alergicos: Array.isArray(produto.alergicos) ? produto.alergicos : [],
-            destaque: produto.destaque || false,
-            tags: Array.isArray(produto.tags) ? produto.tags : [],
-            status: produto.status || "ativo"
+            ingredientes: Array.isArray(produto.ingredientes) ? produto.ingredientes : []
           });
         } else {
           setError(data.error || "Produto não encontrado");
@@ -130,48 +119,22 @@ export default function EditarProdutoPage() {
     }
   };
 
-  const handleAddItem = (field: 'ingredientes' | 'alergicos' | 'tags' | 'galeria', value: string) => {
+  const handleAddItem = (field: 'ingredientes', value: string) => {
     if (!value.trim()) return;
     setFormData(prev => {
-      if (field === 'galeria') {
-        const galeria = Array.isArray(prev.imagem.galeria) ? prev.imagem.galeria : [];
-        if (!galeria.includes(value.trim())) {
-          return {
-            ...prev,
-            imagem: {
-              ...prev.imagem,
-              galeria: [...galeria, value.trim()]
-            }
-          };
-        }
-        return prev;
-      } else {
-        const current = prev[field] || [];
-        if (!current.includes(value.trim())) {
-          return { ...prev, [field]: [...current, value.trim()] };
-        }
-        return prev;
+      const current = prev[field] || [];
+      if (!current.includes(value.trim())) {
+        return { ...prev, [field]: [...current, value.trim()] };
       }
+      return prev;
     });
   };
 
-  const handleRemoveItem = (field: 'ingredientes' | 'alergicos' | 'tags' | 'galeria', index: number) => {
+  const handleRemoveItem = (field: 'ingredientes', index: number) => {
     setFormData(prev => {
-      if (field === 'galeria') {
-        const galeria = Array.isArray(prev.imagem.galeria) ? [...prev.imagem.galeria] : [];
-        galeria.splice(index, 1);
-        return {
-          ...prev,
-          imagem: {
-            ...prev.imagem,
-            galeria
-          }
-        };
-      } else {
-        const current = [...(prev[field] || [])];
-        current.splice(index, 1);
-        return { ...prev, [field]: current };
-      }
+      const current = [...(prev[field] || [])];
+      current.splice(index, 1);
+      return { ...prev, [field]: current };
     });
   };
 
@@ -195,7 +158,6 @@ export default function EditarProdutoPage() {
         preco: {
           valor: precoValor,
           tipo: formData.preco.tipo,
-          custoProducao: formData.preco.custoProducao ? safeParseFloat(formData.preco.custoProducao) : undefined,
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
             valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
@@ -211,14 +173,10 @@ export default function EditarProdutoPage() {
         },
         imagem: {
           href: formData.imagem.href,
-          alt: formData.imagem.alt || formData.nome,
-          galeria: Array.isArray(formData.imagem.galeria) ? formData.imagem.galeria : []
+          alt: formData.imagem.alt || formData.nome
         },
         ingredientes: Array.isArray(formData.ingredientes) ? formData.ingredientes : [],
-        alergicos: Array.isArray(formData.alergicos) ? formData.alergicos : [],
-        destaque: formData.destaque,
-        tags: Array.isArray(formData.tags) ? formData.tags : [],
-        status: formData.status
+        status: "ativo"
       };
 
       if (!produtoId) {
@@ -290,12 +248,8 @@ export default function EditarProdutoPage() {
                       <input name="nome" value={formData.nome} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm" />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Categoria *</label>
-                      <select name="categoria" value={formData.categoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm">
-                        {CATEGORIAS_CANONICAS.map(c => (
-                          <option key={c.slug} value={c.slug}>{c.nome}</option>
-                        ))}
-                      </select>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
+                      <input name="subcategoria" value={formData.subcategoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm" />
                     </div>
                   </div>
                   <div className="mt-4">
@@ -307,7 +261,7 @@ export default function EditarProdutoPage() {
                 {/* Preço e Promoção */}
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">💰 Preço e Promoção</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Valor (R$) *</label>
                       <input type="number" step="0.01" min="0" name="preco.valor" value={formData.preco.valor} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm" />
@@ -317,10 +271,6 @@ export default function EditarProdutoPage() {
                       <select name="preco.tipo" value={formData.preco.tipo} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm">
                         {['UN','KG','PCT','DZ','CENTO','LITRO','GRAMAS'].map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Custo de Produção (R$)</label>
-                      <input type="number" step="0.01" min="0" name="preco.custoProducao" value={formData.preco.custoProducao} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm" />
                     </div>
                   </div>
 
@@ -373,130 +323,57 @@ export default function EditarProdutoPage() {
                   </div>
                 </div>
 
-                {/* Categoria e Status */}
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🏷️ Categoria e Status</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Subcategoria</label>
-                      <input name="subcategoria" value={formData.subcategoria} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                      <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all shadow-sm">
-                        <option value="ativo">Ativo</option>
-                        <option value="inativo">Inativo</option>
-                        <option value="sazonal">Sazonal</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input type="checkbox" name="destaque" checked={formData.destaque} onChange={handleChange} className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500" />
-                      <label className="text-sm font-medium text-gray-700">Produto em Destaque</label>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Ingredientes e Alérgenos */}
+                {/* Ingredientes */}
                 <div className="bg-orange-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🥘 Ingredientes e Alérgenos</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes</label>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="text"
-                          id="ingrediente-input-edit"
-                          placeholder="Digite um ingrediente e pressione Enter"
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const input = e.target as HTMLInputElement;
-                              handleAddItem('ingredientes', input.value);
-                              input.value = '';
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const input = document.getElementById('ingrediente-input-edit') as HTMLInputElement;
-                            if (input?.value) {
-                              handleAddItem('ingredientes', input.value);
-                              input.value = '';
-                            }
-                          }}
-                          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 min-h-[60px] p-2 bg-white rounded-lg border border-gray-200">
-                        {formData.ingredientes.map((item, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
-                            {item}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem('ingredientes', idx)}
-                              className="hover:text-red-600 transition-colors"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                        {formData.ingredientes.length === 0 && (
-                          <span className="text-gray-400 text-sm">Nenhum ingrediente adicionado</span>
-                        )}
-                      </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🥘 Ingredientes</h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Ingredientes</label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        id="ingrediente-input-edit"
+                        placeholder="Digite um ingrediente e pressione Enter"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const input = e.target as HTMLInputElement;
+                            handleAddItem('ingredientes', input.value);
+                            input.value = '';
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.getElementById('ingrediente-input-edit') as HTMLInputElement;
+                          if (input?.value) {
+                            handleAddItem('ingredientes', input.value);
+                            input.value = '';
+                          }
+                        }}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                      >
+                        +
+                      </button>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Alérgenos</label>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="text"
-                          id="alergico-input-edit"
-                          placeholder="Digite um alérgeno e pressione Enter"
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const input = e.target as HTMLInputElement;
-                              handleAddItem('alergicos', input.value);
-                              input.value = '';
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const input = document.getElementById('alergico-input-edit') as HTMLInputElement;
-                            if (input?.value) {
-                              handleAddItem('alergicos', input.value);
-                              input.value = '';
-                            }
-                          }}
-                          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 min-h-[60px] p-2 bg-white rounded-lg border border-gray-200">
-                        {formData.alergicos.map((item, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
-                            {item}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem('alergicos', idx)}
-                              className="hover:text-red-600 transition-colors"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                        {formData.alergicos.length === 0 && (
-                          <span className="text-gray-400 text-sm">Nenhum alérgeno adicionado</span>
-                        )}
-                      </div>
+                    <div className="flex flex-wrap gap-2 min-h-[60px] p-2 bg-white rounded-lg border border-gray-200">
+                      {formData.ingredientes.map((item, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">
+                          {item}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem('ingredientes', idx)}
+                            className="hover:text-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {formData.ingredientes.length === 0 && (
+                        <span className="text-gray-400 text-sm">Nenhum ingrediente adicionado</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -513,107 +390,6 @@ export default function EditarProdutoPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">Texto Alternativo</label>
                       <input name="imagem.alt" value={formData.imagem.alt} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" />
                     </div>
-                  </div>
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Galeria de Imagens</label>
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        type="url"
-                        id="galeria-input-edit"
-                        placeholder="Cole a URL da imagem e pressione Enter"
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const input = e.target as HTMLInputElement;
-                            handleAddItem('galeria', input.value);
-                            input.value = '';
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const input = document.getElementById('galeria-input-edit') as HTMLInputElement;
-                          if (input?.value) {
-                            handleAddItem('galeria', input.value);
-                            input.value = '';
-                          }
-                        }}
-                        className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 min-h-[60px] p-2 bg-white rounded-lg border border-gray-200">
-                      {(Array.isArray(formData.imagem.galeria) ? formData.imagem.galeria : []).map((url, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm max-w-xs truncate">
-                          {url}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem('galeria', idx)}
-                            className="hover:text-red-600 transition-colors flex-shrink-0"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                      {(!Array.isArray(formData.imagem.galeria) || formData.imagem.galeria.length === 0) && (
-                        <span className="text-gray-400 text-sm">Nenhuma imagem na galeria</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div className="bg-pink-50 p-4 rounded-lg">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">🏷️ Tags</h3>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      id="tag-input-edit"
-                      placeholder="Digite uma tag e pressione Enter"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const input = e.target as HTMLInputElement;
-                          handleAddItem('tags', input.value);
-                          input.value = '';
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const input = document.getElementById('tag-input-edit') as HTMLInputElement;
-                        if (input?.value) {
-                          handleAddItem('tags', input.value);
-                          input.value = '';
-                        }
-                      }}
-                      className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 min-h-[60px] p-2 bg-white rounded-lg border border-gray-200">
-                    {formData.tags.map((item, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-sm">
-                        {item}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem('tags', idx)}
-                          className="hover:text-red-600 transition-colors"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                    {formData.tags.length === 0 && (
-                      <span className="text-gray-400 text-sm">Nenhuma tag adicionada</span>
-                    )}
                   </div>
                 </div>
 

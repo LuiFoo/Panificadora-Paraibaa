@@ -93,8 +93,18 @@ export default async function handler(
       .toArray();
 
     // Processar produtos e agrupar por categoria
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    produtos.forEach((produto: any) => {
+    produtos.forEach((produto: Partial<ProdutoUnificado> & {
+      _id: unknown;
+      subc?: string;
+      valor?: number;
+      vtipo?: string;
+      img?: string;
+      dataCriacao?: Date | string;
+      dataAtualizacao?: Date | string;
+      status?: string;
+      mediaAvaliacao?: number;
+      totalAvaliacoes?: number;
+    }) => {
       let categoriaSlug: string;
       let grupoPrincipal: string;
 
