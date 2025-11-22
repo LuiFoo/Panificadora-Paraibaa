@@ -70,7 +70,7 @@ export default async function handler(
 
     // Mapeamento de categorias para os grupos principais
     const mapeamentoCategorias: Record<string, string> = {
-      // Categorias antigas (slugs)
+      // Categorias antigas (slugs) - para compatibilidade com produtos antigos
       "bolos-doces-especiais": "doces",
       "doces-individuais": "doces",
       "paes-doces": "doces",
@@ -79,13 +79,11 @@ export default async function handler(
       "roscas-paes-especiais": "paes",
       "salgados-assados-lanches": "salgados",
       "bebidas": "bebidas",
-      // Novas subcategorias
-      "doces & sobremesas": "doces",
-      "doces-e-sobremesas": "doces",
-      "pães & especiais": "paes",
-      "paes-e-especiais": "paes",
-      "salgados & lanches": "salgados",
-      "salgados-e-lanches": "salgados"
+      // Novas subcategorias (valores exatos do select)
+      "Doces & Sobremesas": "doces",
+      "Pães & Especiais": "paes",
+      "Salgados & Lanches": "salgados",
+      "Bebidas": "bebidas"
     };
 
 
@@ -116,21 +114,20 @@ export default async function handler(
       if (!grupoPrincipal) {
         const subc = produto.subcategoria || produto.subc || '';
         if (subc) {
-          // Normalizar subcategoria para busca no mapeamento
-          const subcNormalizada = subc.toLowerCase().trim();
-          const subcComHifen = subcNormalizada.replace(/\s+/g, '-');
-          const subcComE = subcNormalizada.replace(/\s*&\s*/g, ' & ');
+          // Usar o valor exato da subcategoria (vem do select)
+          grupoPrincipal = mapeamentoCategorias[subc];
           
-          // Tentar diferentes variações no mapeamento
-          grupoPrincipal = mapeamentoCategorias[subcNormalizada] || 
-                          mapeamentoCategorias[subcComHifen] || 
-                          mapeamentoCategorias[subcComE];
-          
-          // Se ainda não encontrou, fazer mapeamento inteligente por palavras-chave
+          // Fallback: se não encontrou no mapeamento exato, tentar normalizar (para produtos antigos)
           if (!grupoPrincipal) {
+            const subcNormalizada = subc
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+              .trim();
+            
             if (subcNormalizada.includes('doce') || subcNormalizada.includes('sobremesa')) {
               grupoPrincipal = 'doces';
-            } else if (subcNormalizada.includes('pão') || subcNormalizada.includes('paes') || subcNormalizada.includes('especial')) {
+            } else if (subcNormalizada.includes('pao') || subcNormalizada.includes('paes') || subcNormalizada.includes('especial')) {
               grupoPrincipal = 'paes';
             } else if (subcNormalizada.includes('salgado') || subcNormalizada.includes('lanche')) {
               grupoPrincipal = 'salgados';
@@ -141,12 +138,20 @@ export default async function handler(
           
           // Definir categoriaSlug baseado na subcategoria se não foi definido
           if (!categoriaSlug && grupoPrincipal) {
-            categoriaSlug = subcComHifen;
+            categoriaSlug = subc.toLowerCase().replace(/\s+/g, '-');
           }
         }
       }
       
-      if (grupoPrincipal && produtosAgrupados[grupoPrincipal]) {
+      // Filtrar produtos: apenas incluir se:
+      // 1. Produtos novos: têm subcategoria exata válida ("Doces & Sobremesas", etc.)
+      // 2. Produtos antigos: têm categoria.slug válida (mapeada para grupos)
+      const subcategoriasValidas = ["Doces & Sobremesas", "Pães & Especiais", "Salgados & Lanches", "Bebidas"];
+      const temSubcategoriaValida = produto.subcategoria && subcategoriasValidas.includes(produto.subcategoria);
+      const ehProdutoAntigo = produto.categoria?.slug && mapeamentoCategorias[produto.categoria.slug] && !temSubcategoriaValida;
+      
+      // Só incluir se tem grupoPrincipal definido E (tem subcategoria válida OU é produto antigo)
+      if (grupoPrincipal && produtosAgrupados[grupoPrincipal] && (temSubcategoriaValida || ehProdutoAntigo)) {
         const produtoUnificado: ProdutoUnificado = {
           _id: produto._id.toString(),
           nome: produto.nome,
