@@ -38,7 +38,6 @@ export default function ProdutosPage() {
   const router = useRouter();
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const deferredProdutos = useDeferredValue(produtos);
-  const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
   const [filtroCategoria, setFiltroCategoria] = useState<string>("todos");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
@@ -151,11 +150,6 @@ export default function ProdutosPage() {
           destaque: p.destaque === true
         })) as Produto[];
         setProdutos(produtosNormalizados);
-        // Extrair subcategorias únicas dos produtos
-        const subcats = [...new Set(produtosNormalizados.map((p: Produto) => p.subcategoria || p.subc).filter(Boolean))] as string[];
-        if (subcats.length > 0) {
-            setSubcategorias([...SUBCATEGORIAS_PADRAO, ...subcats.filter(sub => !SUBCATEGORIAS_PADRAO.includes(sub))]);
-        }
         });
       } else {
         console.error("❌ API retornou success: false:", data.error);
