@@ -22,16 +22,6 @@ const CATEGORIAS = [
   { nome: "Bebidas", slug: "bebidas" }
 ];
 
-const SUBCATEGORIAS_PADRAO = [
-  "Tradicional",
-  "Diet",
-  "Sem Glúten",
-  "Vegano",
-  "Integral",
-  "Artístico",
-  "Especial",
-  "Sazonal"
-];
 
 export default function ProdutosPage() {
   const { isAdmin, loading } = useUser();
