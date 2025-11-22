@@ -85,8 +85,7 @@ export default async function handler(
       "pães & especiais": "paes",
       "paes-e-especiais": "paes",
       "salgados & lanches": "salgados",
-      "salgados-e-lanches": "salgados",
-      "bebidas": "bebidas"
+      "salgados-e-lanches": "salgados"
     };
 
 
