@@ -346,11 +346,11 @@ export default function ProdutoDetalhePage() {
             {/* Coluna Esquerda - Imagens */}
             <div className="space-y-6">
               {/* Imagem Principal */}
-              <div className="bg-white rounded-2xl shadow-lg overflow-hidden aspect-square">
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden aspect-[3/2]">
                 <OptimizedImage 
                   src={imagemPrincipal} 
                   alt={produto.imagem?.alt || produto.nome || 'Produto'} 
-                  width={800} 
+                  width={1200} 
                   height={800} 
                   className="w-full h-full object-cover"
                   quality={95}
@@ -612,11 +612,11 @@ export default function ProdutoDetalhePage() {
                   href={`/produtos/${item._id}`}
                   className="group bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
                 >
-                  <div className="relative aspect-square overflow-hidden">
+                  <div className="relative aspect-[3/2] overflow-hidden">
                     <OptimizedImage 
                       src={item.imagem?.href || '/images/placeholder.png'} 
                       alt={item.nome || 'Produto'} 
-                      width={400} 
+                      width={600} 
                       height={400} 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
                       quality={80}

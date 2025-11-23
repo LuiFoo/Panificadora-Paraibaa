@@ -96,6 +96,71 @@ const ALERGENOS_COMUNS = [
   "Pode conter traços de castanhas"
 ];
 
+// Função auxiliar para normalizar slug de categoria
+function normalizarSlugCategoria(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .replace(/&/g, 'e');
+}
+
+// Função auxiliar para verificar se produto pertence à categoria
+function produtoPertenceACategoria(produto: Produto, categoriaSlug: string): boolean {
+  // Buscar a categoria alvo no array CATEGORIAS
+  const categoriaAlvo = CATEGORIAS.find(cat => cat.slug === categoriaSlug);
+  if (!categoriaAlvo) return false;
+  
+  // PRIORIDADE 1: Verificar subcategoria (onde está armazenado o nome da categoria principal no MongoDB)
+  if (produto.subcategoria) {
+    // Comparação direta do nome da categoria
+    if (produto.subcategoria === categoriaAlvo.nome) return true;
+    
+    // Comparação normalizada
+    const subcategoriaNormalizada = normalizarSlugCategoria(produto.subcategoria);
+    const nomeAlvoNormalizado = normalizarSlugCategoria(categoriaAlvo.nome);
+    if (subcategoriaNormalizada === nomeAlvoNormalizado) return true;
+    
+    // Verificar se o slug está contido na subcategoria normalizada
+    if (subcategoriaNormalizada.startsWith(categoriaSlug + '-') || subcategoriaNormalizada === categoriaSlug) return true;
+    const partesSubcategoria = subcategoriaNormalizada.split('-');
+    if (partesSubcategoria.includes(categoriaSlug)) return true;
+  }
+  
+  // PRIORIDADE 2: Verificar categoria.nome (caso exista)
+  if (produto.categoria?.nome) {
+    if (produto.categoria.nome === categoriaAlvo.nome) return true;
+    
+    const nomeNormalizado = normalizarSlugCategoria(produto.categoria.nome);
+    const nomeAlvoNormalizado = normalizarSlugCategoria(categoriaAlvo.nome);
+    
+    if (nomeNormalizado === nomeAlvoNormalizado) return true;
+    
+    if (nomeNormalizado.startsWith(categoriaSlug + '-') || nomeNormalizado === categoriaSlug) return true;
+    const partesNome = nomeNormalizado.split('-');
+    if (partesNome.includes(categoriaSlug)) return true;
+  }
+  
+  // PRIORIDADE 3: Verificar categoria.slug (caso exista)
+  if (produto.categoria?.slug) {
+    if (produto.categoria.slug === categoriaSlug) return true;
+    
+    const slugNormalizado = normalizarSlugCategoria(produto.categoria.slug);
+    if (slugNormalizado === categoriaSlug) return true;
+  }
+  
+  // PRIORIDADE 4: Verificar campo subc (compatibilidade com produtos antigos)
+  if (produto.subc) {
+    if (produto.subc === categoriaAlvo.nome) return true;
+    const subcNormalizada = normalizarSlugCategoria(produto.subc);
+    if (subcNormalizada === categoriaSlug || subcNormalizada === normalizarSlugCategoria(categoriaAlvo.nome)) return true;
+  }
+  
+  return false;
+}
+
 export default function ProdutosPage() {
   const { isAdmin, loading } = useUser();
   const router = useRouter();
@@ -103,7 +168,7 @@ export default function ProdutosPage() {
   const deferredProdutos = useDeferredValue(produtos);
   const [subcategorias, setSubcategorias] = useState<string[]>(SUBCATEGORIAS_PADRAO);
   const [loadingProdutos, setLoadingProdutos] = useState(true);
-  const [filtroSubcategoria, setFiltroSubcategoria] = useState<string>("todos");
+  const [filtroCategoria, setFiltroCategoria] = useState<string>("todos");
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
@@ -310,9 +375,14 @@ export default function ProdutosPage() {
         return;
       }
       
+      const nomeTrimmed = formData.nome.trim();
+      const slug = nomeTrimmed 
+        ? nomeTrimmed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+        : 'produto-sem-nome';
+      
       const produtoData = {
-        nome: formData.nome.trim(),
-        slug: formData.nome.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        nome: nomeTrimmed,
+        slug: slug,
         descricao: formData.descricao,
         categoria: {
           nome: CATEGORIAS.find(c => c.slug === formData.categoria)?.nome || "Doces & Sobremesas",
@@ -326,8 +396,14 @@ export default function ProdutosPage() {
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
             valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
-            inicio: new Date(formData.preco.promocao.inicio),
-            fim: new Date(formData.preco.promocao.fim)
+            inicio: (() => {
+              const data = new Date(formData.preco.promocao.inicio);
+              return isNaN(data.getTime()) ? new Date() : data;
+            })(),
+            fim: (() => {
+              const data = new Date(formData.preco.promocao.fim);
+              return isNaN(data.getTime()) ? new Date() : data;
+            })()
           } : undefined
         },
         estoque: {
@@ -633,14 +709,14 @@ export default function ProdutosPage() {
 
   const produtosFiltrados = useMemo(() => {
     return deferredProdutos.filter(produto => {
-    const matchSubcategoria = filtroSubcategoria === "todos" || 
-      (produto.subcategoria || produto.subc) === filtroSubcategoria;
+    const matchCategoria = filtroCategoria === "todos" || 
+      produtoPertenceACategoria(produto, filtroCategoria);
     const matchStatus = filtroStatus === "todos" || 
       (filtroStatus === "active" && (produto.status === "ativo" || !produto.status)) ||
       (filtroStatus === "pause" && produto.status === "inativo");
-    return matchSubcategoria && matchStatus;
+    return matchCategoria && matchStatus;
   });
-  }, [deferredProdutos, filtroSubcategoria, filtroStatus]);
+  }, [deferredProdutos, filtroCategoria, filtroStatus]);
 
   const { totalProdutos, produtosAtivos, produtosPausados } = useMemo(() => {
     const total = deferredProdutos.length;
@@ -693,189 +769,140 @@ export default function ProdutosPage() {
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
-        <BreadcrumbNav 
-          items={[
-            { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
-            { label: "Produtos", icon: "🛍️", color: "orange" }
-          ]}
-        />
-        
-        {/* Hero Section */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-[var(--color-avocado-600)] via-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-3xl shadow-2xl p-6 md:p-10 lg:p-12">
-          <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-10"></div>
-          <div className="relative z-10">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div className="flex items-center gap-4 md:gap-6">
-                <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/30">
-                  <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: "var(--fonte-secundaria)" }}>
-                      Gerenciar Produtos
-                    </h1>
-                    <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs md:text-sm font-bold rounded-full border border-white/30 shadow-lg">
-                      {totalProdutos} produtos
-                    </span>
+      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <BreadcrumbNav 
+            items={[
+              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Produtos", icon: "🛍️", color: "orange" }
+            ]}
+          />
+          
+          {/* Top Bar */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 mb-8">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
                   </div>
-                  <p className="text-white/90 text-sm md:text-base lg:text-lg">
-                    Gerencie o catálogo completo de produtos da padaria
-                  </p>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">Gerenciar Produtos</h1>
+                    <p className="text-sm text-gray-600">{totalProdutos} produtos no catálogo</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-3">
-                <Link
-                  href="/painel"
-                  className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80"
-                >
-                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  Voltar
-                </Link>
-                <Link
-                  href="/painel/produtos/novo-produto"
-                  className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80"
-                >
-                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Novo Produto
-                </Link>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="/painel"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Voltar
+                  </Link>
+                  <Link
+                    href="/painel/produtos/novo-produto"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Novo Produto
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+          {/* Stats Overview */}
+          <div className="mb-8">
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Total</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalProdutos}</p>
+                  <p className="text-xs text-gray-500 mt-1">Produtos no catálogo</p>
+                </div>
+
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Ativos</p>
+                  <p className="text-2xl font-bold text-gray-900">{produtosAtivos}</p>
+                  <p className="text-xs text-gray-500 mt-1">Disponíveis para venda</p>
+                </div>
+
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Pausados</p>
+                  <p className="text-2xl font-bold text-gray-900">{produtosPausados}</p>
+                  <p className="text-xs text-gray-500 mt-1">Temporariamente indisponíveis</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
 
           {/* Mensagens */}
           {error && (
-            <div className="p-6 md:p-8 border-b border-gray-200">
-              <div className="p-4 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 rounded-xl shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
-                    <svg className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+            <div className="p-6 border-b border-gray-200">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                   </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red-800">{error}</p>
+                  </div>
+                  <button
+                    onClick={() => setError("")}
+                    className="text-red-600 hover:text-red-800 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-red-800">{error}</p>
-                </div>
-                <button
-                  onClick={() => setError("")}
-                  className="text-red-600 hover:text-red-800 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
-            </div>
             </div>
           )}
 
           {success && (
-            <div className="p-6 md:p-8 border-b border-gray-200">
-              <div className="p-4 bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 rounded-xl shadow-lg">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                    <svg className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+            <div className="p-6 border-b border-gray-200">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-800">{success}</p>
+                  </div>
+                  <button
+                    onClick={() => setSuccess("")}
+                    className="text-green-600 hover:text-green-800 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-green-800">{success}</p>
-                </div>
-                <button
-                  onClick={() => setSuccess("")}
-                  className="text-green-600 hover:text-green-800 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
-            </div>
             </div>
           )}
 
-          {/* Estatísticas */}
-          <div className="p-6 md:p-8 lg:p-10 bg-white border-b border-gray-200">
-            <div className="flex items-center gap-3 mb-6 md:mb-8">
-              <div className="w-12 h-12 bg-gradient-to-br from-[var(--color-avocado-100)] to-[var(--color-avocado-200)] rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
-                Resumo dos Produtos
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-blue-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Total de Produtos</p>
-                    <p className="text-4xl md:text-5xl font-bold text-blue-600 mb-1">{totalProdutos}</p>
-                    <p className="text-xs text-gray-500">No catálogo</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-green-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-green-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Produtos Ativos</p>
-                    <p className="text-4xl md:text-5xl font-bold text-green-600 mb-1">{produtosAtivos}</p>
-                    <p className="text-xs text-gray-500">Disponíveis para venda</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-amber-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-100 to-amber-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Produtos Pausados</p>
-                    <p className="text-4xl md:text-5xl font-bold text-amber-600 mb-1">{produtosPausados}</p>
-                    <p className="text-xs text-gray-500">Temporariamente indisponíveis</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Formulário */}
           {mostrarFormulario && (
@@ -1262,33 +1289,35 @@ export default function ProdutosPage() {
           )}
 
           {/* Filtros */}
-          <div className="p-6 md:p-8 bg-white border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-              <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              Filtros
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-[var(--color-avocado-50)] rounded-lg">
+                <svg className="w-5 h-5 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Filtros</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Subcategoria</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Categoria</label>
                 <select
-                  value={filtroSubcategoria}
-                  onChange={(e) => setFiltroSubcategoria(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+                  value={filtroCategoria}
+                  onChange={(e) => setFiltroCategoria(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all text-sm"
                 >
-                  <option value="todos">Todas as subcategorias</option>
-                  {subcategorias.map(sub => (
-                    <option key={sub} value={sub}>{sub}</option>
+                  <option value="todos">Todas as categorias</option>
+                  {CATEGORIAS.map(cat => (
+                    <option key={cat.slug} value={cat.slug}>{cat.nome}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Filtrar por Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Status</label>
                 <select
                   value={filtroStatus}
                   onChange={(e) => setFiltroStatus(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all text-sm"
                 >
                   <option value="todos">Todos os status</option>
                   <option value="active">Apenas Ativos</option>
@@ -1299,15 +1328,17 @@ export default function ProdutosPage() {
           </div>
 
           {/* Lista de Produtos */}
-          <div className="p-6 md:p-8">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <svg className="w-7 h-7 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                Lista de Produtos
-                <span className="text-lg font-normal text-gray-500">({produtosFiltrados.length})</span>
-              </h2>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[var(--color-avocado-50)] rounded-lg">
+                  <svg className="w-5 h-5 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Lista de Produtos</h2>
+                <span className="text-sm text-gray-500">({produtosFiltrados.length})</span>
+              </div>
             </div>
 
             {produtosFiltrados.length === 0 ? (
@@ -1319,9 +1350,9 @@ export default function ProdutosPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {produtosFiltrados.map((produto) => (
-                  <div key={produto._id} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 border-gray-100 hover:border-[var(--color-avocado-200)] group transform hover:-translate-y-2">
+                  <div key={produto._id} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 border-gray-100 hover:border-[var(--color-avocado-200)] group transform hover:-translate-y-2 flex flex-col">
                     {/* Imagem do Produto */}
-                    <div className="relative h-56 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-200 overflow-hidden">
+                    <div className="relative h-56 bg-gradient-to-br from-gray-100 via-gray-50 to-gray-200 overflow-hidden flex-shrink-0">
                       {produto.imagem?.href || produto.img ? (
                         <>
                           <Image
@@ -1373,7 +1404,7 @@ export default function ProdutosPage() {
                     </div>
 
                     {/* Conteúdo do Card */}
-                    <div className="p-6">
+                    <div className="p-6 flex flex-col flex-1">
                       {/* Título e Categoria */}
                       <div className="mb-4">
                         <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-2 min-h-[3rem] group-hover:text-[var(--color-avocado-600)] transition-colors">
@@ -1428,7 +1459,7 @@ export default function ProdutosPage() {
                       </div>
 
                       {/* Informações Adicionais */}
-                      <div className="space-y-3 mb-5">
+                      <div className="space-y-3 mb-5 flex-1">
                         {produto.estoque && (
                           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -1481,7 +1512,7 @@ export default function ProdutosPage() {
                       </div>
 
                       {/* Botões de Ação */}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 mt-auto">
                         <button
                           onClick={() => handleEdit(produto)}
                           className="flex-1 min-w-[120px] inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"

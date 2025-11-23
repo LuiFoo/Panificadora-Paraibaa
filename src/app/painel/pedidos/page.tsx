@@ -102,7 +102,21 @@ export default function PedidosPage() {
         body: JSON.stringify({ status: novoStatus })
       });
 
-      const data = await response.json();
+      // Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        return;
+      }
+      
       if (data.success) {
         setSuccess(`✅ Status atualizado para "${novoStatus}"!`);
         setTimeout(() => setSuccess(""), 3000);
@@ -146,11 +160,11 @@ export default function PedidosPage() {
     setModalState({
       isOpen: true,
       type: acao === "cancelar" ? "warning" : "confirm",
-      title: `Atualizar Pedido #${pedido.numeroPedido || pedido._id.slice(-6)}`,
+      title: `Atualizar Pedido #${pedido.numeroPedido || (pedido._id && pedido._id.length >= 6 ? pedido._id.slice(-6) : pedido._id || 'N/A')}`,
       message: mensagem,
       onConfirm: () => {
         handleStatusChange(pedido._id, novoStatus);
-        setModalState({ ...modalState, isOpen: false });
+        setModalState(prev => ({ ...prev, isOpen: false }));
       }
     });
   };
@@ -179,25 +193,40 @@ export default function PedidosPage() {
           matchData = false;
         } else {
           // Parsear a data do filtro (formato YYYY-MM-DD)
-          const [anoFiltro, mesFiltro, diaFiltro] = filtroData.split('-').map(Number);
-          
-          // Parsear a data de entrega/coleta
-          const dataEntregaColetaObj = new Date(dataEntregaColeta);
-          
-          // Normalizar ambas as datas para o timezone local (meia-noite)
-          const dataFiltroNormalizada = new Date(anoFiltro, mesFiltro - 1, diaFiltro, 0, 0, 0, 0);
-          const dataEntregaColetaNormalizada = new Date(
-            dataEntregaColetaObj.getFullYear(),
-            dataEntregaColetaObj.getMonth(),
-            dataEntregaColetaObj.getDate(),
-            0, 0, 0, 0
-          );
-          
-          // Comparar apenas dia, mês e ano (ignorar hora e timezone)
-          matchData = 
-            dataFiltroNormalizada.getFullYear() === dataEntregaColetaNormalizada.getFullYear() &&
-            dataFiltroNormalizada.getMonth() === dataEntregaColetaNormalizada.getMonth() &&
-            dataFiltroNormalizada.getDate() === dataEntregaColetaNormalizada.getDate();
+          const partesData = filtroData.split('-');
+          if (partesData.length !== 3) {
+            matchData = false;
+          } else {
+            const [anoFiltro, mesFiltro, diaFiltro] = partesData.map(Number);
+            
+            // Validar se os valores são números válidos
+            if (isNaN(anoFiltro) || isNaN(mesFiltro) || isNaN(diaFiltro)) {
+              matchData = false;
+            } else {
+              // Parsear a data de entrega/coleta
+              const dataEntregaColetaObj = new Date(dataEntregaColeta);
+              
+              // Validar se a data é válida
+              if (isNaN(dataEntregaColetaObj.getTime())) {
+                matchData = false;
+              } else {
+                // Normalizar ambas as datas para o timezone local (meia-noite)
+                const dataFiltroNormalizada = new Date(anoFiltro, mesFiltro - 1, diaFiltro, 0, 0, 0, 0);
+                const dataEntregaColetaNormalizada = new Date(
+                  dataEntregaColetaObj.getFullYear(),
+                  dataEntregaColetaObj.getMonth(),
+                  dataEntregaColetaObj.getDate(),
+                  0, 0, 0, 0
+                );
+                
+                // Comparar apenas dia, mês e ano (ignorar hora e timezone)
+                matchData = 
+                  dataFiltroNormalizada.getFullYear() === dataEntregaColetaNormalizada.getFullYear() &&
+                  dataFiltroNormalizada.getMonth() === dataEntregaColetaNormalizada.getMonth() &&
+                  dataFiltroNormalizada.getDate() === dataEntregaColetaNormalizada.getDate();
+              }
+            }
+          }
         }
       }
       
@@ -218,13 +247,24 @@ export default function PedidosPage() {
         const diff = (prioridade[a.status] || 99) - (prioridade[b.status] || 99);
         if (diff !== 0) return diff;
         // Se mesmo status, mais recente primeiro
-        return new Date(b.dataPedido).getTime() - new Date(a.dataPedido).getTime();
+        const timeA = a.dataPedido ? new Date(a.dataPedido).getTime() : 0;
+        const timeB = b.dataPedido ? new Date(b.dataPedido).getTime() : 0;
+        if (isNaN(timeA) || isNaN(timeB)) return 0;
+        return timeB - timeA;
       } else if (ordenacao === "recente") {
-        return new Date(b.dataPedido).getTime() - new Date(a.dataPedido).getTime();
+        const timeA = a.dataPedido ? new Date(a.dataPedido).getTime() : 0;
+        const timeB = b.dataPedido ? new Date(b.dataPedido).getTime() : 0;
+        if (isNaN(timeA) || isNaN(timeB)) return 0;
+        return timeB - timeA;
       } else if (ordenacao === "antigo") {
-        return new Date(a.dataPedido).getTime() - new Date(b.dataPedido).getTime();
+        const timeA = a.dataPedido ? new Date(a.dataPedido).getTime() : 0;
+        const timeB = b.dataPedido ? new Date(b.dataPedido).getTime() : 0;
+        if (isNaN(timeA) || isNaN(timeB)) return 0;
+        return timeA - timeB;
       } else if (ordenacao === "valor") {
-        return b.total - a.total;
+        const totalA = Number(a.total) || 0;
+        const totalB = Number(b.total) || 0;
+        return totalB - totalA;
       }
       return 0;
     });
@@ -236,11 +276,17 @@ export default function PedidosPage() {
   const pedidosPronto = pedidos.filter(p => p.status === 'pronto').length;
   const totalHoje = pedidos
     .filter(p => {
+      if (!p.dataPedido) return false;
+      const dataPedidoObj = new Date(p.dataPedido);
+      if (isNaN(dataPedidoObj.getTime())) return false;
       const hoje = new Date().toLocaleDateString('pt-BR');
-      const dataPedido = new Date(p.dataPedido).toLocaleDateString('pt-BR');
+      const dataPedido = dataPedidoObj.toLocaleDateString('pt-BR');
       return hoje === dataPedido;
     })
-    .reduce((sum, p) => sum + p.total, 0);
+    .reduce((sum, p) => {
+      const total = Number(p.total) || 0;
+      return sum + (isNaN(total) ? 0 : total);
+    }, 0);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -299,70 +345,64 @@ export default function PedidosPage() {
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <BreadcrumbNav 
             items={[
-              { label: "Painel Administrativo", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
               { label: "Pedidos", icon: "📦", color: "purple" }
             ]}
           />
           
-          {/* Hero Section */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-[var(--color-avocado-600)] via-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-3xl shadow-2xl p-6 md:p-10 lg:p-12">
-            <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-10"></div>
-            <div className="relative z-10">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                <div className="flex items-center gap-4 md:gap-6">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/30">
-                    <span className="text-3xl md:text-4xl">📦</span>
+          {/* Top Bar */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 mb-8">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
                   </div>
                   <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: "var(--fonte-secundaria)" }}>
-                        Pedidos da Padaria
-                      </h1>
-                      <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs md:text-sm font-bold rounded-full border border-white/30 shadow-lg">
-                        Admin
-                      </span>
+                    <h1 className="text-xl font-bold text-gray-900">Pedidos da Padaria</h1>
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <p>{totalPedidos} pedidos no total</p>
+                      {autoRefresh && (
+                        <span className="flex items-center gap-1.5 text-green-600">
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                          Auto-atualização
+                        </span>
+                      )}
                     </div>
-                    <p className="text-white/90 text-sm md:text-base lg:text-lg">
-                      Gerencie todos os pedidos em tempo real
-                    </p>
-                    {autoRefresh && (
-                      <p className="text-white/80 text-xs md:text-sm mt-1 flex items-center gap-2">
-                        <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
-                        Atualização automática ativa
-                      </p>
-                    )}
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={fetchPedidos}
                     disabled={loadingPedidos}
-                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                   >
-                    <svg className={`w-4 h-4 md:w-5 md:h-5 ${loadingPedidos ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-4 h-4 ${loadingPedidos ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     {loadingPedidos ? 'Atualizando...' : 'Atualizar'}
                   </button>
                   <button
                     onClick={() => setAutoRefresh(!autoRefresh)}
-                    className={`inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 border-2 ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                       autoRefresh 
-                        ? 'bg-green-500 text-white border-green-400 hover:bg-green-600 hover:shadow-xl' 
-                        : 'bg-white/20 backdrop-blur-sm text-white border-white/30 hover:bg-white/30 hover:shadow-xl'
+                        ? 'bg-green-500 text-white hover:bg-green-600' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     {autoRefresh ? '🔄 Auto ON' : '⏸️ Auto OFF'}
                   </button>
                   <Link
                     href="/painel"
-                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/30 hover:shadow-xl"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                   >
-                    ← Voltar
+                    Voltar
                   </Link>
                 </div>
               </div>
@@ -371,263 +411,234 @@ export default function PedidosPage() {
 
           {/* Mensagens */}
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 rounded-xl shadow-lg p-4">
-              <p className="text-red-700 font-medium">❌ {error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm font-medium text-red-800">{error}</p>
+              </div>
             </div>
           )}
 
           {success && (
-            <div className="bg-green-50 border-l-4 border-green-500 rounded-xl shadow-lg p-4">
-              <p className="text-green-700 font-medium">{success}</p>
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <svg className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm font-medium text-green-800">{success}</p>
+              </div>
             </div>
           )}
 
-          {/* Estatísticas Principais */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
-            {/* Pedidos Pendentes */}
-            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-yellow-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
-                    ⏳
+          {/* Stats Overview */}
+          <div className="mb-8">
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Pendentes</p>
+                  <p className="text-2xl font-bold text-gray-900">{pedidosPendentes}</p>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Pendentes</p>
-                  <p className="text-4xl md:text-5xl font-bold text-yellow-600 mb-1">{pedidosPendentes}</p>
-                  {pedidosPendentes > 0 && (
-                    <p className="text-xs text-yellow-600 font-medium">🔔 Requer atenção!</p>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Pedidos Confirmados */}
-            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-blue-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
-                    ✅
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Confirmados</p>
+                  <p className="text-2xl font-bold text-gray-900">{pedidosConfirmados}</p>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Confirmados</p>
-                  <p className="text-4xl md:text-5xl font-bold text-blue-600 mb-1">{pedidosConfirmados}</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Pedidos Preparando */}
-            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-purple-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-100 to-purple-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
-                    👨‍🍳
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
                   </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Preparando</p>
+                  <p className="text-2xl font-bold text-gray-900">{pedidosPreparando}</p>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Preparando</p>
-                  <p className="text-4xl md:text-5xl font-bold text-purple-600 mb-1">{pedidosPreparando}</p>
-                  {pedidosPreparando > 0 && (
-                    <p className="text-xs text-purple-600 font-medium">🔥 Em produção</p>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Pedidos Prontos */}
-            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-green-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-100 to-green-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
-                    🍞
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                   </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Prontos</p>
+                  <p className="text-2xl font-bold text-gray-900">{pedidosPronto}</p>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Prontos</p>
-                  <p className="text-4xl md:text-5xl font-bold text-green-600 mb-1">{pedidosPronto}</p>
-                  {pedidosPronto > 0 && (
-                    <p className="text-xs text-green-600 font-medium">📦 Para entrega!</p>
-                  )}
-                </div>
-              </div>
-            </div>
 
-            {/* Total Pedidos */}
-            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-gray-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-gray-500 to-gray-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
-                    📦
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
                   </div>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Total</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalPedidos}</p>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Total</p>
-                  <p className="text-4xl md:text-5xl font-bold text-gray-700 mb-1">{totalPedidos}</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Total Hoje */}
-            <div className="group relative bg-white rounded-2xl shadow-lg p-6 border-2 border-transparent hover:border-emerald-300 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-full -mr-16 -mt-16 opacity-50 group-hover:opacity-70 transition-opacity"></div>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform text-2xl">
-                    💰
+                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-2">
+                    <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Hoje</p>
-                  <p className="text-2xl md:text-3xl font-bold text-emerald-600 mb-1">R$ {totalHoje.toFixed(2)}</p>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Hoje</p>
+                  <p className="text-xl font-bold text-gray-900">R$ {totalHoje.toFixed(2)}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Filtros e Ordenação */}
-          <div className="bg-white rounded-3xl shadow-xl p-6 md:p-8 lg:p-10 border border-gray-100">
-            <div className="flex items-center gap-3 mb-6 md:mb-8">
-              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center border border-amber-300">
-                <svg className="w-6 h-6 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-[var(--color-avocado-50)] rounded-lg">
+                  <svg className="w-5 h-5 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Filtros e Ordenação</h2>
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
-                Filtros e Ordenação
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">Status</label>
-                <select
-                  value={filtroStatus}
-                  onChange={(e) => setFiltroStatus(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:border-[var(--color-avocado-500)] transition-all font-medium bg-white hover:border-gray-400"
-                >
-                  <option value="ativos">🔥 Ativos (Pendentes + Preparando)</option>
-                  <option value="todos">Todos os Status</option>
-                  <option value="pendente">⏳ Pendentes</option>
-                  <option value="confirmado">✅ Confirmados</option>
-                  <option value="preparando">👨‍🍳 Preparando</option>
-                  <option value="pronto">🍞 Prontos</option>
-                  <option value="entregue">✔️ Entregues</option>
-                  <option value="cancelado">❌ Cancelados</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    value={filtroStatus}
+                    onChange={(e) => setFiltroStatus(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all text-sm"
+                  >
+                    <option value="ativos">🔥 Ativos (Pendentes + Preparando)</option>
+                    <option value="todos">Todos os Status</option>
+                    <option value="pendente">⏳ Pendentes</option>
+                    <option value="confirmado">✅ Confirmados</option>
+                    <option value="preparando">👨‍🍳 Preparando</option>
+                    <option value="pronto">🍞 Prontos</option>
+                    <option value="entregue">✔️ Entregues</option>
+                    <option value="cancelado">❌ Cancelados</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">Modalidade</label>
-                <select
-                  value={filtroModalidade}
-                  onChange={(e) => setFiltroModalidade(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:border-[var(--color-avocado-500)] transition-all font-medium bg-white hover:border-gray-400"
-                >
-                  <option value="todos">Todas</option>
-                  <option value="entrega">🚚 Entrega</option>
-                  <option value="retirada">🏪 Retirada</option>
-                </select>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Modalidade</label>
+                  <select
+                    value={filtroModalidade}
+                    onChange={(e) => setFiltroModalidade(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all text-sm"
+                  >
+                    <option value="todos">Todas</option>
+                    <option value="entrega">🚚 Entrega</option>
+                    <option value="retirada">🏪 Retirada</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">
-                  📅 Data de Entrega/Coleta
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={filtroData}
-                    onChange={(e) => setFiltroData(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:border-[var(--color-avocado-500)] transition-all font-medium bg-white hover:border-gray-400"
-                    title="Filtrar por data de entrega ou coleta agendada"
-                  />
-                  {filtroData && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data de Entrega/Coleta</label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={filtroData}
+                      onChange={(e) => setFiltroData(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all text-sm"
+                      title="Filtrar por data de entrega ou coleta agendada"
+                    />
+                    {filtroData && (
+                      <button
+                        onClick={() => setFiltroData("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded transition-colors"
+                        title="Limpar filtro de data"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {filtroData && (() => {
+                    const partesData = filtroData.split('-');
+                    if (partesData.length !== 3) {
+                      return null;
+                    }
+                    const [ano, mes, dia] = partesData.map(Number);
+                    if (isNaN(ano) || isNaN(mes) || isNaN(dia)) {
+                      return null;
+                    }
+                    const dataFormatada = new Date(ano, mes - 1, dia);
+                    return (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Filtrando: {dataFormatada.toLocaleDateString('pt-BR', { 
+                          weekday: 'long', 
+                          day: '2-digit', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })}
+                      </p>
+                    );
+                  })()}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <button
+                      onClick={() => {
+                        const hoje = new Date();
+                        const ano = hoje.getFullYear();
+                        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                        const dia = String(hoje.getDate()).padStart(2, '0');
+                        setFiltroData(`${ano}-${mes}-${dia}`);
+                      }}
+                      className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors font-medium"
+                    >
+                      Hoje
+                    </button>
+                    <button
+                      onClick={() => {
+                        const ontem = new Date();
+                        ontem.setDate(ontem.getDate() - 1);
+                        const ano = ontem.getFullYear();
+                        const mes = String(ontem.getMonth() + 1).padStart(2, '0');
+                        const dia = String(ontem.getDate()).padStart(2, '0');
+                        setFiltroData(`${ano}-${mes}-${dia}`);
+                      }}
+                      className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors font-medium"
+                    >
+                      Ontem
+                    </button>
                     <button
                       onClick={() => setFiltroData("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors"
-                      title="Limpar filtro de data"
+                      className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors font-medium"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      Limpar
                     </button>
-                  )}
+                  </div>
                 </div>
-                {filtroData && (() => {
-                  const [ano, mes, dia] = filtroData.split('-').map(Number);
-                  const dataFormatada = new Date(ano, mes - 1, dia);
-                  return (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Filtrando entregas/coletas em: {dataFormatada.toLocaleDateString('pt-BR', { 
-                        weekday: 'long', 
-                        day: '2-digit', 
-                        month: 'long', 
-                        year: 'numeric' 
-                      })}
-                    </p>
-                  );
-                })()}
-                {/* Botões rápidos de data */}
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button
-                    onClick={() => {
-                      const hoje = new Date();
-                      // Garantir que estamos usando o timezone local
-                      const ano = hoje.getFullYear();
-                      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-                      const dia = String(hoje.getDate()).padStart(2, '0');
-                      setFiltroData(`${ano}-${mes}-${dia}`);
-                    }}
-                    className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors font-medium"
-                  >
-                    Hoje
-                  </button>
-                  <button
-                    onClick={() => {
-                      const ontem = new Date();
-                      ontem.setDate(ontem.getDate() - 1);
-                      // Garantir que estamos usando o timezone local
-                      const ano = ontem.getFullYear();
-                      const mes = String(ontem.getMonth() + 1).padStart(2, '0');
-                      const dia = String(ontem.getDate()).padStart(2, '0');
-                      setFiltroData(`${ano}-${mes}-${dia}`);
-                    }}
-                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
-                  >
-                    Ontem
-                  </button>
-                  <button
-                    onClick={() => setFiltroData("")}
-                    className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors font-medium"
-                  >
-                    Limpar
-                  </button>
-                </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wider">Ordenar por</label>
-                <select
-                  value={ordenacao}
-                  onChange={(e) => setOrdenacao(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-500)] focus:border-[var(--color-avocado-500)] transition-all font-medium bg-white hover:border-gray-400"
-                >
-                  <option value="urgente">🔥 Mais Urgente</option>
-                  <option value="recente">🕐 Mais Recente</option>
-                  <option value="antigo">⏰ Mais Antigo</option>
-                  <option value="valor">💰 Maior Valor</option>
-                </select>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Ordenar por</label>
+                  <select
+                    value={ordenacao}
+                    onChange={(e) => setOrdenacao(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-avocado-600)] focus:border-[var(--color-avocado-600)] transition-all text-sm"
+                  >
+                    <option value="urgente">🔥 Mais Urgente</option>
+                    <option value="recente">🕐 Mais Recente</option>
+                    <option value="antigo">⏰ Mais Antigo</option>
+                    <option value="valor">💰 Maior Valor</option>
+                  </select>
+                </div>
               </div>
             </div>
             
-            <div className="mt-6 flex items-center justify-between text-sm text-gray-600 pt-4 border-t border-gray-200">
-              <p className="font-semibold">
-                <strong className="text-[var(--color-avocado-600)] text-lg">{pedidosFiltrados.length}</strong> pedido(s) encontrado(s)
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-sm">
+              <p className="font-medium text-gray-700">
+                <span className="text-[var(--color-avocado-600)] font-bold">{pedidosFiltrados.length}</span> pedido(s) encontrado(s)
               </p>
               {autoRefresh && (
                 <p className="text-green-600 flex items-center gap-2 font-medium">
@@ -639,47 +650,60 @@ export default function PedidosPage() {
           </div>
 
           {/* Lista de Pedidos */}
-          <div className="space-y-4 md:space-y-6">
-            {loadingPedidos ? (
-              <div className="bg-white rounded-3xl shadow-xl p-12 text-center border border-gray-100">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--color-avocado-600)] mx-auto mb-6"></div>
-                <p className="text-gray-600 text-lg font-medium">Carregando pedidos...</p>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-[var(--color-avocado-50)] rounded-lg">
+                  <svg className="w-5 h-5 text-[var(--color-avocado-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Lista de Pedidos</h2>
               </div>
-            ) : pedidosFiltrados.length === 0 ? (
-              <div className="bg-white rounded-3xl shadow-xl p-12 text-center border border-gray-100">
-                <div className="text-gray-400 text-7xl mb-4">📦</div>
-                <h3 className="text-2xl font-bold text-gray-700 mb-2" style={{ fontFamily: "var(--fonte-secundaria)" }}>Nenhum pedido encontrado</h3>
-                <p className="text-gray-500">Tente ajustar os filtros ou aguarde novos pedidos</p>
-              </div>
-            ) : (
-            pedidosFiltrados.map((pedido) => {
+            </div>
+            
+            <div className="p-6">
+              {loadingPedidos ? (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--color-avocado-600)] border-t-transparent mx-auto mb-4"></div>
+                  <p className="text-gray-600 font-medium">Carregando pedidos...</p>
+                </div>
+              ) : pedidosFiltrados.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 text-6xl mb-4">📦</div>
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">Nenhum pedido encontrado</h3>
+                  <p className="text-gray-500">Tente ajustar os filtros ou aguarde novos pedidos</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pedidosFiltrados.map((pedido) => {
               const isUrgente = pedido.status === 'pendente' || pedido.status === 'preparando';
               
               return (
                 <div 
                   key={pedido._id} 
-                  className={`bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 ${
-                    isUrgente ? 'ring-2 ring-yellow-400 border-yellow-300' : ''
+                  className={`bg-white rounded-xl border transition-all duration-200 overflow-hidden ${
+                    isUrgente ? 'border-yellow-400 shadow-md' : 'border-gray-200 shadow-sm'
                   }`}
                 >
                   {isUrgente && (
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-yellow-900 px-4 py-3 font-bold text-sm flex items-center gap-2 shadow-lg">
+                    <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2.5 font-semibold text-sm flex items-center gap-2 text-yellow-800">
                       <span className="animate-pulse">🔔</span>
                       {pedido.status === 'pendente' ? 'NOVO PEDIDO - AGUARDANDO CONFIRMAÇÃO' : 'EM PREPARO - ATENÇÃO'}
                     </div>
                   )}
                   
-                  <div className="p-6 md:p-8">
+                  <div className="p-6">
                     {/* Cabeçalho do Card */}
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
                       <div className="flex items-start gap-4">
                         <div className="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl border border-white/30">
-                          <span className="text-white text-xl md:text-2xl font-bold">#{pedido.numeroPedido || pedido._id.slice(-4)}</span>
+                          <span className="text-white text-xl md:text-2xl font-bold">#{pedido.numeroPedido || (pedido._id && pedido._id.length >= 4 ? pedido._id.slice(-4) : pedido._id || 'N/A')}</span>
                         </div>
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h3 className="text-xl md:text-2xl font-bold text-gray-800" style={{ fontFamily: "var(--fonte-secundaria)" }}>
-                              Pedido #{pedido.numeroPedido || pedido._id.slice(-6)}
+                              Pedido #{pedido.numeroPedido || (pedido._id && pedido._id.length >= 6 ? pedido._id.slice(-6) : pedido._id || 'N/A')}
                             </h3>
                             <span className={`px-3 py-1.5 rounded-full text-xs md:text-sm font-bold border-2 ${getStatusColor(pedido.status)}`}>
                               {getStatusIcon(pedido.status)} {pedido.status.toUpperCase()}
@@ -702,7 +726,7 @@ export default function PedidosPage() {
                       </div>
                       
                       <div className="text-right">
-                        <p className="text-3xl md:text-4xl font-bold text-green-600">R$ {pedido.total.toFixed(2)}</p>
+                        <p className="text-3xl md:text-4xl font-bold text-green-600">R$ {(Number(pedido.total) || 0).toFixed(2)}</p>
                         <p className="text-sm text-gray-500 font-medium">{pedido.produtos.length} item(s)</p>
                       </div>
                     </div>
@@ -744,11 +768,11 @@ export default function PedidosPage() {
                             <div className="flex-1">
                               <p className="font-bold text-gray-800">{produto.nome}</p>
                               <p className="text-sm text-gray-500">
-                                {produto.quantidade}x · R$ {produto.valor.toFixed(2)} cada
+                                {produto.quantidade || 0}x · R$ {(Number(produto.valor) || 0).toFixed(2)} cada
                               </p>
                             </div>
                             <p className="font-bold text-blue-600 text-lg">
-                              R$ {(produto.valor * produto.quantidade).toFixed(2)}
+                              R$ {((Number(produto.valor) || 0) * (Number(produto.quantidade) || 0)).toFixed(2)}
                             </p>
                           </div>
                         ))}
@@ -841,8 +865,10 @@ export default function PedidosPage() {
                   </div>
                 </div>
               );
-            })
-          )}
+            })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
@@ -857,7 +883,7 @@ export default function PedidosPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl md:text-3xl font-bold mb-1" style={{ fontFamily: "var(--fonte-secundaria)" }}>
-                    📦 Pedido #{pedidoSelecionado.numeroPedido || pedidoSelecionado._id.slice(-6)}
+                    📦 Pedido #{pedidoSelecionado.numeroPedido || (pedidoSelecionado._id && pedidoSelecionado._id.length >= 6 ? pedidoSelecionado._id.slice(-6) : pedidoSelecionado._id || 'N/A')}
                   </h2>
                   <p className="text-white/90 text-sm md:text-base">
                     {formatarData(pedidoSelecionado.dataPedido)}
@@ -948,13 +974,13 @@ export default function PedidosPage() {
                               <strong>Quantidade:</strong> {produto.quantidade}x
                             </span>
                             <span className="text-sm text-gray-600">
-                              <strong>Preço unitário:</strong> R$ {produto.valor.toFixed(2)}
+                              <strong>Preço unitário:</strong> R$ {(Number(produto.valor) || 0).toFixed(2)}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-green-600">
-                            R$ {(produto.valor * produto.quantidade).toFixed(2)}
+                            R$ {((Number(produto.valor) || 0) * (Number(produto.quantidade) || 0)).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -965,7 +991,7 @@ export default function PedidosPage() {
                   <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-bold">TOTAL DO PEDIDO</span>
-                      <span className="text-3xl font-bold">R$ {pedidoSelecionado.total.toFixed(2)}</span>
+                      <span className="text-3xl font-bold">R$ {(Number(pedidoSelecionado.total) || 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

@@ -46,7 +46,6 @@ export default function MensagensAdminPage() {
   const [buscaUsuario, setBuscaUsuario] = useState("");
   const [usuariosEncontrados, setUsuariosEncontrados] = useState<Usuario[]>([]);
   const [buscandoUsuarios, setBuscandoUsuarios] = useState(false);
-  const [buscaTimeout, setBuscaTimeout] = useState<NodeJS.Timeout | null>(null);
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     type: "info" | "warning" | "error" | "success" | "confirm";
@@ -63,6 +62,7 @@ export default function MensagensAdminPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const buscaTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Função para scroll automático para o final
   const scrollToBottom = () => {
@@ -148,11 +148,11 @@ export default function MensagensAdminPage() {
       stopPolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       // Limpar timeout se existir
-      if (buscaTimeout) {
-        clearTimeout(buscaTimeout);
+      if (buscaTimeoutRef.current) {
+        clearTimeout(buscaTimeoutRef.current);
       }
     };
-  }, [buscaTimeout, fetchConversas]);
+  }, [fetchConversas]);
 
   useEffect(() => {
     // Marcar mensagens do cliente como lidas quando admin abre a conversa
@@ -219,7 +219,25 @@ export default function MensagensAdminPage() {
         })
       });
 
-      const data = await response.json();
+      // Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setModalState({
+          isOpen: true,
+          type: "error",
+          title: "Erro",
+          message: "Erro ao processar resposta do servidor"
+        });
+        return;
+      }
       
       if (data.success) {
         setNovaMensagem("");
@@ -353,7 +371,7 @@ export default function MensagensAdminPage() {
   const handleAbrirPerfilCliente = (userId: string) => {
     // Navegar para a página do perfil do cliente usando Next.js router
     // Passar informação de onde veio via query parameter
-    router.push(`/painel/cliente/${userId}?from=mensagens`);
+    router.push(`/painel/usuarios/${userId}?from=mensagens`);
   };
 
   const handleSelecionarUsuario = (usuario: Usuario) => {
@@ -400,9 +418,9 @@ export default function MensagensAdminPage() {
     setUsuariosEncontrados([]);
     
     // Limpar timeout se existir
-    if (buscaTimeout) {
-      clearTimeout(buscaTimeout);
-      setBuscaTimeout(null);
+    if (buscaTimeoutRef.current) {
+      clearTimeout(buscaTimeoutRef.current);
+      buscaTimeoutRef.current = null;
     }
   };
 
@@ -410,11 +428,11 @@ export default function MensagensAdminPage() {
     return (
       <ProtectedRoute requiredPermission="administrador" redirectTo="/">
         <Header />
-        <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-white rounded-3xl shadow-xl p-12 text-center border border-gray-100">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[var(--color-avocado-600)] mx-auto mb-6"></div>
-              <p className="text-gray-600 text-lg font-medium">Carregando mensagens...</p>
+        <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-200">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--color-avocado-600)] border-t-transparent mx-auto mb-4"></div>
+              <p className="text-gray-600 font-medium">Carregando mensagens...</p>
             </div>
           </div>
         </main>
@@ -426,83 +444,64 @@ export default function MensagensAdminPage() {
   return (
     <ProtectedRoute requiredPermission="administrador" redirectTo="/">
       <Header />
-      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100 p-4 md:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-6 md:space-y-8">
+      <main className="min-h-screen bg-gradient-to-br from-[var(--cor-main)] via-gray-50 to-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <BreadcrumbNav 
             items={[
-              { label: "Painel Administrativo", href: "/painel", icon: "🏠", color: "blue" },
+              { label: "Painel", href: "/painel", icon: "🏠", color: "blue" },
               { label: "Mensagens", icon: "💬", color: "cyan" }
             ]}
           />
           
-          {/* Hero Section */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-[var(--color-avocado-600)] via-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-3xl shadow-2xl p-6 md:p-10 lg:p-12">
-            <div className="absolute inset-0 bg-[url('/images/pattern.svg')] opacity-10"></div>
-            <div className="relative z-10">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                <div className="flex items-center gap-4 md:gap-6">
-                  <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-xl border border-white/30">
-                    <svg className="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {/* Top Bar */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-6 mb-8">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-[var(--color-avocado-500)] to-[var(--color-avocado-600)] rounded-lg flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
                   <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white" style={{ fontFamily: "var(--fonte-secundaria)" }}>
-                        Mensagens dos Clientes
-                      </h1>
-                      <span className="px-3 py-1.5 bg-white/20 backdrop-blur-sm text-white text-xs md:text-sm font-bold rounded-full border border-white/30 shadow-lg">
-                        Chat
-                      </span>
-                    </div>
-                    <p className="text-white/90 text-sm md:text-base lg:text-lg">
-                      Gerencie as conversas com os clientes
-                    </p>
-                    <p className="text-white/80 text-xs md:text-sm mt-1">
-                      {conversas.length} conversa{conversas.length !== 1 ? 's' : ''} ativa{conversas.length !== 1 ? 's' : ''}
-                    </p>
+                    <h1 className="text-xl font-bold text-gray-900">Mensagens dos Clientes</h1>
+                    <p className="text-sm text-gray-600">{conversas.length} conversa{conversas.length !== 1 ? 's' : ''} ativa{conversas.length !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    href="/painel"
-                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/30 hover:shadow-xl"
-                  >
-                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Voltar
-                  </Link>
+                <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={handleNovaConversa}
-                    className="inline-flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-white hover:border-white/80"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
                   >
-                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
                     Nova Conversa
                   </button>
+                  <Link
+                    href="/painel"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Voltar
+                  </Link>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Lista de Conversas */}
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 
             {/* Lista de Conversas com Sistema de Expansão */}
             <div className="max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-hidden w-full">
               {(conversas.length === 0 && !conversaTemporaria) ? (
                 <div className="p-12 text-center">
-                  <div className="text-gray-400 text-7xl mb-4">💬</div>
-                  <h3 className="text-2xl font-bold text-gray-700 mb-2" style={{ fontFamily: "var(--fonte-secundaria)" }}>Nenhuma conversa encontrada</h3>
+                  <div className="text-gray-400 text-6xl mb-4">💬</div>
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">Nenhuma conversa encontrada</h3>
                   <p className="text-gray-500">Inicie uma nova conversa para começar</p>
                 </div>
               ) : (
                 <div className="space-y-3 md:space-y-4 p-4 md:p-6 relative">
                   {/* Incluir conversa temporária se existir */}
                   {conversaTemporaria && (
-                    <div key={conversaTemporaria.userId} className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl conversa-container shadow-lg hover:shadow-xl hover:border-gray-300 transition-all duration-300">
+                    <div key={conversaTemporaria.userId} className="bg-white border border-gray-200 rounded-xl conversa-container shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200">
                       {/* Cabeçalho da Conversa Temporária - Sempre Visível */}
                       <div
                         onClick={() => handleToggleConversa(conversaTemporaria.userId)}
@@ -630,7 +629,7 @@ export default function MensagensAdminPage() {
                   )}
                   
                   {conversas.map((conversa) => (
-                    <div key={conversa.userId} className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-2xl conversa-container shadow-lg hover:shadow-xl hover:border-gray-300 transition-all duration-300">
+                    <div key={conversa.userId} className="bg-white border border-gray-200 rounded-xl conversa-container shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200">
                       {/* Cabeçalho da Conversa - Sempre Visível */}
                       <div
                         onClick={() => handleToggleConversa(conversa.userId)}
@@ -839,16 +838,15 @@ export default function MensagensAdminPage() {
                   setBuscaUsuario(value);
                   
                   // Limpar timeout anterior
-                  if (buscaTimeout) {
-                    clearTimeout(buscaTimeout);
+                  if (buscaTimeoutRef.current) {
+                    clearTimeout(buscaTimeoutRef.current);
                   }
                   
                   if (value.trim()) {
                     // Debounce de 300ms
-                    const timeout = setTimeout(() => {
+                    buscaTimeoutRef.current = setTimeout(() => {
                       handleBuscarUsuarios(value);
                     }, 300);
-                    setBuscaTimeout(timeout);
                   } else {
                     setUsuariosEncontrados([]);
                   }

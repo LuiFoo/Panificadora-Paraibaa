@@ -44,7 +44,22 @@ export default function EditarProdutoPage() {
       
       try {
         const res = await fetch(`/api/admin/produtos/${produtoId}`);
-        const data = await res.json();
+        
+        // Verificar se resposta é JSON válido antes de fazer parse
+        let data;
+        try {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            data = await res.json();
+          } else {
+            throw new Error("Resposta não é JSON");
+          }
+        } catch (jsonError) {
+          console.error("Erro ao parsear JSON:", jsonError);
+          setError("Erro ao processar resposta do servidor");
+          setLoading(false);
+          return;
+        }
         
         if (res.ok && data.success && data.produto) {
           const produto: Produto = data.produto;
@@ -60,8 +75,14 @@ export default function EditarProdutoPage() {
               promocao: {
                 ativo: produto.preco?.promocao?.ativo || false,
                 valorPromocional: produto.preco?.promocao?.valorPromocional?.toString() || "",
-                inicio: produto.preco?.promocao?.inicio ? new Date(produto.preco.promocao.inicio).toISOString().split('T')[0] : "",
-                fim: produto.preco?.promocao?.fim ? new Date(produto.preco.promocao.fim).toISOString().split('T')[0] : ""
+                inicio: produto.preco?.promocao?.inicio ? (() => {
+                  const data = new Date(produto.preco.promocao.inicio);
+                  return isNaN(data.getTime()) ? "" : data.toISOString().split('T')[0];
+                })() : "",
+                fim: produto.preco?.promocao?.fim ? (() => {
+                  const data = new Date(produto.preco.promocao.fim);
+                  return isNaN(data.getTime()) ? "" : data.toISOString().split('T')[0];
+                })() : ""
               }
             },
             estoque: {
@@ -123,7 +144,9 @@ export default function EditarProdutoPage() {
   const handleRemoveItem = (field: 'ingredientes', index: number) => {
     setFormData(prev => {
       const current = [...(prev[field] || [])];
-      current.splice(index, 1);
+      if (index >= 0 && index < current.length) {
+        current.splice(index, 1);
+      }
       return { ...prev, [field]: current };
     });
   };
@@ -138,14 +161,23 @@ export default function EditarProdutoPage() {
     setError("");
     setSuccess("");
     try {
+      // Validar nome não vazio
+      if (!formData.nome || formData.nome.trim().length === 0) {
+        setError("Nome do produto é obrigatório");
+        setIsSubmitting(false);
+        return;
+      }
+      
       const precoValor = safeParseFloat(formData.preco.valor);
       if (precoValor <= 0) {
         setError("Preço deve ser maior que zero");
+        setIsSubmitting(false);
         return;
       }
       
       if (!formData.categoria) {
         setError("Categoria é obrigatória");
+        setIsSubmitting(false);
         return;
       }
       
@@ -158,7 +190,7 @@ export default function EditarProdutoPage() {
         .replace(/&/g, 'e');
       
       const payload = {
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         descricao: formData.descricao,
         categoria: { nome: formData.categoria, slug: categoriaSlug },
         subcategoria: formData.categoria, // Manter para compatibilidade
@@ -168,8 +200,14 @@ export default function EditarProdutoPage() {
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
             valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
-            inicio: new Date(formData.preco.promocao.inicio),
-            fim: new Date(formData.preco.promocao.fim)
+            inicio: (() => {
+              const data = new Date(formData.preco.promocao.inicio);
+              return isNaN(data.getTime()) ? new Date() : data;
+            })(),
+            fim: (() => {
+              const data = new Date(formData.preco.promocao.fim);
+              return isNaN(data.getTime()) ? new Date() : data;
+            })()
           } : undefined
         },
         estoque: {
@@ -191,6 +229,7 @@ export default function EditarProdutoPage() {
 
       if (!produtoId) {
         setError("ID do produto não encontrado");
+        setIsSubmitting(false);
         return;
       }
 
@@ -199,7 +238,22 @@ export default function EditarProdutoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
+      
+      // Verificar se resposta é JSON válido antes de fazer parse
+      let data;
+      try {
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          throw new Error("Resposta não é JSON");
+        }
+      } catch (jsonError) {
+        console.error("Erro ao parsear JSON:", jsonError);
+        setError("Erro ao processar resposta do servidor");
+        setIsSubmitting(false);
+        return;
+      }
       if (res.ok && data.success) {
         setSuccess('Produto atualizado com sucesso!');
         setTimeout(() => {

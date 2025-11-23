@@ -62,7 +62,9 @@ export default function NovoProdutoPage() {
   const handleRemoveItem = (field: 'ingredientes', index: number) => {
     setFormData(prev => {
       const current = [...(prev[field] || [])];
-      current.splice(index, 1);
+      if (index >= 0 && index < current.length) {
+        current.splice(index, 1);
+      }
       return { ...prev, [field]: current };
     });
   };
@@ -77,15 +79,24 @@ export default function NovoProdutoPage() {
     setError("");
     setSuccess("");
     try {
+      // Validar nome não vazio
+      if (!formData.nome || formData.nome.trim().length === 0) {
+        setError("Nome do produto é obrigatório");
+        setIsSubmitting(false);
+        return;
+      }
+      
       // Validar valores numéricos antes de enviar
       const precoValor = safeParseFloat(formData.preco.valor);
       if (precoValor <= 0) {
         setError("Preço deve ser maior que zero");
+        setIsSubmitting(false);
         return;
       }
       
       if (!formData.categoria) {
         setError("Categoria é obrigatória");
+        setIsSubmitting(false);
         return;
       }
       
@@ -98,7 +109,7 @@ export default function NovoProdutoPage() {
         .replace(/&/g, 'e');
       
       const payload = {
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         descricao: formData.descricao,
         categoria: { nome: formData.categoria, slug: categoriaSlug },
         subcategoria: formData.categoria, // Manter para compatibilidade
@@ -108,8 +119,14 @@ export default function NovoProdutoPage() {
           promocao: formData.preco.promocao.ativo ? {
             ativo: true,
             valorPromocional: safeParseFloat(formData.preco.promocao.valorPromocional),
-            inicio: new Date(formData.preco.promocao.inicio),
-            fim: new Date(formData.preco.promocao.fim)
+            inicio: (() => {
+              const data = new Date(formData.preco.promocao.inicio);
+              return isNaN(data.getTime()) ? new Date() : data;
+            })(),
+            fim: (() => {
+              const data = new Date(formData.preco.promocao.fim);
+              return isNaN(data.getTime()) ? new Date() : data;
+            })()
           } : undefined
         },
         estoque: {
@@ -147,6 +164,7 @@ export default function NovoProdutoPage() {
       } catch (jsonError) {
         console.error("Erro ao parsear JSON:", jsonError);
         setError("Erro ao processar resposta do servidor");
+        setIsSubmitting(false);
         return;
       }
       

@@ -8,7 +8,37 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import Loading, { LoadingSkeleton } from "@/components/Loading";
 import OptimizedImage from "@/components/OptimizedImage";
-import type { Produto } from "@/types/Produto";
+
+interface ItemCardapio {
+  _id: string;
+  nome: string;
+  slug: string;
+  descricao: string;
+  categoria: {
+    nome: string;
+    slug: string;
+  };
+  subcategoria: string;
+  preco: {
+    valor: number;
+    tipo: string;
+    promocao?: {
+      ativo: boolean;
+      valorPromocional: number;
+    };
+  };
+  imagem: {
+    href: string;
+    alt: string;
+  };
+  avaliacao: {
+    media: number;
+    quantidade: number;
+  };
+  destaque: boolean;
+  tags: string[];
+  status: string;
+}
 
 // Categorias simplificadas e agrupadas de forma lógica
 const categoriasMenu = [
@@ -42,7 +72,7 @@ const categoriaPadrao = categoriasMenu[0].id;
 
 export default function CardapioPage() {
   const [categoriaAtual, setCategoriaAtual] = useState<string>(categoriaPadrao);
-  const [itens, setItens] = useState<Produto[]>([]);
+  const [itens, setItens] = useState<ItemCardapio[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [isClient, setIsClient] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -80,7 +110,9 @@ export default function CardapioPage() {
   }, []);
 
   // Cache de produtos por categoria
-  const [produtosCache, setProdutosCache] = useState<Produto[]>([]);
+  // const categoriaUrl = useMemo(() => categoriaAtual, [categoriaAtual]);
+
+  const [produtosCache, setProdutosCache] = useState<ItemCardapio[]>([]);
   const [cacheLoading, setCacheLoading] = useState(false);
 
   // Fetch de produtos
@@ -128,7 +160,7 @@ export default function CardapioPage() {
     }
   }, [produtosCache]);
 
-  const buscarAvaliacoesEAtualizar = async (itensData: Produto[]) => {
+  const buscarAvaliacoesEAtualizar = async (itensData: ItemCardapio[]) => {
     setLoading(true);
 
     try {
@@ -158,13 +190,12 @@ export default function CardapioPage() {
 
   // Filtrar itens com base na busca
   const filteredItems = itens.filter((item) => {
-    if (!debouncedSearch) return true;
     const searchLower = debouncedSearch.toLowerCase();
     return (
-      item.nome.toLowerCase().includes(searchLower) ||
-      item.descricao?.toLowerCase().includes(searchLower) ||
-      item.subcategoria?.toLowerCase().includes(searchLower) ||
-      (item.tags && Array.isArray(item.tags) && item.tags.some(tag => tag.toLowerCase().includes(searchLower)))
+      (item.nome?.toLowerCase() || '').includes(searchLower) ||
+      (item.descricao?.toLowerCase() || '').includes(searchLower) ||
+      (item.subcategoria?.toLowerCase() || '').includes(searchLower) ||
+      (Array.isArray(item.tags) && item.tags.some(tag => (tag?.toLowerCase() || '').includes(searchLower)))
     );
   });
 
@@ -281,11 +312,13 @@ export default function CardapioPage() {
                           className="object-cover w-full h-64 group-hover:scale-110 transition-transform duration-300"
                           quality={80}
                         />
-                        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                          <span className="text-xs font-bold text-[var(--color-avocado-600)]">
-                            {item.subcategoria}
-                          </span>
-                        </div>
+                        {item.subcategoria && (
+                          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span className="text-xs font-bold text-[var(--color-avocado-600)]">
+                              {item.subcategoria}
+                            </span>
+                          </div>
+                        )}
                         {item.destaque && (
                           <div className="absolute top-3 left-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
                             ⭐ Destaque
@@ -344,7 +377,7 @@ export default function CardapioPage() {
                         
                         <Link
                           href={`/produtos/${item._id}`}
-                          className="block w-full text-center font-bold bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)] px-4 py-2.5 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105"
+                          className="block w-full text-center font-semibold bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
                         >
                           Ver Detalhes
                         </Link>
