@@ -84,7 +84,6 @@ export default function GerenciarUsuarios() {
 
   useEffect(() => {
     fetchUsuarios();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleUpdatePermission = async (userId: string, currentPermission: string) => {
