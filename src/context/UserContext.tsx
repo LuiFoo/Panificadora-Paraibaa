@@ -272,52 +272,71 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     console.log("🔄 UserContext: Iniciando sistema de sincronização OTIMIZADO");
     
+    // Flag para evitar múltiplas execuções simultâneas do checkLocalStorage
+    let isChecking = false;
+    let lastCheckTime = 0;
+    const MIN_CHECK_INTERVAL = 1000; // Mínimo de 1 segundo entre verificações
+    
     const checkLocalStorage = () => {
-      const savedUser = localStorage.getItem("usuario");
-      const manualLogout = localStorage.getItem("manual_logout");
-      
-      // Verificar logout manual
-      if (manualLogout === "true") {
-        const logoutTimestamp = localStorage.getItem("logout_timestamp");
-        const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp, 10) : 0;
-        
-        if (timeSinceLogout < 10000) {
-          // Logout recente - garantir que usuário está limpo
-          if (userStateRef.current) {
-            console.log("🔄 UserContext: Limpando usuário devido a logout manual");
-            setUser(null);
-          }
-          return;
-        }
-      }
-      
-      // Se não há usuário salvo e temos usuário no contexto, limpar
-      if (!savedUser && userStateRef.current) {
-        console.log("🔄 UserContext: Logout detectado");
-        setUser(null);
+      // Evitar execuções simultâneas ou muito frequentes
+      const now = Date.now();
+      if (isChecking || (now - lastCheckTime < MIN_CHECK_INTERVAL)) {
         return;
       }
       
-      // Se há usuário salvo, verificar se precisa atualizar
-      if (savedUser && !isValidating.current) {
-        try {
-          const parsedUser = JSON.parse(savedUser);
+      isChecking = true;
+      lastCheckTime = now;
+      
+      try {
+        const savedUser = localStorage.getItem("usuario");
+        const manualLogout = localStorage.getItem("manual_logout");
+        
+        // Verificar logout manual
+        if (manualLogout === "true") {
+          const logoutTimestamp = localStorage.getItem("logout_timestamp");
+          const timeSinceLogout = logoutTimestamp ? Date.now() - parseInt(logoutTimestamp, 10) : 0;
           
-          // Verificar se o usuário mudou antes de atualizar (evitar re-renders desnecessários)
-          const hasChanged = !userStateRef.current || 
-                           userStateRef.current.login !== parsedUser.login ||
-                           userStateRef.current.permissao !== parsedUser.permissao ||
-                           userStateRef.current.permissaoSuprema !== parsedUser.permissaoSuprema ||
-                           userStateRef.current.name !== parsedUser.name;
-          
-          if (hasChanged) {
-            console.log("✅ UserContext: Atualizando usuário do localStorage:", parsedUser.name);
-            setUser(parsedUser);
-            setLoading(false);
+          if (timeSinceLogout < 10000) {
+            // Logout recente - garantir que usuário está limpo
+            if (userStateRef.current) {
+              console.log("🔄 UserContext: Limpando usuário devido a logout manual");
+              setUser(null);
+            }
+            return;
           }
-        } catch (e) {
-          console.error("Erro ao parsear usuário do polling:", e);
         }
+        
+        // Se não há usuário salvo e temos usuário no contexto, limpar
+        if (!savedUser && userStateRef.current) {
+          console.log("🔄 UserContext: Logout detectado");
+          setUser(null);
+          return;
+        }
+        
+        // Se há usuário salvo, verificar se precisa atualizar
+        if (savedUser && !isValidating.current) {
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            
+            // Verificar se o usuário mudou antes de atualizar (evitar re-renders desnecessários)
+            const hasChanged = !userStateRef.current || 
+                             userStateRef.current.login !== parsedUser.login ||
+                             userStateRef.current.permissao !== parsedUser.permissao ||
+                             userStateRef.current.permissaoSuprema !== parsedUser.permissaoSuprema ||
+                             userStateRef.current.name !== parsedUser.name ||
+                             userStateRef.current.email !== parsedUser.email;
+            
+            if (hasChanged) {
+              console.log("✅ UserContext: Atualizando usuário do localStorage:", parsedUser.name);
+              setUser(parsedUser);
+              setLoading(false);
+            }
+          } catch (e) {
+            console.error("Erro ao parsear usuário do polling:", e);
+          }
+        }
+      } finally {
+        isChecking = false;
       }
     };
 
@@ -335,7 +354,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                          userStateRef.current.login !== newUser.login ||
                          userStateRef.current.permissao !== newUser.permissao ||
                          userStateRef.current.permissaoSuprema !== newUser.permissaoSuprema ||
-                         userStateRef.current.name !== newUser.name;
+                         userStateRef.current.name !== newUser.name ||
+                         userStateRef.current.email !== newUser.email;
         
         if (hasChanged) {
           console.log("🚀 UserContext: Dados do usuário recebidos DIRETAMENTE via evento!");
@@ -347,14 +367,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     
-    // 3. Listener para eventos genéricos
+    // 3. Listener para eventos genéricos (com debounce)
+    let storageUpdateTimeout: NodeJS.Timeout | null = null;
     const handleStorageUpdate = (event?: Event) => {
       console.log("🔔 UserContext: Evento de atualização recebido:", event?.type);
-      checkLocalStorage();
+      // Debounce para evitar múltiplas verificações rápidas
+      if (storageUpdateTimeout) {
+        clearTimeout(storageUpdateTimeout);
+      }
+      storageUpdateTimeout = setTimeout(() => {
+        checkLocalStorage();
+      }, 500);
     };
     
     const handleUserLoggedIn = () => {
       console.log("🔔 UserContext: Evento userLoggedIn recebido!");
+      // Para login, verificar imediatamente
       checkLocalStorage();
     };
     
@@ -364,11 +392,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     window.addEventListener('userLoggedIn', handleUserLoggedIn);
     window.addEventListener('userLoggedOut', handleStorageUpdate);
     
-    // 4. Polling de fallback a cada 2 segundos (otimizado - 300ms era muito agressivo)
-    const interval = setInterval(checkLocalStorage, 2000);
+    // 4. Polling de fallback a cada 15 segundos (reduzido de 2s para evitar loops)
+    // O polling é apenas um fallback - os eventos devem ser a principal forma de sincronização
+    const interval = setInterval(checkLocalStorage, 15000);
     
     return () => {
       clearInterval(interval);
+      if (storageUpdateTimeout) {
+        clearTimeout(storageUpdateTimeout);
+      }
       window.removeEventListener('userDataUpdated', handleUserDataUpdate);
       window.removeEventListener('localStorageUpdated', handleStorageUpdate);
       window.removeEventListener('userLoggedIn', handleUserLoggedIn);

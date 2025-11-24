@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BreadcrumbNav from "@/components/BreadcrumbNav";
 import StarRating from "@/components/StarRating";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useCart } from "@/context/CartContext";
@@ -31,8 +31,20 @@ export default function ProdutoDetalhePage() {
   const [minhaAvaliacao, setMinhaAvaliacao] = useState<number | null>(null);
   const [avaliandoProduto, setAvaliandoProduto] = useState<boolean>(false);
 
+  // Ref para armazenar timeouts e limpar no cleanup
+  const mensagemTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const { addItem } = useCart();
   const { user } = useUser();
+
+  // Cleanup de timeouts quando componente desmontar
+  useEffect(() => {
+    return () => {
+      if (mensagemTimeoutRef.current) {
+        clearTimeout(mensagemTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const buscarAvaliacoes = useCallback(async (produtoId: string) => {
     try {
@@ -192,21 +204,26 @@ export default function ProdutoDetalhePage() {
   };
 
   const handleAddToCart = async () => {
+    // Limpar timeout anterior se existir
+    if (mensagemTimeoutRef.current) {
+      clearTimeout(mensagemTimeoutRef.current);
+    }
+
     if (!produto) {
       setMensagem("Produto não encontrado.");
-      setTimeout(() => setMensagem(""), 3000);
+      mensagemTimeoutRef.current = setTimeout(() => setMensagem(""), 3000);
       return;
     }
 
     if (!user || !user.login) {
       setMensagem("Você precisa estar logado para adicionar ao carrinho.");
-      setTimeout(() => setMensagem(""), 3000);
+      mensagemTimeoutRef.current = setTimeout(() => setMensagem(""), 3000);
       return;
     }
 
     if (quantidade < 1) {
       setMensagem("A quantidade deve ser pelo menos 1.");
-      setTimeout(() => setMensagem(""), 3000);
+      mensagemTimeoutRef.current = setTimeout(() => setMensagem(""), 3000);
       return;
     }
 
@@ -219,7 +236,7 @@ export default function ProdutoDetalhePage() {
     });
 
     setMensagem(resultado.message);
-    setTimeout(() => setMensagem(""), 3000);
+    mensagemTimeoutRef.current = setTimeout(() => setMensagem(""), 3000);
   };
 
   if (loading) {

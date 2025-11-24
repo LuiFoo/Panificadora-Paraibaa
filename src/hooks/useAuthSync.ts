@@ -119,32 +119,45 @@ export const useAuthSync = () => {
               ExIlimitada: data.user.ExIlimitada
             };
 
-            console.log("💾 useAuthSync: Salvando usuário no localStorage:", {
-              login: userData.login,
-              permissaoSuprema: userData.permissaoSuprema,
-              ExIlimitada: userData.ExIlimitada
-            });
-            
-            // SEMPRE salvar no localStorage
-            localStorage.setItem("usuario", JSON.stringify(userData));
-            
-            console.log("📡 useAuthSync: Disparando eventos de sincronização...");
-            
-            // Disparar múltiplos eventos para garantir sincronização
-            window.dispatchEvent(new Event('localStorageUpdated'));
-            window.dispatchEvent(new Event('userLoggedIn'));
-            window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
-            
-            console.log("📡 useAuthSync: Eventos disparados!");
-            
-            // SEMPRE atualizar o contexto quando autenticado
-            setUser(userData);
-            
-            // Limpar flag de logout manual quando usuário faz login
-            localStorage.removeItem("manual_logout");
-            localStorage.removeItem("logout_timestamp");
-            
-            console.log("✅ useAuthSync: Usuário sincronizado com dados do MongoDB");
+            // Verificar se o usuário já está sincronizado corretamente para evitar loops
+            const currentUser = user;
+            const needsUpdate = !currentUser || 
+                              currentUser.login !== userData.login ||
+                              currentUser.permissao !== userData.permissao ||
+                              currentUser.permissaoSuprema !== userData.permissaoSuprema ||
+                              currentUser.name !== userData.name ||
+                              currentUser.email !== userData.email;
+
+            if (needsUpdate) {
+              console.log("💾 useAuthSync: Salvando usuário no localStorage:", {
+                login: userData.login,
+                permissaoSuprema: userData.permissaoSuprema,
+                ExIlimitada: userData.ExIlimitada
+              });
+              
+              // Salvar no localStorage
+              localStorage.setItem("usuario", JSON.stringify(userData));
+              
+              console.log("📡 useAuthSync: Disparando eventos de sincronização...");
+              
+              // Disparar múltiplos eventos para garantir sincronização
+              window.dispatchEvent(new Event('localStorageUpdated'));
+              window.dispatchEvent(new Event('userLoggedIn'));
+              window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
+              
+              console.log("📡 useAuthSync: Eventos disparados!");
+              
+              // Atualizar o contexto quando autenticado
+              setUser(userData);
+              
+              // Limpar flag de logout manual quando usuário faz login
+              localStorage.removeItem("manual_logout");
+              localStorage.removeItem("logout_timestamp");
+              
+              console.log("✅ useAuthSync: Usuário sincronizado com dados do MongoDB");
+            } else {
+              console.log("✅ useAuthSync: Usuário já está sincronizado, pulando atualização");
+            }
           } else {
             // Fallback para dados do NextAuth
             const userData: UserData = {
@@ -160,24 +173,36 @@ export const useAuthSync = () => {
               ExIlimitada: false
             };
 
-            console.log("💾 useAuthSync: Salvando usuário (fallback) no localStorage");
-            
-            // SEMPRE salvar no localStorage
-            localStorage.setItem("usuario", JSON.stringify(userData));
-            
-            // Disparar múltiplos eventos para garantir sincronização
-            window.dispatchEvent(new Event('localStorageUpdated'));
-            window.dispatchEvent(new Event('userLoggedIn'));
-            window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
-            
-            // SEMPRE atualizar o contexto
-            setUser(userData);
-            
-            // Limpar flag de logout manual quando usuário faz login
-            localStorage.removeItem("manual_logout");
-            localStorage.removeItem("logout_timestamp");
-            
-            console.log("✅ useAuthSync: Usuário sincronizado com dados do NextAuth (fallback)");
+            // Verificar se precisa atualizar
+            const currentUser = user;
+            const needsUpdate = !currentUser || 
+                              currentUser.login !== userData.login ||
+                              currentUser.permissao !== userData.permissao ||
+                              currentUser.name !== userData.name ||
+                              currentUser.email !== userData.email;
+
+            if (needsUpdate) {
+              console.log("💾 useAuthSync: Salvando usuário (fallback) no localStorage");
+              
+              // Salvar no localStorage
+              localStorage.setItem("usuario", JSON.stringify(userData));
+              
+              // Disparar múltiplos eventos para garantir sincronização
+              window.dispatchEvent(new Event('localStorageUpdated'));
+              window.dispatchEvent(new Event('userLoggedIn'));
+              window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
+              
+              // Atualizar o contexto
+              setUser(userData);
+              
+              // Limpar flag de logout manual quando usuário faz login
+              localStorage.removeItem("manual_logout");
+              localStorage.removeItem("logout_timestamp");
+              
+              console.log("✅ useAuthSync: Usuário sincronizado com dados do NextAuth (fallback)");
+            } else {
+              console.log("✅ useAuthSync: Usuário já está sincronizado (fallback), pulando atualização");
+            }
           }
         } catch (error) {
           console.error("Erro ao sincronizar dados do usuário:", error);
@@ -196,24 +221,36 @@ export const useAuthSync = () => {
             ExIlimitada: false
           };
 
-          console.log("💾 useAuthSync: Salvando usuário (erro fallback) no localStorage");
-          
-          // SEMPRE salvar no localStorage
-          localStorage.setItem("usuario", JSON.stringify(userData));
-          
-          // Disparar múltiplos eventos para garantir sincronização
-          window.dispatchEvent(new Event('localStorageUpdated'));
-          window.dispatchEvent(new Event('userLoggedIn'));
-          window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
-          
-          // SEMPRE atualizar o contexto
-          setUser(userData);
-          
-          // Limpar flag de logout manual quando usuário faz login
-          localStorage.removeItem("manual_logout");
-          localStorage.removeItem("logout_timestamp");
-          
-          console.log("✅ useAuthSync: Usuário sincronizado com dados do NextAuth (erro fallback)");
+          // Verificar se precisa atualizar
+          const currentUser = user;
+          const needsUpdate = !currentUser || 
+                            currentUser.login !== userData.login ||
+                            currentUser.permissao !== userData.permissao ||
+                            currentUser.name !== userData.name ||
+                            currentUser.email !== userData.email;
+
+          if (needsUpdate) {
+            console.log("💾 useAuthSync: Salvando usuário (erro fallback) no localStorage");
+            
+            // Salvar no localStorage
+            localStorage.setItem("usuario", JSON.stringify(userData));
+            
+            // Disparar múltiplos eventos para garantir sincronização
+            window.dispatchEvent(new Event('localStorageUpdated'));
+            window.dispatchEvent(new Event('userLoggedIn'));
+            window.dispatchEvent(new CustomEvent('userDataUpdated', { detail: userData }));
+            
+            // Atualizar o contexto
+            setUser(userData);
+            
+            // Limpar flag de logout manual quando usuário faz login
+            localStorage.removeItem("manual_logout");
+            localStorage.removeItem("logout_timestamp");
+            
+            console.log("✅ useAuthSync: Usuário sincronizado com dados do NextAuth (erro fallback)");
+          } else {
+            console.log("✅ useAuthSync: Usuário já está sincronizado (erro fallback), pulando atualização");
+          }
         }
       } else if (status === "unauthenticated") {
         // Remove dados do localStorage se não autenticado

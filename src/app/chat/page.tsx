@@ -100,13 +100,14 @@ function ChatContent() {
     }
   }, [user]);
 
+  // Ref para armazenar o interval e poder limpar corretamente
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (user) {
       fetchMensagens();
       
       // Polling inteligente - só quando a página está visível
-      const intervalRef = { current: null as NodeJS.Timeout | null };
-      
       const startPolling = () => {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);

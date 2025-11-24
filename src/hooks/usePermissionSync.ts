@@ -85,13 +85,20 @@ export function usePermissionSync() {
   }, [setUser]); // Removido 'user' das dependências para evitar loops
 
   useEffect(() => {
-    // Verificar atualizações a cada 10 segundos
-    const interval = setInterval(checkPermissionUpdate, 10000);
+    // Verificar atualizações a cada 30 segundos (aumentado de 10s para reduzir carga)
+    // A verificação de permissões não precisa ser tão frequente
+    const interval = setInterval(checkPermissionUpdate, 30000);
 
-    // Verificar imediatamente quando o hook é montado
-    checkPermissionUpdate();
+    // Verificar imediatamente quando o hook é montado (apenas uma vez)
+    // Adicionar um pequeno delay para evitar conflitos na inicialização
+    const initialCheckTimeout = setTimeout(() => {
+      checkPermissionUpdate();
+    }, 2000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(initialCheckTimeout);
+    };
   }, [checkPermissionUpdate]);
 
   // Função para forçar verificação manual

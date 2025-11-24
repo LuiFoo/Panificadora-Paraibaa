@@ -175,10 +175,12 @@ export default function ProfilePage() {
     setCepError(""); // Limpar erro se CEP for válido
     setBuscandoCep(true);
     
+    // Timeout de 10 segundos para evitar travamento
+    const controller = new AbortController();
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
-      // Timeout de 10 segundos para evitar travamento
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      timeoutId = setTimeout(() => controller.abort(), 10000);
       
       // Tentar ViaCEP primeiro
       const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`, {
@@ -189,7 +191,11 @@ export default function ProfilePage() {
         }
       });
       
-      clearTimeout(timeoutId);
+      // Limpar timeout após resposta bem-sucedida
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       
       let data;
       if (response.ok) {
@@ -235,6 +241,12 @@ export default function ProfilePage() {
         setCepError("CEP não encontrado");
       }
     } catch (error) {
+      // Garantir que timeout seja limpo mesmo em caso de erro
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
       if (error instanceof Error && error.name === 'AbortError') {
         setCepError("Busca demorou muito. Tente novamente.");
       } else {
@@ -242,6 +254,10 @@ export default function ProfilePage() {
         setCepError("Erro ao buscar endereço. Tente novamente.");
       }
     } finally {
+      // Garantir limpeza final do timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       setBuscandoCep(false);
     }
   };

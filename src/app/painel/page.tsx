@@ -25,8 +25,11 @@ export default function Painel() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  const fetchStats = async () => {
-    setLoading(true);
+  const fetchStats = async (showLoading = false) => {
+    // Só mostrar loading na primeira carga ou quando explicitamente solicitado
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       const response = await fetch("/api/admin/dashboard-stats");
       
@@ -71,8 +74,10 @@ export default function Painel() {
   };
 
   useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
+    // Primeira carga com loading
+    fetchStats(true);
+    // Atualizações automáticas sem mostrar loading (silencioso)
+    const interval = setInterval(() => fetchStats(false), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -146,7 +151,7 @@ export default function Painel() {
                 </div>
               </div>
               <button
-                onClick={fetchStats}
+                onClick={() => fetchStats(true)}
                 disabled={loading}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
               >
