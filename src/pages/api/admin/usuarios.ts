@@ -215,7 +215,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Usuário não encontrado" });
       }
 
-      console.log(`🗑️ Usuário deletado: ${usuarioADeletar.name} (${usuarioADeletar.email}) por ${adminUser.name} (${adminUser.email})`);
 
       return res.status(200).json({ 
         success: true,

@@ -26,7 +26,6 @@ export default async function handler(
 
     // Validar se é um ObjectId válido
     if (!ObjectId.isValid(slug)) {
-      console.log(`Parâmetro inválido (não é ObjectId): ${slug}`);
       return res.status(400).json({ error: "ID do produto inválido" });
     }
 
@@ -37,7 +36,6 @@ export default async function handler(
       });
 
     if (!produto) {
-      console.log(`Produto não encontrado para ID: ${slug}`);
       return res.status(404).json({ error: "Produto não encontrado" });
     }
 

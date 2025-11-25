@@ -22,7 +22,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .limit(20) // Limitar a 20 produtos destacados
       .toArray();
     
-    console.log(`📊 Produtos em destaque encontrados: ${produtos.length}`);
 
     // Formatar produtos para o frontend
     const produtosFormatados = produtos.map(produto => ({

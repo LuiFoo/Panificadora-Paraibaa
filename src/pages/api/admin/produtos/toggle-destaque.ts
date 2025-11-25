@@ -39,7 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const destaqueAtual = produto.destaque === true;
     const novoDestaque = !destaqueAtual;
     
-    console.log(`Produto ${id}: destaque atual = ${destaqueAtual}, novo destaque = ${novoDestaque}`);
 
     // Atualizar o destaque na coleção
     const result = await db.collection("produtos").updateOne(

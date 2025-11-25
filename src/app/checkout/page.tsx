@@ -205,19 +205,29 @@ export default function CheckoutPage() {
 
   const horarioLimites = getHorarioLimites(dataEntrega);
 
+  // Helper para validar e retornar erro
+  const validarEErro = (mensagem: string) => {
+    setError(mensagem);
+    setLoading(false);
+  };
+
+  // Helper para obter dia da semana de uma data
+  const getDiaSemana = (data: string): number | null => {
+    const dataObj = new Date(data + 'T12:00:00');
+    if (isNaN(dataObj.getTime())) return null;
+    return dataObj.getDay();
+  };
+
   // Limpar hora se não for válida para o dia selecionado
   useEffect(() => {
-    if (dataEntrega && horaEntrega) {
-      const limites = getHorarioLimites(dataEntrega);
-      if (limites && (horaEntrega < limites.min || horaEntrega > limites.max)) {
-        setHoraEntrega("");
-      } else if (!limites) {
-        // Se limites for null (domingo), limpar a hora
-        setHoraEntrega("");
-      }
+    if (!dataEntrega || !horaEntrega) return;
+    
+    const limites = getHorarioLimites(dataEntrega);
+    if (!limites || (horaEntrega < limites.min || horaEntrega > limites.max)) {
+      setHoraEntrega("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataEntrega]); // horaEntrega intencionalmente omitido para evitar loop
+  }, [dataEntrega]);
 
   // Redirecionar se não estiver logado
   useEffect(() => {
@@ -291,8 +301,7 @@ export default function CheckoutPage() {
       // Validações do frontend
       if (modalidadeEntrega === 'entrega') {
         if (!endereco.rua || !endereco.numero || !endereco.bairro || !endereco.cidade) {
-          setError("Preencha todos os campos obrigatórios do endereço para entrega");
-          setLoading(false);
+          validarEErro("Preencha todos os campos obrigatórios do endereço para entrega");
           return;
         }
         
@@ -300,95 +309,68 @@ export default function CheckoutPage() {
         if (endereco.cep) {
           const validacaoCep = validateAndFormatCEP(endereco.cep);
           if (!validacaoCep.isValid) {
-            setError(validacaoCep.error || "CEP inválido");
-            setLoading(false);
+            validarEErro(validacaoCep.error || "CEP inválido");
             return;
           }
         }
-        
-        if (!dataEntrega || !horaEntrega) {
-          setError("Data e hora de entrega são obrigatórias");
-          setLoading(false);
-          return;
-        }
-      } else {
-        // Para retirada, também validar data e hora
-        if (!dataEntrega || !horaEntrega) {
-          setError("Data e hora de retirada são obrigatórias");
-          setLoading(false);
-          return;
-        }
+      }
+      
+      if (!dataEntrega || !horaEntrega) {
+        validarEErro(`Data e hora ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} são obrigatórias`);
+        return;
       }
 
       // Validar se a data não é no passado
       const dataHoraObj = new Date(dataEntrega + 'T' + horaEntrega);
       if (isNaN(dataHoraObj.getTime())) {
-        setError("Data ou hora inválida");
-        setLoading(false);
+        validarEErro("Data ou hora inválida");
         return;
       }
       const agora = new Date();
       if (dataHoraObj <= agora) {
-        setError(`Data e hora ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} devem ser no futuro`);
-        setLoading(false);
+        validarEErro(`Data e hora ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} devem ser no futuro`);
         return;
       }
 
-      // Validar se a data não ultrapassa 1 mês
+      // Validar se a data não ultrapassa 1 mês e horário de funcionamento
       const umMesDepois = new Date(agora);
       umMesDepois.setMonth(umMesDepois.getMonth() + 1);
-      const dataSelecionadaObj = new Date(dataEntrega + 'T12:00:00');
-      if (isNaN(dataSelecionadaObj.getTime())) {
-        setError("Data inválida");
-        setLoading(false);
-        return;
-      }
-      if (dataSelecionadaObj > umMesDepois) {
-        setError(`Pedidos só podem ser feitos para até 1 mês no futuro. Data máxima: ${umMesDepois.toLocaleDateString('pt-BR')}`);
-        setLoading(false);
-        return;
-      }
-
-      // Validar horário de funcionamento baseado no dia da semana
       const dataSelecionada = new Date(dataEntrega + 'T12:00:00');
       if (isNaN(dataSelecionada.getTime())) {
-        setError("Data inválida");
-        setLoading(false);
+        validarEErro("Data inválida");
         return;
       }
-      const diaSemana = dataSelecionada.getDay(); // 0 = Domingo
+      if (dataSelecionada > umMesDepois) {
+        validarEErro(`Pedidos só podem ser feitos para até 1 mês no futuro. Data máxima: ${umMesDepois.toLocaleDateString('pt-BR')}`);
+        return;
+      }
+      const diaSemana = dataSelecionada.getDay();
       
       // Validar formato da hora
       const timeResult = parseTime(horaEntrega);
       if (!timeResult) {
-        setError("Formato de hora inválido. Use HH:MM");
-        setLoading(false);
+        validarEErro("Formato de hora inválido. Use HH:MM");
         return;
       }
       
       const { hour: hora, minute: minuto } = timeResult;
       const horarioEmMinutos = hora * 60 + minuto;
       
-      if (diaSemana === 0) { // Domingo - NÃO PERMITIDO
-        setError(`Não é possível fazer pedidos aos domingos. Por favor, escolha outra data.`);
-        setLoading(false);
+      if (diaSemana === 0) {
+        validarEErro("Não é possível fazer pedidos aos domingos. Por favor, escolha outra data.");
         return;
-      } else { // Segunda a Sábado: 7h às 18:30h
-        if (horarioEmMinutos < 7 * 60 || horarioEmMinutos > (18 * 60 + 30)) {
-          setError(`De segunda a sábado, o horário ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} deve ser entre 7h e 18:30h`);
-          setLoading(false);
-          return;
-        }
+      }
+      
+      if (horarioEmMinutos < 7 * 60 || horarioEmMinutos > (18 * 60 + 30)) {
+        validarEErro(`De segunda a sábado, o horário ${modalidadeEntrega === 'entrega' ? 'de entrega' : 'de retirada'} deve ser entre 7h e 18:30h`);
+        return;
       }
 
       // Validar telefone (considerando formatação)
       if (!isValidPhone(telefone)) {
-        setError("Telefone inválido. Deve ter 10 ou 11 dígitos (DDD + número)");
-        setLoading(false);
+        validarEErro("Telefone inválido. Deve ter 10 ou 11 dígitos (DDD + número)");
         return;
       }
-
-      // Limite de valor removido - clientes podem fazer pedidos de qualquer valor
 
       // Enviar pedido
       const response = await fetch(`/api/orders`, {
@@ -886,9 +868,8 @@ export default function CheckoutPage() {
                           required
                         />
                         {dataEntrega && (() => {
-                          const dataObj = new Date(dataEntrega + 'T12:00:00');
-                          if (isNaN(dataObj.getTime())) return null;
-                          const diaSemana = dataObj.getDay();
+                          const diaSemana = getDiaSemana(dataEntrega);
+                          if (diaSemana === null) return null;
                           return (
                             <p className={`text-xs mt-1 font-medium ${diaSemana === 0 ? 'text-red-600' : 'text-green-700'}`}>
                               {diaSemana === 0 
@@ -989,9 +970,8 @@ export default function CheckoutPage() {
                         required
                       />
                       {dataEntrega && (() => {
-                        const dataObj = new Date(dataEntrega + 'T12:00:00');
-                        if (isNaN(dataObj.getTime())) return null;
-                        const diaSemana = dataObj.getDay();
+                        const diaSemana = getDiaSemana(dataEntrega);
+                        if (diaSemana === null) return null;
                         return (
                           <p className={`text-xs mt-1 font-medium ${diaSemana === 0 ? 'text-red-600' : 'text-blue-700'}`}>
                             {diaSemana === 0 
