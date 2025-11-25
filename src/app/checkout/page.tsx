@@ -424,31 +424,68 @@ export default function CheckoutPage() {
       if (response.ok && data.success) {
         // Salvar dados do usuário APENAS se o checkbox estiver marcado
         if (salvarDados && user?.login) {
+          console.log("💾 Tentando salvar dados do usuário...", {
+            userId: user.login,
+            telefone: telefone,
+            modalidadeEntrega,
+            temEndereco: modalidadeEntrega === 'entrega' && (endereco.rua || endereco.numero || endereco.bairro || endereco.cidade)
+          });
+
           try {
-            const saveResponse = await fetch("/api/user-data", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                userId: user.login,
-                telefone: telefone.trim(),
-                // Salvar endereço apenas se for entrega E tiver dados válidos
-                endereco: modalidadeEntrega === 'entrega' && 
-                         (endereco.rua || endereco.numero || endereco.bairro || endereco.cidade) 
-                         ? endereco : undefined
-              })
-            });
-            
-            if (!saveResponse.ok) {
-              const errorData = await saveResponse.json();
-              console.error("Erro ao salvar dados do usuário:", errorData);
+            // Preparar dados para salvar
+            const dadosParaSalvar: {
+              userId: string;
+              telefone?: string;
+              endereco?: typeof endereco;
+            } = {
+              userId: user.login
+            };
+
+            // Sempre salvar telefone se estiver preenchido (mesmo que não esteja no formato perfeito)
+            if (telefone && telefone.trim()) {
+              dadosParaSalvar.telefone = telefone.trim();
+              console.log("📞 Telefone preparado para salvar:", dadosParaSalvar.telefone);
             } else {
-              console.log("✅ Dados salvos com sucesso para próximas compras");
+              console.warn("⚠️ Telefone vazio ou inválido:", telefone);
+            }
+
+            // Salvar endereço apenas se for entrega E tiver dados válidos
+            if (modalidadeEntrega === 'entrega' && 
+                (endereco.rua || endereco.numero || endereco.bairro || endereco.cidade)) {
+              dadosParaSalvar.endereco = endereco;
+              console.log("📍 Endereço preparado para salvar:", dadosParaSalvar.endereco);
+            } else {
+              console.log("ℹ️ Endereço não será salvo (retirada ou sem dados)");
+            }
+
+            // Só fazer a requisição se houver dados para salvar
+            if (dadosParaSalvar.telefone || dadosParaSalvar.endereco) {
+              console.log("🚀 Enviando requisição para salvar:", dadosParaSalvar);
+              
+              const saveResponse = await fetch("/api/user-data", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(dadosParaSalvar)
+              });
+              
+              const saveData = await saveResponse.json();
+              
+              if (!saveResponse.ok) {
+                console.error("❌ Erro ao salvar dados do usuário:", {
+                  status: saveResponse.status,
+                  data: saveData
+                });
+              } else {
+                console.log("✅ Dados salvos com sucesso:", saveData);
+              }
+            } else {
+              console.warn("⚠️ Nenhum dado válido para salvar (telefone ou endereço)");
             }
           } catch (error) {
-            console.error("Erro ao salvar dados do usuário:", error);
+            console.error("❌ Erro ao salvar dados do usuário:", error);
           }
-        } else if (!salvarDados) {
-          console.log("ℹ️ Dados não salvos - checkbox não estava marcado");
+        } else {
+          console.log("ℹ️ Checkbox não marcado ou usuário não logado");
         }
         
         setSuccess(true);

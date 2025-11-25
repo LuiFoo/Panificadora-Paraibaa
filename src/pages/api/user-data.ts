@@ -67,12 +67,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Salvar dados do usuário
       const { userId, telefone, endereco } = req.body;
 
+      console.log("📥 Recebendo requisição para salvar dados:", {
+        userId,
+        temTelefone: !!telefone,
+        temEndereco: !!endereco,
+        sessionLogin
+      });
+
       if (!userId) {
+        console.error("❌ userId não fornecido");
         return res.status(400).json({ error: "userId é obrigatório" });
       }
 
       // ✅ VERIFICAR SE O USUÁRIO ESTÁ ATUALIZANDO SEUS PRÓPRIOS DADOS
       if (userId !== sessionLogin) {
+        console.error("❌ Tentativa de atualizar dados de outro usuário:", { userId, sessionLogin });
         return res.status(403).json({ 
           error: "Você só pode atualizar seus próprios dados" 
         });
@@ -97,13 +106,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         dataAtualizacao: new Date()
       };
 
+      // Sempre tentar salvar telefone se fornecido
       if (telefone && typeof telefone === 'string' && telefone.trim()) {
-        // Salvar em ambos os campos para manter compatibilidade
         updateData.phone = telefone.trim();
         updateData.telefone = telefone.trim();
       }
 
-      // Salvar endereço apenas se fornecido e válido (não enviar undefined)
+      // Salvar endereço apenas se fornecido e válido
       if (endereco !== undefined && endereco !== null && typeof endereco === 'object') {
         // Validar se o endereço tem pelo menos um campo preenchido
         const temDados = endereco.rua || endereco.numero || endereco.bairro || endereco.cidade;
@@ -112,13 +121,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
+      // Verificar se há algo para atualizar
+      if (!updateData.phone && !updateData.endereco) {
+        console.warn("⚠️ Nenhum dado válido para salvar:", { telefone, endereco });
+        return res.status(400).json({ 
+          error: "Nenhum dado válido para salvar. Forneça telefone ou endereço." 
+        });
+      }
+
+      console.log("💾 Salvando dados no banco:", {
+        phone: updateData.phone,
+        temEndereco: !!updateData.endereco
+      });
+
       const result = await usersCollection.updateOne(
         { login: userId },
         { $set: updateData }
       );
 
+      console.log("📊 Resultado da atualização:", {
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount
+      });
+
       if (result.matchedCount === 0) {
+        console.error("❌ Usuário não encontrado:", userId);
         return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+
+      if (result.modifiedCount === 0) {
+        // Dados podem já estar salvos, mas ainda retornar sucesso
+        console.log("ℹ️ Dados já estavam salvos ou não houve alteração");
+      } else {
+        console.log("✅ Dados atualizados com sucesso");
       }
 
       // Verificar se os dados foram realmente salvos
