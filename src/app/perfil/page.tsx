@@ -33,7 +33,6 @@ interface ProfileData {
 
 export default function ProfilePage() {
   const { user, setUser } = useUser();
-  // const { showToast } = useToast(); // Toast desabilitado
   const router = useRouter();
   
   const [profileData, setProfileData] = useState<ProfileData>({

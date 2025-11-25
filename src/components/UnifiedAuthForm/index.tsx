@@ -18,10 +18,6 @@ export default function UnifiedAuthForm({
 }: UnifiedAuthFormProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // const { showToast } = useToast(); // Toast desabilitado
-  // const { setUser } = useUser();
-  // const router = useRouter();
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);

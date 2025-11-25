@@ -38,7 +38,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 // --------------- Provider ---------------
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useUser();
-  // const { showToast } = useToast(); // Toast desabilitado
   const login = user?.login ?? "guest";
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);

@@ -15,6 +15,7 @@ interface Endereco {
   numero: string;
   bairro: string;
   cidade: string;
+  estado: string;
   cep: string;
   complemento: string;
 }
@@ -39,6 +40,7 @@ export default function CheckoutPage() {
     numero: "",
     bairro: "",
     cidade: "",
+    estado: "",
     cep: "",
     complemento: ""
   });
@@ -53,7 +55,7 @@ export default function CheckoutPage() {
   const [cepError, setCepError] = useState("");
   const cepTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const redirecionamentoIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const jaValidouRef = useRef(false); // 🐛 CORREÇÃO: Prevenir loop infinito
+  const jaValidouRef = useRef(false);
 
   // Calcular data máxima (1 mês a partir de hoje)
   const getDataMaxima = () => {
@@ -112,7 +114,6 @@ export default function CheckoutPage() {
         data = await response.json();
       } else {
         // Fallback para BrasilAPI se ViaCEP falhar
-        console.log("ViaCEP falhou, tentando BrasilAPI...");
         const brasilApiResponse = await fetch(`https://brasilapi.com.br/api/cep/v1/${cepLimpo}`, {
           signal: controller.signal,
           headers: {
@@ -141,6 +142,7 @@ export default function CheckoutPage() {
           rua: data.logradouro || "",
           bairro: data.bairro || "",
           cidade: data.localidade || "",
+          estado: data.uf || "",
           cep: validacao.formatted
         }));
       } else {
@@ -188,8 +190,7 @@ export default function CheckoutPage() {
   const getHorarioLimites = (data: string) => {
     if (!data) return { min: "07:00", max: "18:30" };
     
-    const dataSelecionada = new Date(data + 'T12:00:00'); // Meio-dia para evitar problemas de timezone
-    // 🐛 CORREÇÃO: Validar se a data é válida antes de usar
+    const dataSelecionada = new Date(data + 'T12:00:00');
     if (isNaN(dataSelecionada.getTime())) {
       return null; // Retornar null se data inválida
     }
@@ -232,7 +233,6 @@ export default function CheckoutPage() {
     }
   }, [cartItems, loading, router]);
 
-  // 🐛 CORREÇÃO: Validar carrinho apenas UMA VEZ ao montar o componente
   useEffect(() => {
     const validarCarrinho = async () => {
       // Prevenir validação múltipla
@@ -242,9 +242,7 @@ export default function CheckoutPage() {
       setValidandoCarrinho(true);
       
       try {
-        console.log("🔄 Validando carrinho antes do checkout...");
         await forcarAtualizacao();
-        console.log("✅ Carrinho validado com sucesso");
       } catch (error) {
         console.error("❌ Erro ao validar carrinho:", error);
       } finally {
@@ -252,12 +250,11 @@ export default function CheckoutPage() {
       }
     };
 
-    // Executar validação apenas uma vez
     validarCarrinho();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 🐛 CORREÇÃO: Array vazio - executa apenas uma vez
+  }, []);
 
-  // 🐛 CORREÇÃO: Validar valores antes de calcular total para prevenir NaN/Infinity
+  // Validar valores antes de calcular total para prevenir NaN/Infinity
   const total = cartItems.reduce((sum, item) => {
     const valor = Number(item.valor) || 0;
     const quantidade = Number(item.quantidade) || 0;
@@ -277,16 +274,12 @@ export default function CheckoutPage() {
 
     try {
       // Validar e atualizar carrinho antes do checkout
-      console.log("🔄 Validando carrinho antes de finalizar pedido...");
       await forcarAtualizacao();
       
-      // 🐛 CORREÇÃO: Aguardar um tick para garantir que o contexto foi atualizado
-      // O cartItems do contexto será atualizado automaticamente após forcarAtualizacao
-      // Mas precisamos verificar novamente após a atualização
+      // Aguardar um tick para garantir que o contexto foi atualizado
       await new Promise(resolve => setTimeout(resolve, 100));
       
       // Verificar se ainda há itens no carrinho após validação
-      // Usar cartItems do contexto que já foi atualizado
       if (cartItems.length === 0) {
         setError("Seu carrinho foi atualizado e não contém mais produtos válidos. Redirecionando para o carrinho...");
         setLoading(false);
@@ -328,7 +321,6 @@ export default function CheckoutPage() {
       }
 
       // Validar se a data não é no passado
-      // 🐛 CORREÇÃO: Validar se a data é válida antes de usar
       const dataHoraObj = new Date(dataEntrega + 'T' + horaEntrega);
       if (isNaN(dataHoraObj.getTime())) {
         setError("Data ou hora inválida");
@@ -346,7 +338,6 @@ export default function CheckoutPage() {
       const umMesDepois = new Date(agora);
       umMesDepois.setMonth(umMesDepois.getMonth() + 1);
       const dataSelecionadaObj = new Date(dataEntrega + 'T12:00:00');
-      // 🐛 CORREÇÃO: Validar se a data é válida antes de comparar
       if (isNaN(dataSelecionadaObj.getTime())) {
         setError("Data inválida");
         setLoading(false);
@@ -360,7 +351,6 @@ export default function CheckoutPage() {
 
       // Validar horário de funcionamento baseado no dia da semana
       const dataSelecionada = new Date(dataEntrega + 'T12:00:00');
-      // 🐛 CORREÇÃO: Validar se a data é válida antes de usar
       if (isNaN(dataSelecionada.getTime())) {
         setError("Data inválida");
         setLoading(false);
@@ -422,7 +412,7 @@ export default function CheckoutPage() {
         })
       });
 
-      // 🐛 CORREÇÃO: Verificar se resposta é JSON válido antes de fazer parse
+      // Verificar se resposta é JSON válido antes de fazer parse
       let data;
       try {
         const contentType = response.headers.get("content-type");
@@ -438,7 +428,6 @@ export default function CheckoutPage() {
         return;
       }
       
-      console.log("📋 Resposta da API:", { status: response.status, data });
 
       if (response.ok && data.success) {
         // Salvar dados do usuário se solicitado
@@ -475,7 +464,6 @@ export default function CheckoutPage() {
           });
         }, 1000);
       } else {
-        console.log("❌ Erro na API:", data);
         setError(data.error || "Erro ao processar pedido");
       }
     } catch (err) {
@@ -898,7 +886,6 @@ export default function CheckoutPage() {
                           required
                         />
                         {dataEntrega && (() => {
-                          // 🐛 CORREÇÃO: Validar data antes de usar getDay()
                           const dataObj = new Date(dataEntrega + 'T12:00:00');
                           if (isNaN(dataObj.getTime())) return null;
                           const diaSemana = dataObj.getDay();
@@ -1002,7 +989,6 @@ export default function CheckoutPage() {
                         required
                       />
                       {dataEntrega && (() => {
-                        // 🐛 CORREÇÃO: Validar data antes de usar getDay()
                         const dataObj = new Date(dataEntrega + 'T12:00:00');
                         if (isNaN(dataObj.getTime())) return null;
                         const diaSemana = dataObj.getDay();
@@ -1178,7 +1164,6 @@ export default function CheckoutPage() {
                     <p className="text-sm text-gray-600">Qtd: {item.quantidade}</p>
                   </div>
                   <p className="font-semibold">
-                    {/* 🐛 CORREÇÃO: Validar valores antes de calcular para prevenir NaN */}
                     R$ {(() => {
                       const valor = Number(item.valor) || 0;
                       const quantidade = Number(item.quantidade) || 0;
@@ -1192,7 +1177,6 @@ export default function CheckoutPage() {
               <div className="mt-4 pt-4 border-t border-gray-300">
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total:</span>
-                  {/* 🐛 CORREÇÃO: Validar total antes de formatar */}
                   <span>R$ {(isNaN(total) || !isFinite(total) ? 0 : total).toFixed(2).replace(".", ",")}</span>
                 </div>
               </div>

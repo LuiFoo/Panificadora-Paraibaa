@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       profile: {
         name: user.name || "",
         email: user.email || "",
-        phone: user.phone || "",
+        phone: user.phone || user.telefone || "",
         endereco: user.endereco || {
           rua: user.address || "",
           numero: user.number || "",

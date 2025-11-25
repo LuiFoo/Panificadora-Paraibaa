@@ -27,7 +27,6 @@ export default function AuthForm({
   imageAlt
 }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  // const { showToast } = useToast(); // Toast desabilitado
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);

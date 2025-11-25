@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({
         success: true,
         dadosSalvos: {
-          telefone: user.telefone || "",
+          telefone: user.phone || user.telefone || "",
           endereco: user.endereco || null
         }
       });
@@ -64,15 +64,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      interface EnderecoSalvo {
+        rua?: string;
+        numero?: string;
+        bairro?: string;
+        cidade?: string;
+        estado?: string;
+        cep?: string;
+        complemento?: string;
+      }
+
       const updateData: {
         dataAtualizacao: Date;
+        phone?: string;
         telefone?: string;
-        endereco?: string;
+        endereco?: EnderecoSalvo;
       } = {
         dataAtualizacao: new Date()
       };
 
       if (telefone) {
+        // Salvar em ambos os campos para manter compatibilidade
+        updateData.phone = telefone;
         updateData.telefone = telefone;
       }
 
