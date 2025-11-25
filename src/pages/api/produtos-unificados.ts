@@ -99,7 +99,7 @@ export default async function handler(
       .toArray() as unknown as ProdutoUnificado[];
 
     // Processar produtos e agrupar por categoria
-    produtos.forEach((produto: ProdutoUnificado & { subc?: string; valor?: number; vtipo?: string; status?: "ativo" | "inativo" | "sazonal" | "pause"; img?: string; ingredientes?: string[] | string }) => {
+    produtos.forEach((produto: ProdutoUnificado & { subc?: string; valor?: number; vtipo?: string; status?: "ativo" | "inativo" | "sazonal" | "pause"; img?: string; ingredientes?: string[] | string; alergicos?: string[] | string }) => {
       let categoriaSlug: string = '';
       let grupoPrincipal: string | null = null;
 
@@ -168,13 +168,15 @@ export default async function handler(
             }
             return [];
           })(),
-          alergicos: produto.alergicos === null || produto.alergicos === undefined
-            ? []
-            : (Array.isArray(produto.alergicos) 
-              ? produto.alergicos 
-              : (typeof produto.alergicos === 'string' && produto.alergicos.trim() 
-                ? produto.alergicos.split(',').map((a: string) => a.trim()).filter(Boolean)
-                : [])),
+          alergicos: (() => {
+            const alergicos: string[] | string | null | undefined = produto.alergicos as string[] | string | null | undefined;
+            if (alergicos === null || alergicos === undefined) return [];
+            if (Array.isArray(alergicos)) return alergicos;
+            if (typeof alergicos === 'string' && alergicos.trim()) {
+              return alergicos.split(',').map((a: string) => a.trim()).filter(Boolean);
+            }
+            return [];
+          })(),
           avaliacao: produto.avaliacao || {
             media: produto.mediaAvaliacao || 0,
             quantidade: produto.totalAvaliacoes || 0,
