@@ -80,12 +80,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // ✅ VERIFICAR SE O USUÁRIO ESTÁ ATUALIZANDO SEUS PRÓPRIOS DADOS
-      if (userId !== sessionLogin) {
-        console.error("❌ Tentativa de atualizar dados de outro usuário:", { userId, sessionLogin });
+      // Comparar userId com sessionLogin (pode ser login ou email)
+      const userIdMatch = userId === sessionLogin || 
+                         userId === (session.user as { email?: string }).email ||
+                         sessionLogin === userId;
+      
+      if (!userIdMatch) {
+        console.error("❌ Tentativa de atualizar dados de outro usuário:", { 
+          userId, 
+          sessionLogin,
+          sessionEmail: (session.user as { email?: string }).email,
+          sessionUser: session.user
+        });
         return res.status(403).json({ 
           error: "Você só pode atualizar seus próprios dados" 
         });
       }
+      
+      console.log("✅ Validação de usuário passou:", { userId, sessionLogin });
 
       interface EnderecoSalvo {
         rua?: string;
@@ -131,13 +143,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log("💾 Salvando dados no banco:", {
         phone: updateData.phone,
-        temEndereco: !!updateData.endereco
+        temEndereco: !!updateData.endereco,
+        userId,
+        sessionLogin
       });
 
-      const result = await usersCollection.updateOne(
+      // Tentar atualizar por login primeiro, depois por email
+      let result = await usersCollection.updateOne(
         { login: userId },
         { $set: updateData }
       );
+
+      // Se não encontrou por login, tentar por email
+      if (result.matchedCount === 0) {
+        console.log("⚠️ Usuário não encontrado por login, tentando por email...");
+        const sessionEmail = (session.user as { email?: string }).email;
+        if (sessionEmail) {
+          result = await usersCollection.updateOne(
+            { email: sessionEmail },
+            { $set: updateData }
+          );
+        }
+      }
 
       console.log("📊 Resultado da atualização:", {
         matchedCount: result.matchedCount,

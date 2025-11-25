@@ -421,46 +421,44 @@ export default function CheckoutPage() {
       }
       
 
-      if (response.ok && data.success) {
-        // Salvar dados do usuário APENAS se o checkbox estiver marcado
-        if (salvarDados && user?.login) {
-          console.log("💾 Tentando salvar dados do usuário...", {
-            userId: user.login,
-            telefone: telefone,
-            modalidadeEntrega,
-            temEndereco: modalidadeEntrega === 'entrega' && (endereco.rua || endereco.numero || endereco.bairro || endereco.cidade)
-          });
-
+      // Salvar dados do usuário APENAS se o checkbox estiver marcado
+      // Fazer isso ANTES de processar o resultado do pedido para garantir que seja executado
+      if (salvarDados && user?.login) {
+        // Executar salvamento de forma assíncrona e independente
+        (async () => {
           try {
+            const userId = user.login;
+            
+            console.log("💾 [CHECKOUT] Iniciando salvamento de dados...", {
+              userId,
+              telefone: telefone?.substring(0, 10) + "...",
+              modalidadeEntrega,
+              temEndereco: modalidadeEntrega === 'entrega' && (endereco.rua || endereco.numero || endereco.bairro || endereco.cidade)
+            });
+
             // Preparar dados para salvar
             const dadosParaSalvar: {
               userId: string;
               telefone?: string;
               endereco?: typeof endereco;
             } = {
-              userId: user.login
+              userId: userId
             };
 
-            // Sempre salvar telefone se estiver preenchido (mesmo que não esteja no formato perfeito)
+            // Sempre salvar telefone se estiver preenchido
             if (telefone && telefone.trim()) {
               dadosParaSalvar.telefone = telefone.trim();
-              console.log("📞 Telefone preparado para salvar:", dadosParaSalvar.telefone);
-            } else {
-              console.warn("⚠️ Telefone vazio ou inválido:", telefone);
             }
 
             // Salvar endereço apenas se for entrega E tiver dados válidos
             if (modalidadeEntrega === 'entrega' && 
                 (endereco.rua || endereco.numero || endereco.bairro || endereco.cidade)) {
               dadosParaSalvar.endereco = endereco;
-              console.log("📍 Endereço preparado para salvar:", dadosParaSalvar.endereco);
-            } else {
-              console.log("ℹ️ Endereço não será salvo (retirada ou sem dados)");
             }
 
             // Só fazer a requisição se houver dados para salvar
             if (dadosParaSalvar.telefone || dadosParaSalvar.endereco) {
-              console.log("🚀 Enviando requisição para salvar:", dadosParaSalvar);
+              console.log("🚀 [CHECKOUT] Enviando requisição para salvar dados...");
               
               const saveResponse = await fetch("/api/user-data", {
                 method: "PUT",
@@ -471,22 +469,30 @@ export default function CheckoutPage() {
               const saveData = await saveResponse.json();
               
               if (!saveResponse.ok) {
-                console.error("❌ Erro ao salvar dados do usuário:", {
+                console.error("❌ [CHECKOUT] Erro ao salvar dados:", {
                   status: saveResponse.status,
-                  data: saveData
+                  statusText: saveResponse.statusText,
+                  error: saveData
                 });
               } else {
-                console.log("✅ Dados salvos com sucesso:", saveData);
+                console.log("✅ [CHECKOUT] Dados salvos com sucesso!", saveData);
               }
             } else {
-              console.warn("⚠️ Nenhum dado válido para salvar (telefone ou endereço)");
+              console.warn("⚠️ [CHECKOUT] Nenhum dado válido para salvar");
             }
           } catch (error) {
-            console.error("❌ Erro ao salvar dados do usuário:", error);
+            console.error("❌ [CHECKOUT] Erro ao salvar dados:", error);
           }
-        } else {
-          console.log("ℹ️ Checkbox não marcado ou usuário não logado");
-        }
+        })();
+      } else {
+        console.log("ℹ️ [CHECKOUT] Dados não serão salvos:", {
+          salvarDados,
+          temUser: !!user,
+          temLogin: !!user?.login
+        });
+      }
+
+      if (response.ok && data.success) {
         
         setSuccess(true);
         clearCart();
