@@ -139,7 +139,7 @@ export default async function handler(
           _id: produto._id.toString(),
           nome: produto.nome,
           slug: produto.slug || produto._id.toString(),
-          descricao: produto.descricao || produto.ingredientes || "",
+          descricao: produto.descricao || (Array.isArray(produto.ingredientes) && produto.ingredientes.length > 0 ? produto.ingredientes.join(", ") : ""),
           categoria: produto.categoria || {
             nome: produto.subc || produto.subcategoria || "Categoria",
             slug: categoriaSlug
