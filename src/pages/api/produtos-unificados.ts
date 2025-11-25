@@ -99,7 +99,7 @@ export default async function handler(
       .toArray() as unknown as ProdutoUnificado[];
 
     // Processar produtos e agrupar por categoria
-    produtos.forEach((produto: ProdutoUnificado & { subc?: string; valor?: number; vtipo?: string; status?: "ativo" | "inativo" | "sazonal" | "pause"; img?: string; ingredientes?: string[] | string; alergicos?: string[] | string; mediaAvaliacao?: number; totalAvaliacoes?: number }) => {
+    produtos.forEach((produto: ProdutoUnificado & { subc?: string; valor?: number; vtipo?: string; status?: "ativo" | "inativo" | "sazonal" | "pause"; img?: string; ingredientes?: string[] | string; alergicos?: string[] | string; mediaAvaliacao?: number; totalAvaliacoes?: number; tags?: string[] | string }) => {
       let categoriaSlug: string = '';
       let grupoPrincipal: string | null = null;
 
@@ -183,13 +183,15 @@ export default async function handler(
             usuarios: []
           },
           destaque: produto.destaque || false,
-          tags: produto.tags === null || produto.tags === undefined
-            ? []
-            : (Array.isArray(produto.tags) 
-              ? produto.tags 
-              : (typeof produto.tags === 'string' && produto.tags.trim() 
-                ? produto.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-                : [])),
+          tags: (() => {
+            const tags: string[] | string | null | undefined = produto.tags as string[] | string | null | undefined;
+            if (tags === null || tags === undefined) return [];
+            if (Array.isArray(tags)) return tags;
+            if (typeof tags === 'string' && tags.trim()) {
+              return tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+            }
+            return [];
+          })(),
           status: produto.status === "pause" ? "inativo" : "ativo",
           criadoEm: produto.criadoEm || produto.dataCriacao || new Date(),
           atualizadoEm: produto.atualizadoEm || produto.dataAtualizacao || new Date()
