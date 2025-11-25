@@ -159,13 +159,15 @@ export default async function handler(
             href: produto.img || '/images/placeholder.png',
             alt: produto.nome || 'Produto'
           },
-          ingredientes: produto.ingredientes === null || produto.ingredientes === undefined
-            ? []
-            : (Array.isArray(produto.ingredientes) 
-              ? produto.ingredientes 
-              : (typeof (produto.ingredientes as any) === 'string' && (produto.ingredientes as any).trim() 
-                ? (produto.ingredientes as any).split(',').map((i: string) => i.trim()).filter(Boolean)
-                : [])),
+          ingredientes: (() => {
+            const ingredientes = produto.ingredientes;
+            if (ingredientes === null || ingredientes === undefined) return [];
+            if (Array.isArray(ingredientes)) return ingredientes;
+            if (typeof ingredientes === 'string' && ingredientes.trim()) {
+              return ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean);
+            }
+            return [];
+          })(),
           alergicos: produto.alergicos === null || produto.alergicos === undefined
             ? []
             : (Array.isArray(produto.alergicos) 
