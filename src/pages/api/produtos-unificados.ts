@@ -99,7 +99,7 @@ export default async function handler(
       .toArray() as unknown as ProdutoUnificado[];
 
     // Processar produtos e agrupar por categoria
-    produtos.forEach((produto: ProdutoUnificado & { subc?: string; valor?: number; vtipo?: string }) => {
+    produtos.forEach((produto: ProdutoUnificado & { subc?: string; valor?: number; vtipo?: string; status?: "ativo" | "inativo" | "sazonal" | "pause" }) => {
       let categoriaSlug: string = '';
       let grupoPrincipal: string | null = null;
 
