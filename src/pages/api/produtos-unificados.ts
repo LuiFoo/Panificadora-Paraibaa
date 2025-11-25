@@ -163,8 +163,8 @@ export default async function handler(
             ? []
             : (Array.isArray(produto.ingredientes) 
               ? produto.ingredientes 
-              : (typeof produto.ingredientes === 'string' && produto.ingredientes.trim() 
-                ? produto.ingredientes.split(',').map((i: string) => i.trim()).filter(Boolean)
+              : (typeof (produto.ingredientes as any) === 'string' && (produto.ingredientes as any).trim() 
+                ? (produto.ingredientes as any).split(',').map((i: string) => i.trim()).filter(Boolean)
                 : [])),
           alergicos: produto.alergicos === null || produto.alergicos === undefined
             ? []
