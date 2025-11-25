@@ -152,7 +152,7 @@ export default async function handler(
             promocao: produto.preco?.promocao
           },
           estoque: produto.estoque || {
-            disponivel: produto.status !== "pause" && produto.status !== "inativo",
+            disponivel: (produto.status as string) !== "pause" && produto.status !== "inativo",
             unidadeMedida: produto.vtipo || "UN"
           },
           imagem: produto.imagem || {
