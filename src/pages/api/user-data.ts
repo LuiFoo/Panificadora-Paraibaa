@@ -40,11 +40,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Usuário não encontrado" });
       }
 
+      // Garantir que endereco seja um objeto válido ou null
+      let enderecoRetornado = null;
+      if (user.endereco && typeof user.endereco === 'object' && Object.keys(user.endereco).length > 0) {
+        enderecoRetornado = {
+          rua: user.endereco.rua || "",
+          numero: user.endereco.numero || "",
+          bairro: user.endereco.bairro || "",
+          cidade: user.endereco.cidade || "",
+          estado: user.endereco.estado || "",
+          cep: user.endereco.cep || "",
+          complemento: user.endereco.complemento || "",
+        };
+      }
+
       return res.status(200).json({
         success: true,
         dadosSalvos: {
           telefone: user.phone || user.telefone || "",
-          endereco: user.endereco || null
+          endereco: enderecoRetornado
         }
       });
     }
@@ -83,14 +97,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         dataAtualizacao: new Date()
       };
 
-      if (telefone) {
+      if (telefone && typeof telefone === 'string' && telefone.trim()) {
         // Salvar em ambos os campos para manter compatibilidade
-        updateData.phone = telefone;
-        updateData.telefone = telefone;
+        updateData.phone = telefone.trim();
+        updateData.telefone = telefone.trim();
       }
 
-      if (endereco) {
-        updateData.endereco = endereco;
+      // Salvar endereço apenas se fornecido e válido (não enviar undefined)
+      if (endereco !== undefined && endereco !== null && typeof endereco === 'object') {
+        // Validar se o endereço tem pelo menos um campo preenchido
+        const temDados = endereco.rua || endereco.numero || endereco.bairro || endereco.cidade;
+        if (temDados) {
+          updateData.endereco = endereco;
+        }
       }
 
       const result = await usersCollection.updateOne(
@@ -102,9 +121,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: "Usuário não encontrado" });
       }
 
+      // Verificar se os dados foram realmente salvos
+      const userAtualizado = await usersCollection.findOne({ login: userId });
+      
       return res.status(200).json({
         success: true,
-        message: "Dados salvos com sucesso"
+        message: "Dados salvos com sucesso",
+        dadosSalvos: {
+          telefone: userAtualizado?.phone || userAtualizado?.telefone || "",
+          endereco: userAtualizado?.endereco || null
+        }
       });
     }
 

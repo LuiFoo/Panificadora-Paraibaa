@@ -59,95 +59,99 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [cepError, setCepError] = useState("");
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [cepTimeout, setCepTimeout] = useState<NodeJS.Timeout | null>(null);
   
 
-  // Carregar dados do usuário apenas uma vez
+  // Carregar dados do usuário
   useEffect(() => {
     const loadProfileData = async () => {
-      if (user && !dataLoaded) {
-        console.log("Carregando dados do perfil para:", user.email);
-        try {
-          const response = await fetch('/api/user/get-profile', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      console.log("Carregando dados do perfil para:", user.email);
+      setDataLoaded(false);
+      
+      try {
+        const response = await fetch('/api/user/get-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: user.email
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Dados recebidos da API:", data);
+
+        if (data.ok && data.profile) {
+          // Carrega todos os dados do perfil do MongoDB
+          const newProfileData = {
+            name: data.profile.name || "",
+            email: data.profile.email || "",
+            phone: data.profile.phone || "",
+            endereco: {
+              rua: data.profile.endereco?.rua || data.profile.address || "",
+              numero: data.profile.endereco?.numero || data.profile.number || "",
+              bairro: data.profile.endereco?.bairro || data.profile.neighborhood || "",
+              cidade: data.profile.endereco?.cidade || data.profile.city || "",
+              estado: data.profile.endereco?.estado || data.profile.state || "",
+              cep: data.profile.endereco?.cep || data.profile.zipCode || "",
             },
-            body: JSON.stringify({
-              email: user.email
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data = await response.json();
-          console.log("Dados recebidos da API:", data);
-
-          if (data.ok && data.profile) {
-            // Carrega todos os dados do perfil do MongoDB
-            const newProfileData = {
-              name: data.profile.name || "",
-              email: data.profile.email || "",
-              phone: data.profile.phone || "",
-              endereco: {
-                rua: data.profile.endereco?.rua || data.profile.address || "",
-                numero: data.profile.endereco?.numero || data.profile.number || "",
-                bairro: data.profile.endereco?.bairro || data.profile.neighborhood || "",
-                cidade: data.profile.endereco?.cidade || data.profile.city || "",
-                estado: data.profile.endereco?.estado || data.profile.state || "",
-                cep: data.profile.endereco?.cep || data.profile.zipCode || "",
-              },
-              birthDate: data.profile.birthDate || "",
-              gender: data.profile.gender || "",
-              preferences: data.profile.preferences || {
-                notifications: true,
-                newsletter: false,
-                promotions: false,
-              },
-            };
-            console.log("Dados do perfil carregados:", newProfileData);
-            setProfileData(newProfileData);
-          } else {
-            console.log("API retornou erro, usando fallback");
-            // Fallback para dados básicos do contexto
-            setProfileData(prev => ({
-              ...prev,
-              name: user.name || "",
-              email: user.email || "",
-            }));
-          }
-          setDataLoaded(true);
-        } catch (error) {
-          console.error("Erro ao carregar perfil:", error);
-          
-          // Tratamento de erro específico
-          if (error instanceof Error) {
-            if (error.message.includes('fetch')) {
-              console.log("Erro de rede - usando dados básicos");
-            } else {
-              console.log("Erro de API - usando dados básicos");
-            }
-          }
-          
+            birthDate: data.profile.birthDate || "",
+            gender: data.profile.gender || "",
+            preferences: data.profile.preferences || {
+              notifications: true,
+              newsletter: false,
+              promotions: false,
+            },
+          };
+          console.log("Dados do perfil carregados:", newProfileData);
+          setProfileData(newProfileData);
+        } else {
+          console.log("API retornou erro, usando fallback");
           // Fallback para dados básicos do contexto
           setProfileData(prev => ({
             ...prev,
             name: user.name || "",
             email: user.email || "",
           }));
-          setDataLoaded(true);
         }
-      } else if (!user) {
-        router.push("/login");
+        setDataLoaded(true);
+      } catch (error) {
+        console.error("Erro ao carregar perfil:", error);
+        
+        // Tratamento de erro específico
+        if (error instanceof Error) {
+          if (error.message.includes('fetch')) {
+            console.log("Erro de rede - usando dados básicos");
+          } else {
+            console.log("Erro de API - usando dados básicos");
+          }
+        }
+        
+        // Fallback para dados básicos do contexto
+        setProfileData(prev => ({
+          ...prev,
+          name: user.name || "",
+          email: user.email || "",
+        }));
+        setDataLoaded(true);
       }
     };
 
     loadProfileData();
-  }, [user, router, dataLoaded]);
+  }, [user, router, refreshKey]);
 
   // Cleanup timeout quando componente for desmontado
   useEffect(() => {
@@ -434,7 +438,7 @@ export default function ProfilePage() {
                   <button
                     onClick={() => {
                       setDataLoaded(false);
-                      window.location.reload();
+                      setRefreshKey(prev => prev + 1);
                     }}
                     className="px-3 py-1 text-sm bg-amber-500 text-white rounded hover:bg-amber-600"
                   >

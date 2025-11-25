@@ -69,20 +69,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Garantir que endereco seja um objeto válido
+    let enderecoFormatado;
+    if (user.endereco && typeof user.endereco === 'object' && Object.keys(user.endereco).length > 0) {
+      enderecoFormatado = user.endereco;
+    } else {
+      enderecoFormatado = {
+        rua: user.address || "",
+        numero: user.number || "",
+        bairro: user.neighborhood || "",
+        cidade: user.city || "",
+        estado: user.state || "",
+        cep: user.zipCode || "",
+        complemento: "",
+      };
+    }
+
     return res.status(200).json({
       ok: true,
       profile: {
         name: user.name || "",
         email: user.email || "",
         phone: user.phone || user.telefone || "",
-        endereco: user.endereco || {
-          rua: user.address || "",
-          numero: user.number || "",
-          bairro: user.neighborhood || "",
-          cidade: user.city || "",
-          estado: user.state || "",
-          cep: user.zipCode || "",
-        },
+        endereco: enderecoFormatado,
         birthDate: user.birthDate || "",
         gender: user.gender || "",
         preferences: user.preferences || {

@@ -173,8 +173,18 @@ export default function CheckoutPage() {
           if (data.dadosSalvos.telefone) {
             setTelefone(data.dadosSalvos.telefone);
           }
-          if (data.dadosSalvos.endereco) {
-            setEndereco(data.dadosSalvos.endereco);
+          if (data.dadosSalvos.endereco && typeof data.dadosSalvos.endereco === 'object') {
+            // Garantir que todos os campos do endereco sejam preenchidos
+            setEndereco(prev => ({
+              ...prev,
+              rua: data.dadosSalvos.endereco?.rua || prev.rua || "",
+              numero: data.dadosSalvos.endereco?.numero || prev.numero || "",
+              bairro: data.dadosSalvos.endereco?.bairro || prev.bairro || "",
+              cidade: data.dadosSalvos.endereco?.cidade || prev.cidade || "",
+              estado: data.dadosSalvos.endereco?.estado || prev.estado || "",
+              cep: data.dadosSalvos.endereco?.cep || prev.cep || "",
+              complemento: data.dadosSalvos.endereco?.complemento || prev.complemento || "",
+            }));
           }
           setDadosCarregados(true);
         }
@@ -412,21 +422,33 @@ export default function CheckoutPage() {
       
 
       if (response.ok && data.success) {
-        // Salvar dados do usuário se solicitado
-        if (salvarDados) {
+        // Salvar dados do usuário APENAS se o checkbox estiver marcado
+        if (salvarDados && user?.login) {
           try {
-            await fetch("/api/user-data", {
+            const saveResponse = await fetch("/api/user-data", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                userId: user?.login,
-                telefone,
-                endereco: modalidadeEntrega === 'entrega' ? endereco : null
+                userId: user.login,
+                telefone: telefone.trim(),
+                // Salvar endereço apenas se for entrega E tiver dados válidos
+                endereco: modalidadeEntrega === 'entrega' && 
+                         (endereco.rua || endereco.numero || endereco.bairro || endereco.cidade) 
+                         ? endereco : undefined
               })
             });
+            
+            if (!saveResponse.ok) {
+              const errorData = await saveResponse.json();
+              console.error("Erro ao salvar dados do usuário:", errorData);
+            } else {
+              console.log("✅ Dados salvos com sucesso para próximas compras");
+            }
           } catch (error) {
             console.error("Erro ao salvar dados do usuário:", error);
           }
+        } else if (!salvarDados) {
+          console.log("ℹ️ Dados não salvos - checkbox não estava marcado");
         }
         
         setSuccess(true);
