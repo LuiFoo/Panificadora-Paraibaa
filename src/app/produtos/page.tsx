@@ -301,7 +301,7 @@ export default function CardapioPage() {
                   {filteredItems.map((item) => (
                     <div
                       key={item._id}
-                      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 group"
+                      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 group flex flex-col h-full"
                     >
                       <div className="relative overflow-hidden">
                         <OptimizedImage
@@ -326,17 +326,26 @@ export default function CardapioPage() {
                         )}
                       </div>
                       
-                      <div className="p-5">
-                        <h3 className="text-lg font-bold mb-2 text-[var(--color-fonte-100)] line-clamp-2 min-h-[3.5rem]">
-                          {item.nome}
-                        </h3>
-                        
-                        {/* Descrição */}
-                        {item.descricao && (
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                            {item.descricao}
-                          </p>
-                        )}
+                      <div className="p-5 flex flex-col h-full">
+                        <div>
+                          <h3 className="text-lg font-bold mb-2 text-[var(--color-fonte-100)] line-clamp-2 min-h-[3.5rem]">
+                            {item.nome}
+                          </h3>
+                          
+                          {/* Descrição */}
+                          {item.descricao ? (
+                            <p className="text-sm text-gray-600 mb-0 line-clamp-2">
+                              {item.descricao}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-400 italic mb-0">
+                              Ainda não possui ingredientes inseridos
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Espaçador flexível para empurrar elementos para baixo */}
+                        <div className="flex-grow"></div>
 
                         {/* Avaliações */}
                         <div className="mb-3 flex items-center gap-2">
@@ -377,7 +386,7 @@ export default function CardapioPage() {
                         
                         <Link
                           href={`/produtos/${item._id}`}
-                          className="block w-full text-center font-semibold bg-gradient-to-r from-[var(--color-avocado-600)] to-[var(--color-avocado-500)] hover:from-[var(--color-avocado-700)] hover:to-[var(--color-avocado-600)] text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
+                          className="inline-flex items-center justify-center gap-2 w-full text-center px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-bold rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 bg-white text-[var(--color-avocado-600)] hover:shadow-xl border-2 border-[var(--color-avocado-600)] hover:border-[var(--color-avocado-500)]"
                         >
                           Ver Detalhes
                         </Link>

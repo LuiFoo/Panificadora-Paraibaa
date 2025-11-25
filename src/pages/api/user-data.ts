@@ -80,24 +80,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // ✅ VERIFICAR SE O USUÁRIO ESTÁ ATUALIZANDO SEUS PRÓPRIOS DADOS
-      // Comparar userId com sessionLogin (pode ser login ou email)
-      const userIdMatch = userId === sessionLogin || 
-                         userId === (session.user as { email?: string }).email ||
-                         sessionLogin === userId;
+      // Buscar o usuário no banco para verificar se o userId (login) corresponde ao usuário da sessão
+      const sessionEmail = (session.user as { email?: string }).email;
       
-      if (!userIdMatch) {
+      // Buscar usuário no banco pelo userId (login) ou email
+      const userNoBanco = await usersCollection.findOne({
+        $or: [
+          { login: userId },
+          { email: sessionEmail }
+        ]
+      });
+
+      if (!userNoBanco) {
+        console.error("❌ Usuário não encontrado no banco:", { userId, sessionEmail });
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+
+      // Verificar se o email do usuário no banco corresponde ao email da sessão
+      const emailMatch = userNoBanco.email === sessionEmail;
+      const loginMatch = userNoBanco.login === userId;
+
+      if (!emailMatch || !loginMatch) {
         console.error("❌ Tentativa de atualizar dados de outro usuário:", { 
           userId, 
           sessionLogin,
-          sessionEmail: (session.user as { email?: string }).email,
-          sessionUser: session.user
+          sessionEmail,
+          userNoBancoEmail: userNoBanco.email,
+          userNoBancoLogin: userNoBanco.login
         });
         return res.status(403).json({ 
           error: "Você só pode atualizar seus próprios dados" 
         });
       }
       
-      console.log("✅ Validação de usuário passou:", { userId, sessionLogin });
+      console.log("✅ Validação de usuário passou:", { 
+        userId, 
+        sessionLogin, 
+        sessionEmail,
+        userNoBancoLogin: userNoBanco.login
+      });
 
       interface EnderecoSalvo {
         rua?: string;
@@ -148,23 +169,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         sessionLogin
       });
 
-      // Tentar atualizar por login primeiro, depois por email
-      let result = await usersCollection.updateOne(
+      // Atualizar usando o login (já validado acima)
+      const result = await usersCollection.updateOne(
         { login: userId },
         { $set: updateData }
       );
-
-      // Se não encontrou por login, tentar por email
-      if (result.matchedCount === 0) {
-        console.log("⚠️ Usuário não encontrado por login, tentando por email...");
-        const sessionEmail = (session.user as { email?: string }).email;
-        if (sessionEmail) {
-          result = await usersCollection.updateOne(
-            { email: sessionEmail },
-            { $set: updateData }
-          );
-        }
-      }
 
       console.log("📊 Resultado da atualização:", {
         matchedCount: result.matchedCount,
