@@ -160,7 +160,7 @@ export default async function handler(
             alt: produto.nome || 'Produto'
           },
           ingredientes: (() => {
-            const ingredientes = produto.ingredientes;
+            const ingredientes: string[] | string | null | undefined = produto.ingredientes as string[] | string | null | undefined;
             if (ingredientes === null || ingredientes === undefined) return [];
             if (Array.isArray(ingredientes)) return ingredientes;
             if (typeof ingredientes === 'string' && ingredientes.trim()) {
