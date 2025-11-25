@@ -192,7 +192,7 @@ export default async function handler(
             }
             return [];
           })(),
-          status: produto.status === "pause" ? "inativo" : "ativo",
+          status: (produto.status as string) === "pause" ? "inativo" : (produto.status || "ativo"),
           criadoEm: produto.criadoEm || produto.dataCriacao || new Date(),
           atualizadoEm: produto.atualizadoEm || produto.dataAtualizacao || new Date()
         };
